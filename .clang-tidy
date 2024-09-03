@@ -1,0 +1,9 @@
+Checks: -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*
+  -readability-magic-numbers
