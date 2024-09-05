@@ -1,32 +1,33 @@
-#include "emulator.h"
+#include "core/emulator.h"
 #include <fmt/format.h>
+#include <span>
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2)
+    const auto args = std::span(argv, static_cast<size_t>(argc));
+
+    if (args.size() != 2)
     {
         fmt::println("Usage: cringeboy <ROM>");
         return 1;
     }
 
-    const std::filesystem::path rom_path = argv[1];
-
-    if (!std::filesystem::exists(rom_path))
+    const auto rom = std::filesystem::path(args[1]);
+    if (!std::filesystem::exists(rom))
     {
-        fmt::println("Failed to open ROM '{}'.", rom_path.string());
-        fmt::println("Ensure that the specified file exists.");
+        fmt::println("Error: Failed to open ROM file \"{}\".", rom.string());
+        fmt::println("Please check if the file exists and the path is correct.");
         return 1;
     }
 
-    if (!rom_path.has_extension() ||
-        (rom_path.extension() != ".dmg" && rom_path.extension() != ".gb" &&
-         rom_path.extension() != ".gbc" && rom_path.extension() != ".bin"))
+    const auto ext = rom.extension();
+    if (ext != ".dmg" && ext != ".gb" && ext != ".gbc" && ext != ".bin")
     {
-        fmt::println("Invalid file extension: {}.", rom_path.extension().string());
-        fmt::println("Allowed extensions are .dmg, .bin, .gb, and .gbc.");
+        fmt::println("Error: Invalid file extension \"{}\".", ext.string());
+        fmt::println("Supported extensions are:\n  - .dmg\n  - .bin\n  - .gb\n  - .gbc");
         return 1;
     }
 
     auto emulator = core::emulator{};
-    emulator.run(argv[1]);
+    emulator.run(rom);
 }

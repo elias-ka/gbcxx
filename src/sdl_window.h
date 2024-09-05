@@ -2,7 +2,6 @@
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
-#include <SDL_render.h>
 #include <memory>
 #include <string_view>
 
@@ -10,10 +9,7 @@ namespace frontend
 {
     struct sdl_deleter
     {
-        void operator()(SDL_Window* window)
-        {
-            SDL_DestroyWindow(window);
-        }
+        void operator()(SDL_Window* window) { SDL_DestroyWindow(window); }
     };
 
     class sdl_window
@@ -22,14 +18,16 @@ namespace frontend
         sdl_window(int width, int height, std::string_view window_title);
         ~sdl_window();
 
+        sdl_window(const sdl_window&) = delete;
+        sdl_window(sdl_window&&) = delete;
+        sdl_window& operator=(const sdl_window&) = delete;
+        sdl_window& operator=(sdl_window&&) = delete;
+
         void wait_event();
 
         void set_title(std::string_view window_title);
 
-        bool is_open() const
-        {
-            return m_is_open;
-        }
+        [[nodiscard]] bool is_open() const { return m_is_open; }
 
     private:
         void on_keypress(const SDL_Event* event);

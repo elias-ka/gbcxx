@@ -32,13 +32,8 @@ namespace core::memory
 
     tl::expected<uint8_t, common::error> mmu::read8(uint16_t addr) const
     {
-        if (0x0000 <= addr && addr <= 0x7FFF)
-        {
-            if (m_in_bios)
-            {
-                return m_bios[addr];
-            }
-        }
+        if (addr < 0x100 && m_in_bios)
+            return m_bios[addr];
 
         return tl::make_unexpected(common::error::out_of_bounds_read);
     }

@@ -8,7 +8,7 @@ namespace core::cpu
 {
     tl::expected<uint8_t, common::error> processor::fetch_imm8(const memory::mmu& mmu)
     {
-        return mmu.read8(++m_reg.pc);
+        return mmu.read8(m_reg.pc++);
     }
 
     tl::expected<uint16_t, common::error> processor::fetch_imm16(const memory::mmu& mmu)

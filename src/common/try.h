@@ -1,8 +1,8 @@
 #pragma once
 
-// The TRY macro is used for propagating errors from tl::expected.
-// Since it uses a GCC extension, it isn't portable across all compiler.
-// As far as I know only Clang and GCC support it.
+// The TRY macro is used for propagating errors from tl::expected. Since it uses GCC's statement
+// expressions extension, it isn't portable across all compilers. As far as I know only Clang and
+// GCC support it.
 #if __clang__ || __GNUC__
 #define TRY(expr)                                                                                  \
     ({                                                                                             \

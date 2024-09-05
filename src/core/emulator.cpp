@@ -35,7 +35,7 @@ namespace core
         }
 
         m_window = std::make_unique<frontend::sdl_window>(
-            800, 600, fmt::format("CringeBoy | {}", get_game_title(rom_data)));
+            160 * 4, 144 * 4, fmt::format("CringeBoy | {}", get_game_title(rom_data)));
 
         while (m_window->is_open())
         {

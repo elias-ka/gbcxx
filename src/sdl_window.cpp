@@ -18,7 +18,8 @@ namespace frontend
         }
 
         m_window.reset(SDL_CreateWindow(window_title.data(), SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN));
+                                        SDL_WINDOWPOS_CENTERED, m_width, m_height,
+                                        SDL_WINDOW_SHOWN));
         if (!m_window)
         {
             LOG_CRITICAL("%s",
@@ -27,10 +28,7 @@ namespace frontend
         }
     }
 
-    sdl_window::~sdl_window()
-    {
-        SDL_Quit();
-    }
+    sdl_window::~sdl_window() { SDL_Quit(); }
 
     void sdl_window::set_title(std::string_view window_title)
     {
