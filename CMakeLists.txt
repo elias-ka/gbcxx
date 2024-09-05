@@ -43,6 +43,8 @@ add_library(cringeboy_base
   src/core/memory/mmu.cpp
   src/core/emulator.h
   src/core/emulator.cpp
+  src/sdl_window.h
+  src/sdl_window.cpp
 )
 
 target_compile_features(cringeboy_base PUBLIC cxx_std_20)
@@ -72,8 +74,6 @@ endif()
 
 add_executable(cringeboy
   src/main.cpp
-  src/sdl_window.h
-  src/sdl_window.cpp
 )
 target_link_libraries(cringeboy PRIVATE cringeboy_base)
 
