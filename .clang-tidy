@@ -1,8 +1,16 @@
+# TODO: Remove -cppcoreguidelines-pro-type-vararg once all `__VA_ARGS__` are removed.
 Checks: -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   clang-analyzer-*,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-pro-type-vararg,
   misc-*,
+  -misc-non-private-member-variables-in-classes,
+  modernize-*,
+  -modernize-use-trailing-return-type,
   performance-*,
   portability-*,
   readability-*
