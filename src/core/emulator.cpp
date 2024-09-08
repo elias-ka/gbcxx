@@ -2,19 +2,20 @@
 #include "common/filesystem.h"
 #include "common/logging.h"
 #include <fmt/format.h>
+#include <span>
 
 namespace core
 {
     namespace
     {
-        std::string get_game_title(const std::vector<uint8_t>& rom)
+        std::string get_game_title(std::span<const uint8_t> rom)
         {
             std::string title;
             std::ranges::copy_n(rom.begin() + 0x134, 16, std::back_inserter(title));
             return title;
         }
 
-        bool verify_checksum(const std::vector<uint8_t>& rom)
+        bool verify_checksum(std::span<const uint8_t> rom)
         {
             uint8_t checksum = 0;
             for (uint16_t address = 0x0134; address <= 0x014C; address++)
@@ -27,7 +28,7 @@ namespace core
 
     void emulator::run(const std::filesystem::path& file)
     {
-        const std::vector<uint8_t> rom_data = common::fs::read_file_bytes(file);
+        const std::vector<uint8_t> rom_data = common::fs::read(file);
         if (!verify_checksum(rom_data))
         {
             LOG_CRITICAL("Invalid header checksum, the program won't be run.");

@@ -6,5 +6,5 @@
 
 namespace common::fs
 {
-    [[nodiscard]] std::vector<uint8_t> read_file_bytes(const std::filesystem::path& file);
+    [[nodiscard]] std::vector<uint8_t> read(const std::filesystem::path& file);
 }
