@@ -8,6 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(CTest)
 include(cmake/CPM.cmake)
+include(cmake/suppress-third-party-warnings.cmake)
 
 CPMAddPackage(
   NAME expected
@@ -16,6 +17,7 @@ CPMAddPackage(
   OPTIONS "EXPECTED_BUILD_TESTS OFF"
   GIT_SHALLOW
 )
+suppress_third_party_warnings(expected)
 
 CPMAddPackage(
   NAME fmt
@@ -24,6 +26,15 @@ CPMAddPackage(
   OPTIONS "FMT_INSTALL OFF"
   GIT_SHALLOW
 )
+suppress_third_party_warnings(fmt)
+
+CPMAddPackage(
+  NAME simdjson
+  VERSION 3.10.1
+  GITHUB_REPOSITORY simdjson/simdjson
+  GIT_SHALLOW
+)
+suppress_third_party_warnings(simdjson)
 
 find_package(SDL2 REQUIRED)
 

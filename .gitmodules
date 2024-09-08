@@ -1,0 +1,4 @@
+[submodule "3rdparty/sm83-json-tests"]
+	path = 3rdparty/sm83-json-tests
+	url = https://github.com/SingleStepTests/sm83
+	ignore = dirty

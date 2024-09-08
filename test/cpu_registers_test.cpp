@@ -6,7 +6,7 @@ namespace cpu = core::cpu;
 class CpuRegistersTest : public ::testing::Test
 {
 protected:
-    core::cpu::registers regs;
+    cpu::registers regs;
 };
 
 TEST_F(CpuRegistersTest, HandlesAFRegister)
