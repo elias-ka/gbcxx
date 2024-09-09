@@ -69,6 +69,8 @@ TEST_P(SingleStepParameterizedTest, SingleStep)
         EXPECT_EQ(reg.f.raw, static_cast<uint8_t>(final["f"].get<uint64_t>()));
         EXPECT_EQ(reg.h, static_cast<uint8_t>(final["h"].get<uint64_t>()));
         EXPECT_EQ(reg.l, static_cast<uint8_t>(final["l"].get<uint64_t>()));
+
+        // to-do: test ram
     }
 }
 
