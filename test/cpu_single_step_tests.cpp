@@ -89,10 +89,17 @@ std::vector<std::filesystem::path> load_test_files()
         const auto& path = dirent.path();
         if (path.extension() == ".json")
         {
-            files.push_back(path);
+            files.push_back(path.filename());
         }
     }
     return files;
 }
 
-INSTANTIATE_TEST_SUITE_P(JsonFiles, SingleStepParameterizedTest, ::testing::Values("00.json"));
+INSTANTIATE_TEST_SUITE_P(
+    JsonFiles, SingleStepParameterizedTest, ::testing::ValuesIn(load_test_files()),
+    [](const testing::TestParamInfo<SingleStepParameterizedTest::ParamType>& info)
+    {
+        auto stem = info.param.stem().string();
+        std::ranges::replace(stem, ' ', '_');
+        return stem;
+    });
