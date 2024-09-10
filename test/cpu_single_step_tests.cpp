@@ -35,6 +35,13 @@ protected:
 
 std::unique_ptr<simdjson::ondemand::parser> SingleStepParameterizedTest::parser = nullptr;
 
+// Helper to avoid explicitly casting everything in the code below
+template <typename T>
+constexpr T get(simdjson::ondemand::value value)
+{
+    return static_cast<T>(value.get_uint64());
+}
+
 TEST_P(SingleStepParameterizedTest, SingleStep)
 {
     simdjson::ondemand::array root_array = doc.get_array();
@@ -45,30 +52,30 @@ TEST_P(SingleStepParameterizedTest, SingleStep)
         cpu::registers& reg = cpu.reg();
 
         simdjson::ondemand::object initial = test["initial"];
-        reg.pc = static_cast<uint16_t>(initial["pc"].get<uint64_t>());
-        reg.sp = static_cast<uint16_t>(initial["sp"].get<uint64_t>());
-        reg.a = static_cast<uint8_t>(initial["a"].get<uint64_t>());
-        reg.b = static_cast<uint8_t>(initial["b"].get<uint64_t>());
-        reg.c = static_cast<uint8_t>(initial["c"].get<uint64_t>());
-        reg.d = static_cast<uint8_t>(initial["d"].get<uint64_t>());
-        reg.e = static_cast<uint8_t>(initial["e"].get<uint64_t>());
-        reg.f.raw = static_cast<uint8_t>(initial["f"].get<uint64_t>());
-        reg.h = static_cast<uint8_t>(initial["h"].get<uint64_t>());
-        reg.l = static_cast<uint8_t>(initial["l"].get<uint64_t>());
+        reg.pc = get<uint16_t>(initial["pc"]);
+        reg.sp = get<uint16_t>(initial["sp"]);
+        reg.a = get<uint8_t>(initial["a"]);
+        reg.b = get<uint8_t>(initial["b"]);
+        reg.c = get<uint8_t>(initial["c"]);
+        reg.d = get<uint8_t>(initial["d"]);
+        reg.e = get<uint8_t>(initial["e"]);
+        reg.f.raw = get<uint8_t>(initial["f"]);
+        reg.h = get<uint8_t>(initial["h"]);
+        reg.l = get<uint8_t>(initial["l"]);
 
         cpu.step(mmu);
 
         simdjson::ondemand::object final = test["final"];
-        EXPECT_EQ(reg.pc, static_cast<uint16_t>(final["pc"].get<uint64_t>()));
-        EXPECT_EQ(reg.sp, static_cast<uint16_t>(final["sp"].get<uint64_t>()));
-        EXPECT_EQ(reg.a, static_cast<uint8_t>(final["a"].get<uint64_t>()));
-        EXPECT_EQ(reg.b, static_cast<uint8_t>(final["b"].get<uint64_t>()));
-        EXPECT_EQ(reg.c, static_cast<uint8_t>(final["c"].get<uint64_t>()));
-        EXPECT_EQ(reg.d, static_cast<uint8_t>(final["d"].get<uint64_t>()));
-        EXPECT_EQ(reg.e, static_cast<uint8_t>(final["e"].get<uint64_t>()));
-        EXPECT_EQ(reg.f.raw, static_cast<uint8_t>(final["f"].get<uint64_t>()));
-        EXPECT_EQ(reg.h, static_cast<uint8_t>(final["h"].get<uint64_t>()));
-        EXPECT_EQ(reg.l, static_cast<uint8_t>(final["l"].get<uint64_t>()));
+        EXPECT_EQ(reg.a, get<uint8_t>(final["a"]));
+        EXPECT_EQ(reg.b, get<uint8_t>(final["b"]));
+        EXPECT_EQ(reg.c, get<uint8_t>(final["c"]));
+        EXPECT_EQ(reg.d, get<uint8_t>(final["d"]));
+        EXPECT_EQ(reg.e, get<uint8_t>(final["e"]));
+        EXPECT_EQ(reg.f.raw, get<uint8_t>(final["f"]));
+        EXPECT_EQ(reg.h, get<uint8_t>(final["h"]));
+        EXPECT_EQ(reg.l, get<uint8_t>(final["l"]));
+        EXPECT_EQ(reg.pc, get<uint16_t>(final["pc"]));
+        EXPECT_EQ(reg.sp, get<uint16_t>(final["sp"]));
 
         // to-do: test ram
     }
