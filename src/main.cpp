@@ -1,11 +1,15 @@
 #include "core/emulator.h"
+#include "sdl_window.h"
+#include "util.h"
 #include <fmt/format.h>
 #include <span>
 
 int main(int argc, char* argv[])
 {
-    const auto args = std::span(argv, static_cast<size_t>(argc));
-
+#ifndef NDEBUG
+    cb::logger::instance().set_log_level(cb::log_level::debug);
+#endif
+    const auto args = std::span(argv, static_cast<usz>(argc));
     if (args.size() != 2)
     {
         fmt::println("Usage: cringeboy <ROM>");
@@ -28,6 +32,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto emulator = core::emulator{};
-    emulator.run(rom);
+    std::unique_ptr<cb::window> window =
+        std::make_unique<frontend::sdl_window>(160, 144, "CringeBoy");
+    auto emulator = cb::emulator{};
+    emulator.run(rom, window.get());
 }

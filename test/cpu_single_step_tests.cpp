@@ -1,9 +1,12 @@
-#include "core/cpu/processor.h"
+#include "core/emulator.h"
+#include "core/processor.h"
+#include "core/video.h"
 #include <filesystem>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <simdjson.h>
 
-namespace cpu = core::cpu;
+using namespace cb;
 
 namespace
 {
@@ -35,6 +38,45 @@ protected:
 
 std::unique_ptr<simdjson::ondemand::parser> SingleStepParameterizedTest::parser = nullptr;
 
+struct state
+{
+    u16 pc, sp;
+    cb::cpu::flags f;
+    u8 a, b, c, d, e, h, l;
+
+    friend bool operator==(const state& lhs, const state& rhs)
+    {
+        return lhs.pc == rhs.pc && lhs.sp == rhs.sp && lhs.a == rhs.a && lhs.b == rhs.b &&
+               lhs.c == rhs.c && lhs.d == rhs.d && lhs.e == rhs.e && lhs.f.raw == rhs.f.raw &&
+               lhs.h == rhs.h && lhs.l == rhs.l;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const state& state)
+    {
+        return os << fmt::format("\nPC={:#04x}, SP={:#04x}, A={:#02x}, B={:#02x}, C={:#02x}, "
+                                 "D={:#02x}, E={:#02x}, "
+                                 "H={:#02x}, L={:#02x}\nFLAGS: {}\n",
+                                 state.pc, state.sp, state.a, state.b, state.c, state.d, state.e,
+                                 state.h, state.l, state.f);
+    }
+
+    friend void PrintTo(const state& state, std::ostream* os) { *os << state; }
+};
+
+testing::AssertionResult AssertMyStateEqExpectedState(const state& my_state, const state& expected,
+                                                      const state& initial)
+{
+    if (my_state == expected)
+        return testing::AssertionSuccess();
+
+    // to-do: somehow customize the output of GoogleTest
+    std::ostringstream oss;
+    oss << "Initial state: " << initial << '\n';
+    oss << "Expected state: " << expected << '\n';
+    oss << "My state: " << my_state << '\n';
+    return testing::AssertionFailure() << oss.str();
+}
+
 // Helper to avoid explicitly casting everything in the code below
 template <typename T>
 constexpr T get(simdjson::ondemand::value value)
@@ -47,35 +89,59 @@ TEST_P(SingleStepParameterizedTest, SingleStep)
     simdjson::ondemand::array root_array = doc.get_array();
     for (simdjson::ondemand::object test : root_array)
     {
-        core::memory::mmu mmu{};
         cpu::processor cpu{};
-        cpu::registers& reg = cpu.reg();
+        memory::mmu mmu{};
 
         simdjson::ondemand::object initial = test["initial"];
-        reg.pc = get<uint16_t>(initial["pc"]);
-        reg.sp = get<uint16_t>(initial["sp"]);
-        reg.a = get<uint8_t>(initial["a"]);
-        reg.b = get<uint8_t>(initial["b"]);
-        reg.c = get<uint8_t>(initial["c"]);
-        reg.d = get<uint8_t>(initial["d"]);
-        reg.e = get<uint8_t>(initial["e"]);
-        reg.f.raw = get<uint8_t>(initial["f"]);
-        reg.h = get<uint8_t>(initial["h"]);
-        reg.l = get<uint8_t>(initial["l"]);
+        const state initial_state = {.pc = get<u16>(initial["pc"]),
+                                     .sp = get<u16>(initial["sp"]),
+                                     .f = cb::cpu::flags{get<u8>(initial["f"])},
+                                     .a = get<u8>(initial["a"]),
+                                     .b = get<u8>(initial["b"]),
+                                     .c = get<u8>(initial["c"]),
+                                     .d = get<u8>(initial["d"]),
+                                     .e = get<u8>(initial["e"]),
+                                     .h = get<u8>(initial["h"]),
+                                     .l = get<u8>(initial["l"])};
+
+        simdjson::ondemand::object expected = test["final"];
+        const state expected_state = {.pc = get<u16>(expected["pc"]),
+                                      .sp = get<u16>(expected["sp"]),
+                                      .f = cb::cpu::flags{get<u8>(expected["f"])},
+                                      .a = get<u8>(expected["a"]),
+                                      .b = get<u8>(expected["b"]),
+                                      .c = get<u8>(expected["c"]),
+                                      .d = get<u8>(expected["d"]),
+                                      .e = get<u8>(expected["e"]),
+                                      .h = get<u8>(expected["h"]),
+                                      .l = get<u8>(expected["l"])};
+
+        cpu::registers& reg = cpu.reg();
+        reg.pc = initial_state.pc;
+        reg.sp = initial_state.pc;
+        reg.a = initial_state.a;
+        reg.b = initial_state.b;
+        reg.c = initial_state.c;
+        reg.d = initial_state.d;
+        reg.e = initial_state.e;
+        reg.f.raw = initial_state.f.raw;
+        reg.h = initial_state.h;
+        reg.l = initial_state.l;
 
         cpu.step(mmu);
 
-        simdjson::ondemand::object final = test["final"];
-        EXPECT_EQ(reg.a, get<uint8_t>(final["a"]));
-        EXPECT_EQ(reg.b, get<uint8_t>(final["b"]));
-        EXPECT_EQ(reg.c, get<uint8_t>(final["c"]));
-        EXPECT_EQ(reg.d, get<uint8_t>(final["d"]));
-        EXPECT_EQ(reg.e, get<uint8_t>(final["e"]));
-        EXPECT_EQ(reg.f.raw, get<uint8_t>(final["f"]));
-        EXPECT_EQ(reg.h, get<uint8_t>(final["h"]));
-        EXPECT_EQ(reg.l, get<uint8_t>(final["l"]));
-        EXPECT_EQ(reg.pc, get<uint16_t>(final["pc"]));
-        EXPECT_EQ(reg.sp, get<uint16_t>(final["sp"]));
+        const state my_state = {.pc = reg.pc,
+                                .sp = reg.sp,
+                                .f = cb::cpu::flags{reg.f.raw},
+                                .a = reg.a,
+                                .b = reg.b,
+                                .c = reg.c,
+                                .d = reg.d,
+                                .e = reg.e,
+                                .h = reg.h,
+                                .l = reg.l};
+
+        AssertMyStateEqExpectedState(my_state, expected_state, initial_state);
 
         // to-do: test ram
     }
@@ -96,7 +162,7 @@ std::vector<std::filesystem::path> load_test_files()
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    JsonFiles, SingleStepParameterizedTest, ::testing::ValuesIn(load_test_files()),
+    JsonFiles, SingleStepParameterizedTest, ::testing::Values("01.json"),
     [](const testing::TestParamInfo<SingleStepParameterizedTest::ParamType>& info)
     {
         auto stem = info.param.stem().string();

@@ -1,10 +1,10 @@
-#include "core/cpu/flags.h"
+#include "core/processor.h"
 #include <gtest/gtest.h>
 
 class CpuFlagsTest : public ::testing::Test
 {
 protected:
-    core::cpu::flags f;
+    cb::cpu::flags f;
 };
 
 TEST_F(CpuFlagsTest, Zero)

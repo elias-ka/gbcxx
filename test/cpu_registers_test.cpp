@@ -1,7 +1,7 @@
-#include "core/cpu/registers.h"
+#include "core/processor.h"
 #include <gtest/gtest.h>
 
-namespace cpu = core::cpu;
+namespace cpu = cb::cpu;
 
 class CpuRegistersTest : public ::testing::Test
 {

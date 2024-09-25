@@ -1,46 +1,55 @@
 #include "emulator.h"
-#include "common/filesystem.h"
-#include "common/logging.h"
+#include "../util.h"
+#include <SDL_timer.h>
 #include <fmt/format.h>
-#include <span>
 
-namespace core
+namespace cb
 {
-    namespace
+    void emulator::run(const std::filesystem::path& file, window* win)
     {
-        std::string get_game_title(std::span<const uint8_t> rom)
+        const std::vector<u8> rom_data = cb::fs::read(file);
+        const bool checksum_matches = [&]
         {
-            std::string title;
-            std::ranges::copy_n(rom.begin() + 0x134, 16, std::back_inserter(title));
-            return title;
-        }
-
-        bool verify_checksum(std::span<const uint8_t> rom)
-        {
-            uint8_t checksum = 0;
-            for (uint16_t address = 0x0134; address <= 0x014C; address++)
+            u8 checksum = 0;
+            for (u16 address = 0x0134; address <= 0x014C; address++)
             {
-                checksum = checksum - rom[address] - 1;
+                checksum -= rom_data[address] + 1;
             }
-            return rom[0x14D] == (checksum & 0x00FF);
-        }
-    } // namespace
+            return rom_data[0x14D] == checksum;
+        }();
 
-    void emulator::run(const std::filesystem::path& file)
-    {
-        const std::vector<uint8_t> rom_data = common::fs::read(file);
-        if (!verify_checksum(rom_data))
+        if (!checksum_matches)
         {
-            LOG_CRITICAL("Invalid header checksum, the program won't be run.");
+            LOG_ERROR("Invalid header checksum, the program won't be run.");
             std::exit(1);
         }
 
-        m_window = std::make_unique<frontend::sdl_window>(
-            160 * 4, 144 * 4, fmt::format("CringeBoy | {}", get_game_title(rom_data)));
+        const double clock_cycle_us = 1.0 / 4194304.0;
+        const double frame_time_us = 1.0 / win->refresh_rate();
+        const auto cycles_per_frame = static_cast<usz>(frame_time_us / clock_cycle_us);
+        LOG_DEBUG("clock_cycle_us = {}", clock_cycle_us);
+        LOG_DEBUG("frame_time_us = {}", frame_time_us);
+        LOG_DEBUG("cycles_per_frame = {}", cycles_per_frame);
 
-        while (m_window->is_open())
+        usz cycles_delta = 0;
+
+        while (win->is_open())
         {
-            m_window->wait_event();
+            m_mmu.ppu().clear_should_redraw();
+            win->poll_events();
+
+            while (cycles_delta < cycles_per_frame)
+            {
+                m_cpu.step(m_mmu);
+                cycles_delta += m_cpu.cycles_elapsed();
+            }
+
+            cycles_delta -= cycles_per_frame;
+            if (m_mmu.ppu().should_redraw())
+            {
+                win->draw(m_mmu.ppu().buffer());
+            }
         }
     }
-} // namespace core
+
+} // namespace cb
