@@ -38,6 +38,7 @@ add_library(cringeboy_core
   src/core/memory.h
   src/core/processor.cpp
   src/core/processor.h
+  src/core/processor_instr.cpp
   src/core/video.cpp
   src/core/video.h
   src/util.cpp
