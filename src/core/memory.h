@@ -38,13 +38,15 @@ namespace cb::memory
 
         video::ppu& ppu() { return m_ppu; }
 
+        void resize_ram(usz new_size) { m_wram.resize(new_size); }
+
     private:
         u8 read8_io(u16 addr) const;
         void write8_io(u16 addr, u8 data);
 
         bool in_bootrom() const;
 
-        std::array<u8, 0x2000> m_wram{};
+        std::vector<u8> m_wram;
         std::array<u8, 256> m_bios{};
         std::array<u8, 0x80> m_hram{};
         memory::cartridge m_cartridge{};
