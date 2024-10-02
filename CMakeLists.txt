@@ -20,18 +20,15 @@ CPMAddPackage(
 )
 suppress_third_party_warnings(fmt)
 
-CPMAddPackage(
-  NAME simdjson
-  VERSION 3.10.1
-  GITHUB_REPOSITORY simdjson/simdjson
-  GIT_SHALLOW
-)
-suppress_third_party_warnings(simdjson)
-
 find_package(SDL2 REQUIRED)
 
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  add_compile_options(-fsanitize=undefined -fsanitize=address)
+  add_link_options(-fsanitize=undefined -fsanitize=address)
+endif()
+
 add_library(cringeboy_core
-  src/core/constants.hpp
+  src/core/constants.h
   src/core/emulator.cpp
   src/core/emulator.h
   src/core/memory.cpp
@@ -77,7 +74,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
       -Wnon-virtual-dtor
       -Wold-style-cast
       -Wno-gnu-statement-expression-from-macro-expansion
-      $<$<CONFIG:DEBUG>:-g>
   )
 endif()
 
@@ -92,11 +88,21 @@ if(NOT BUILD_TESTING)
   return()
 endif()
 
+target_compile_definitions(cringeboy_core PRIVATE TESTING)
+
 CPMAddPackage(
   NAME googletest
   GITHUB_REPOSITORY google/googletest
   GIT_TAG v1.15.2
   OPTIONS "BUILD_GMOCK OFF" "INSTALL_GTEST OFF" "gtest_force_shared_crt"
 )
+
+CPMAddPackage(
+  NAME simdjson
+  VERSION 3.10.1
+  GITHUB_REPOSITORY simdjson/simdjson
+  GIT_SHALLOW
+)
+suppress_third_party_warnings(simdjson)
 
 add_subdirectory(test)

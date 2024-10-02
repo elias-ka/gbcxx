@@ -2,7 +2,6 @@
 .clangd
 .idea/
 .vs/
-.vscode/
 build/
 cmake-build-*/
 CMakeLists.txt.user

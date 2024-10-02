@@ -4,15 +4,9 @@
 #include "core/processor.h"
 #include "core/video.h"
 #include <SDL_events.h>
-#include <filesystem>
 
 namespace cb
 {
-    namespace cpu
-    {
-        class processor;
-    }
-
     class window
     {
     public:
@@ -24,7 +18,7 @@ namespace cb
         window operator=(const window&) = delete;
         window operator=(window&&) = delete;
 
-        virtual void draw(video::frame_buffer& buf) = 0;
+        virtual void draw(frame_buffer& buf) = 0;
         virtual void poll_events() = 0;
 
         virtual void set_title(std::string_view title) = 0;
@@ -38,10 +32,11 @@ namespace cb
     class emulator
     {
     public:
-        void run(const std::filesystem::path& file, window* win);
+        explicit emulator(std::vector<u8> cartrom);
+        void run(window* win);
 
     private:
-        cpu::processor m_cpu{};
-        memory::mmu m_mmu;
+        mmu m_mmu;
+        processor m_cpu;
     };
 } // namespace cb

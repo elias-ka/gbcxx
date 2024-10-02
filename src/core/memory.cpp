@@ -1,9 +1,13 @@
 #include "core/memory.h"
-#include "util.h"
 
-namespace cb::memory
+#include "core/constants.h"
+#include "util.h"
+#include <cassert>
+#include <utility>
+
+namespace cb
 {
-    const std::array<u8, 256> default_bios = {
+    const std::array<u8, 256> default_bootrom = {
         0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF,
         0x0E, 0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E,
         0xFC, 0xE0, 0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1A, 0xCD, 0x95, 0x00, 0xCD, 0x96,
@@ -23,59 +27,159 @@ namespace cb::memory
         0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0,
         0x50};
 
+    namespace
+    {
+        memory_bank_controller make_mbc(std::vector<u8> cartrom)
+        {
+            switch (cartrom[0x0147])
+            {
+            case 0x00:
+            {
+                LOG_INFO("Using rom only MBC");
+                return mbc_rom_only{cartrom};
+            }
+            case 0x01:
+            {
+                LOG_INFO("Using MBC1");
+                return mbc1{cartrom};
+            }
+            }
+            LOG_UNIMPLEMENTED("cartridge type {:#02x}", cartrom[0x0147]);
+            return std::monostate{};
+        }
+    } // namespace
+
+    cartridge::cartridge(std::vector<u8> cartrom)
+        : mbc(make_mbc(std::move(cartrom)))
+    {
+        {
+        }
+    }
+
     u8 cartridge::read(uint16_t addr) const
     {
-        return cb::variant_match(mbc,
-                                 [&](const mbc_rom_only& mapper) { return mapper.rom.at(addr); });
+        return cb::variant_match(
+            mbc, [&](const mbc_rom_only& rom_only) { return rom_only.rom.at(addr); },
+            [&](const mbc1& mbc1)
+            {
+                if (interval(rom_slot_0_start, rom_slot_0_end).contains(addr))
+                {
+                    return mbc1.rom.at(addr);
+                }
+                if (interval(rom_slot_1_start, rom_slot_1_end).contains(addr))
+                {
+                    return mbc1.rom.at((addr & rom_slot_1_start) +
+                                       (mbc1.rom_bank * rom_slot_1_start));
+                }
+                if (interval(external_ram_start, external_ram_end).contains(addr))
+                {
+                    if (mbc1.ram_enabled)
+                    {
+                        const usz base_addr = addr - external_ram_start;
+                        const usz ram_addr = base_addr + (static_cast<usz>(mbc1.ram_bank * 0x2000));
+                        return mbc1.ram.at(ram_addr);
+                    }
+                    else
+                    {
+                        return u8(0xFF);
+                    }
+                }
+                LOG_ERROR("MBC1: Out of bounds read from address {:#04x}", addr);
+                return u8(0xFF);
+            },
+            [&](std::monostate)
+            {
+                LOG_ERROR("Uninitialized mbc");
+                return u8(0);
+            });
     }
 
-    u8 cartridge::read_external_ram(uint16_t addr) const
+    void cartridge::write(uint16_t addr, u8 value)
     {
-        return cb::variant_match(mbc,
-                                 [&](const mbc_rom_only& mapper) { return mapper.ram.at(addr); });
+        cb::variant_match(
+            mbc, [&](const mbc_rom_only&) { /* no-op */ },
+            [&](mbc1& mbc1)
+            {
+                if (interval(ram_enable_start, ram_enable_end).contains(addr))
+                {
+                    mbc1.ram_enabled = (value & 0x0F) == 0x0A;
+                }
+                else if (interval(rom_bank_start, rom_bank_end).contains(addr))
+                {
+                    mbc1.rom_bank = static_cast<u16>(value & 0b0001'1111);
+                    if (mbc1.rom_bank == 0)
+                    {
+                        mbc1.rom_bank = 1;
+                    }
+                }
+                else if (interval(secondary_bank_register_start, secondary_bank_register_end)
+                             .contains(addr))
+                {
+                    if (mbc1.banking_mode && mbc1.supports_advanced_banking)
+                    {
+                        mbc1.rom_bank =
+                            static_cast<u16>(((static_cast<u8>(mbc1.rom_bank) & 0b0001'1111) |
+                                              ((value & 0b11) << 5)));
+                    }
+                    else
+                    {
+                        mbc1.ram_bank = value & 0b11;
+                    }
+                }
+                else if (interval(banking_mode_start, banking_mode_end).contains(addr))
+                {
+                    mbc1.banking_mode = (value & 1) == 1;
+                }
+                else if (interval(external_ram_start, external_ram_end).contains(addr))
+                {
+                    const usz base_addr = addr - external_ram_start;
+                    const usz ram_addr = base_addr + (static_cast<usz>(mbc1.ram_bank * 0x2000));
+                    mbc1.ram.at(ram_addr) = value;
+                }
+            },
+            [&](std::monostate) { LOG_ERROR("Uninitialized mbc"); });
     }
 
-    void cartridge::write_external_ram(uint16_t addr, u8 value)
-    {
-        cb::variant_match(mbc, [&](mbc_rom_only& mapper) { mapper.rom.at(addr) = value; });
-    }
-
-    mmu::mmu(bios_t bios)
-        : m_bios(MOV(bios))
+    mmu::mmu(cartridge cartridge, bootrom bios)
+        : m_bootrom(bios)
+        , m_cartridge(std::move(cartridge))
+        , m_memory(0x10000)
     {
     }
 
     u8 mmu::read8(u16 addr) const
     {
-        if (interval(0x000, 0x7FFF).contains(addr)) // ROM
-        {
-            if (!static_cast<bool>(m_bootrom_disabled) && addr <= 0xFF)
-                return m_bios.at(addr);
+        LOG_TRACE("mmu::read8({:#04x})", addr);
+#ifdef TESTING
+        return m_memory.at(addr);
+#endif
 
+        if (interval(0x0000, 0x7FFF).contains(addr)) // Cartridge
+        {
+            if (!static_cast<bool>(m_bootrom_disabled) && addr <= 0x00FF)
+            {
+                return m_bootrom.at(addr);
+            }
             return m_cartridge.read(addr);
         }
-
         if (interval(0x8000, 0x9FFF).contains(addr)) // VRAM
             return m_ppu.read8(addr);
 
         if (interval(0xA000, 0xBFFF).contains(addr)) // External RAM
-            return m_cartridge.read_external_ram(addr - 0xA000);
+            return m_cartridge.read(addr);
 
-        if (interval(0xC000, 0xCFFF).contains(addr)) // Work RAM
-            return m_wram.at(addr - 0xC000);
-
-        if (interval(0xD000, 0xDFFF).contains(addr)) // Work RAM
-            return m_wram.at(addr - 0xD000);
-
+        if (interval(0xC000, 0xDFFF).contains(addr)) // Work RAM
+        {
+            return m_memory.at(addr);
+        }
         if (interval(0xE000, 0xFDFF).contains(addr)) // Echo RAM
             return read8(addr - 0x2000);
 
         if (interval(0xFE00, 0xFE9F).contains(addr)) // OAM
         {
             LOG_UNIMPLEMENTED("read from OAM");
-            return 0xFF;
+            return 0x00;
         }
-
         if (interval(0xFEA0, 0xFEFF).contains(addr)) // Not usable
             return 0xFF;
 
@@ -83,8 +187,10 @@ namespace cb::memory
             return read8_io(addr);
 
         if (interval(0xFF80, 0xFFFE).contains(addr)) // High RAM
-            return m_hram.at(addr - 0xFF80);
-
+        {
+            LOG_UNIMPLEMENTED("read from high ram");
+            return 0xFF;
+        }
         if (addr == 0xFFFF) // Interrupt Enable register
         {
             LOG_UNIMPLEMENTED("read from Interrupt Enable register");
@@ -104,21 +210,28 @@ namespace cb::memory
 
     void mmu::write8(u16 addr, u8 data)
     {
-        if (interval(0x8000, 0x9FFF).contains(addr)) // VRAM
+        LOG_TRACE("mmu::write8({:#06x}, {:#04x})", addr, data);
+#ifdef TESTING
+        m_memory.at(addr) = data;
+        return;
+#endif
+
+        if (interval(0x0000, 0x7FFF).contains(addr)) // Cartridge
+        {
+            m_cartridge.write(addr, data);
+            return;
+        }
+        else if (interval(0x8000, 0x9FFF).contains(addr)) // VRAM
         {
             m_ppu.write8(addr, data);
         }
         else if (interval(0xA000, 0xBFFF).contains(addr)) // External RAM
         {
-            m_cartridge.write_external_ram(addr - 0xA000, data);
+            m_cartridge.write(addr, data);
         }
-        else if (interval(0xC000, 0xCFFF).contains(addr)) // Work RAM
+        else if (interval(0xC000, 0xDFFF).contains(addr)) // Work RAM
         {
-            m_wram.at(addr - 0xC000) = data;
-        }
-        else if (interval(0xD000, 0xDFFF).contains(addr)) // Work RAM
-        {
-            m_wram.at(addr - 0xD000) = data;
+            m_memory.at(addr) = data;
         }
         else if (interval(0xE000, 0xFDFF).contains(addr)) // Echo RAM
         {
@@ -139,7 +252,8 @@ namespace cb::memory
         }
         else if (interval(0xFF80, 0xFFFE).contains(addr)) // High RAM
         {
-            m_hram.at(addr - 0xFF80) = data;
+            LOG_UNIMPLEMENTED("write to high RAM");
+            return;
         }
         else if (addr == 0xFFFF) // Interrupt Enable register
         {
@@ -157,41 +271,44 @@ namespace cb::memory
 
     u8 mmu::read8_io(u16 addr) const
     {
+        LOG_TRACE("mmu::read8_io({:#04x})", addr);
+
         switch (addr)
         {
-        case video::reg::lcdc:
-        case video::reg::stat:
-        case video::reg::scy:
-        case video::reg::scx:
-        case video::reg::ly:
-        case video::reg::lyc:
-        case video::reg::bgp:
-            // case video::reg::obp0:
-            // case video::reg::obp1:
-            // case video::reg::wx:
-            // case video::reg::wy:
+        case reg_lcdc:
+        case reg_stat:
+        case reg_scy:
+        case reg_scx:
+        case reg_ly:
+        case reg_lyc:
+        case reg_bgp:
+            // case reg_obp0:
+            // case reg_obp1:
+            // case reg_wx:
+            // case reg_wy:
             return m_ppu.read8(addr);
         case 0xFF50: return m_bootrom_disabled;
         }
         LOG_UNIMPLEMENTED("read from unmapped I/O address {:#04x}", addr);
-        return 0XFF;
+        return 0xFF;
     }
 
     void mmu::write8_io(u16 addr, u8 data)
     {
+        LOG_TRACE("mmu::write8_io({:#04x})", addr);
         switch (addr)
         {
-        case video::reg::lcdc:
-        case video::reg::stat:
-        case video::reg::scy:
-        case video::reg::scx:
-        case video::reg::ly:
-        case video::reg::lyc:
-        case video::reg::bgp:
-            // case video::reg::obp0:
-            // case video::reg::obp1:
-            // case video::reg::wx:
-            // case video::reg::wy:
+        case reg_lcdc:
+        case reg_stat:
+        case reg_scy:
+        case reg_scx:
+        case reg_ly:
+        case reg_lyc:
+        case reg_bgp:
+            // case reg_obp0:
+            // case reg_obp1:
+            // case reg_wx:
+            // case reg_wy:
             m_ppu.write8(addr, data);
             break;
         case 0xFF50: m_bootrom_disabled = data; break;
@@ -199,4 +316,4 @@ namespace cb::memory
         LOG_UNIMPLEMENTED("write to unmapped I/O address {:#04x} with data {:#02x}", addr, data);
     }
 
-} // namespace cb::memory
+} // namespace cb

@@ -1,13 +1,12 @@
 #pragma once
 
 #include "core/memory.h"
-#include "core/video.h"
 #include "util.h"
 #include <array>
 #include <fmt/base.h>
 #include <string>
 
-namespace cb::cpu
+namespace cb
 {
     enum class flag
     {
@@ -20,6 +19,8 @@ namespace cb::cpu
     struct flags
     {
         u8 raw;
+
+        bool operator==(const flags&) const = default;
 
         bool z() const;
         bool n() const;
@@ -53,45 +54,103 @@ namespace cb::cpu
         bc,
         de,
         hl,
-    };
-
-    struct registers
-    {
-        u16 pc;
-        u16 sp;
-        u8 a;
-        flags f;
-        u8 b;
-        u8 c;
-        u8 d;
-        u8 e;
-        u8 h;
-        u8 l;
-
-        u16 read16(reg16 reg) const;
-        void write16(reg16 reg, u16 value);
+        sp
     };
 
     class processor
     {
     public:
-        void step(memory::mmu& mmu);
+        explicit processor(mmu* mmu)
+            : m_mmu(mmu)
+        {
+        }
+
+        processor(mmu* mmu, u16 pc, u16 sp, flags f, u8 a, u8 b, u8 c, u8 d, u8 e, u8 h, u8 l)
+            : m_mmu(mmu)
+            , m_pc(pc)
+            , m_sp(sp)
+            , m_f(f)
+            , m_a(a)
+            , m_b(b)
+            , m_c(c)
+            , m_d(d)
+            , m_e(e)
+            , m_h(h)
+            , m_l(l)
+        {
+        }
+
+        void step();
         usz cycles_elapsed() const { return m_cycles_elapsed; }
-        registers& reg() { return m_reg; }
+
+        u16 pc() const { return m_pc; }
+        u16 sp() const { return m_sp; }
+        flags f() const { return m_f; }
+
+        u8 reg(reg8 reg) const;
+        u16 reg(reg16 reg) const;
+
+        void set_reg(reg8 reg, u8 val);
+        void set_reg(reg16 reg, u16 val);
 
     private:
-        void tick(memory::mmu& mmu);
-        void tick4(memory::mmu& mmu);
+        void tick();
+        void tick4();
 
-        u8 fetch_imm8(memory::mmu& mmu);
-        u16 fetch_imm16(memory::mmu& mmu);
+        void write8(u16 addr, u8 data);
+        void write16(u16 addr, u16 data);
+
+        u8 read_operand();
+        u16 read_operands();
+
+        void push8(u8 value);
+        void push16(u16 value);
+        u8 pop8();
+        u16 pop16();
 
         void execute(u8 opcode);
+
+        // 8-bit loads
+        void ld_r_r(reg8 dst, reg8 src);
+        void ld_r_n(reg8 dst);
+        void ld_r_mem_hl(reg8 dst);
+        void ld_mem_hl_r(reg8 src);
+        void ld_mem_hl_n();
+        void ld_a_mem_rr(reg16 src);
+        void ld_mem_rr_a(reg16 dst);
+        void ld_a_mem_nn();
+        void ld_mem_nn_a();
+        void ldh_a_mem_c();
+        void ldh_mem_c_a();
+        void ldh_a_mem_n();
+        void ldh_mem_n_a();
+        void ld_a_mem_hl_dec();
+        void ld_mem_hl_dec_a();
+        void ld_a_mem_hl_inc();
+        void ld_mem_hl_inc_a();
+
+        // 16-bit loads
+        void ld_rr_nn(reg16 dst);
+        void ld_mem_nn_sp();
+        void ld_sp_hl();
+        void push_rr(reg16 src);
+        void pop_rr(reg16 dst);
+        void ld_hl_sp_e();
 
         void nop();
 
     private:
-        registers m_reg{};
         usz m_cycles_elapsed{};
+        mmu* m_mmu;
+        u16 m_pc{};
+        u16 m_sp{};
+        flags m_f{};
+        u8 m_a{};
+        u8 m_b{};
+        u8 m_c{};
+        u8 m_d{};
+        u8 m_e{};
+        u8 m_h{};
+        u8 m_l{};
     };
-} // namespace cb::cpu
+} // namespace cb

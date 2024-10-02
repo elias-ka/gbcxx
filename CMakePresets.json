@@ -8,21 +8,32 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Default Config",
       "description": "Default build using Ninja generator",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/cringeboy",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BUILD_TESTING": "OFF"
       }
     },
     {
-      "name": "Debug",
+      "name": "debug",
       "inherits": "default",
-      "displayName": "Debug build using Ninja generator",
+      "displayName": "debug",
+      "description": "Debug build using Ninja generator",
       "binaryDir": "${sourceDir}/build/cringeboy-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "test",
+      "inherits": "debug",
+      "displayName": "test",
+      "description": "Test build using Ninja generator",
+      "binaryDir": "${sourceDir}/build/cringeboy-tests",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON"
       }
     }
   ],
@@ -32,7 +43,14 @@
       "configurePreset": "default",
       "displayName": "Build",
       "description": "Build the project",
-      "targets": ["all"]
+      "targets": ["cringeboy"]
+    },
+    {
+      "name": "test",
+      "configurePreset": "test",
+      "displayName": "Test",
+      "description": "Build the tests",
+      "targets": ["cringeboy_tests"]
     }
   ]
 }

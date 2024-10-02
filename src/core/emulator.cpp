@@ -5,30 +5,45 @@
 
 namespace cb
 {
-    void emulator::run(const std::filesystem::path& file, window* win)
+    namespace
     {
-        const std::vector<u8> rom_data = cb::fs::read(file);
-        const bool checksum_matches = [&]
+        static constexpr double clock_rate = 4194304.0;
+        static constexpr double clock_cycle = 1 / clock_rate;
+
+        bool checksum_matches(std::span<const u8> cartrom)
         {
             u8 checksum = 0;
             for (u16 address = 0x0134; address <= 0x014C; address++)
             {
-                checksum -= rom_data[address] + 1;
+                checksum -= cartrom[address] + 1;
             }
-            return rom_data[0x14D] == checksum;
-        }();
-
-        if (!checksum_matches)
-        {
-            LOG_ERROR("Invalid header checksum, the program won't be run.");
-            std::exit(1);
+            return cartrom[0x14D] == checksum;
         }
 
-        const double clock_cycle_us = 1.0 / 4194304.0;
-        const double frame_time_us = 1.0 / win->refresh_rate();
-        const auto cycles_per_frame = static_cast<usz>(frame_time_us / clock_cycle_us);
-        LOG_DEBUG("clock_cycle_us = {}", clock_cycle_us);
-        LOG_DEBUG("frame_time_us = {}", frame_time_us);
+        std::vector<u8> verify_checksum(std::vector<u8>& cartrom)
+        {
+            if (!checksum_matches(cartrom))
+            {
+                LOG_ERROR("Invalid header checksum, the program won't be run.");
+                std::exit(1);
+            }
+            return cartrom;
+        }
+    } // namespace
+
+    emulator::emulator(std::vector<u8> cartrom)
+        : m_mmu(cartridge{verify_checksum(cartrom)})
+        , m_cpu(&m_mmu)
+    {
+    }
+
+    void emulator::run(window* win)
+    {
+        const double frame_time = 1.0 / win->refresh_rate();
+        const auto cycles_per_frame = static_cast<usz>(frame_time / clock_cycle);
+
+        LOG_DEBUG("clock_cycle = {}", clock_cycle);
+        LOG_DEBUG("frame_time = {}", frame_time);
         LOG_DEBUG("cycles_per_frame = {}", cycles_per_frame);
 
         usz cycles_delta = 0;
@@ -40,7 +55,7 @@ namespace cb
 
             while (cycles_delta < cycles_per_frame)
             {
-                m_cpu.step(m_mmu);
+                m_cpu.step();
                 cycles_delta += m_cpu.cycles_elapsed();
             }
 

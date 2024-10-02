@@ -1,6 +1,7 @@
 enable_testing()
 
-add_executable(cringeboy_tests
+add_executable(cringeboy_tests EXCLUDE_FROM_ALL
+    main.cpp
     cpu_flags_test.cpp
     cpu_registers_test.cpp
     cpu_single_step_tests.cpp

@@ -4,7 +4,7 @@
 class CpuFlagsTest : public ::testing::Test
 {
 protected:
-    cb::cpu::flags f;
+    cb::flags f;
 };
 
 TEST_F(CpuFlagsTest, Zero)

@@ -12,8 +12,9 @@
 #include <type_traits>
 #include <vector>
 
-#define MOV(...) static_cast<std::remove_reference_t<decltype(__VA_ARGS__)>&&>(__VA_ARGS__)
 #define FWD(...) static_cast<decltype(__VA_ARGS__)&&>(__VA_ARGS__)
+
+#define BIT(n) (1UL << (n))
 
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
@@ -52,8 +53,8 @@ namespace cb
         return std::visit(overloaded{FWD(ts)...}, FWD(v));
     }
 
-    constexpr usz operator""_KiB(unsigned long long n) { return 1024ULL * n; }
-    constexpr usz operator""_MiB(unsigned long long n) { return 1024_KiB * n; }
+    constexpr usz operator""_KiB(unsigned long long int n) { return 1024ULL * n; }
+    constexpr usz operator""_MiB(unsigned long long int n) { return 1024_KiB * n; }
 
     template <typename T>
     class range
@@ -72,7 +73,7 @@ namespace cb
     };
 
     template <typename T>
-    class range<T> interval(T low, T high)
+    range<T> interval(T low, T high)
     {
         return range<T>(low, high);
     }
@@ -99,8 +100,8 @@ namespace cb
 
             explicit constexpr operator u32() const
             {
-                return (static_cast<u32>(a) << 24) | (static_cast<u32>(b) << 16) |
-                       (static_cast<u32>(g) << 8) | (static_cast<u32>(r));
+                return (static_cast<u32>(r) << 24) | (static_cast<u32>(g) << 16) |
+                       (static_cast<u32>(b) << 8) | (static_cast<u32>(a));
             }
         };
 
@@ -111,6 +112,7 @@ namespace cb
 
     enum class log_level : u8
     {
+        trace,
         debug,
         unimplemented,
         info,
@@ -133,6 +135,12 @@ namespace cb
         logger& operator=(logger&&) = delete;
 
         void set_log_level(log_level level) { m_level = level; }
+
+        template <typename... Args>
+        void trace(const fmt::format_string<Args...>& format_str, Args&&... args)
+        {
+            log(log_level::trace, fmt::fg(fmt::color::dark_gray), format_str, FWD(args)...);
+        }
 
         template <typename... Args>
         void debug(const fmt::format_string<Args...>& format_str, Args&&... args)
@@ -178,7 +186,8 @@ namespace cb
                 return;
 
             const auto msg = fmt::vformat(format_str, fmt::make_format_args(args...));
-            const auto formatted = fmt::format("[{}]: {}\n", fmt::styled(level, style), msg);
+            const auto formatted =
+                fmt::format("{}: {}\n", fmt::styled(level, style | fmt::emphasis::bold), msg);
             std::lock_guard<std::mutex> lock(m_mutex);
             std::cout << formatted;
         }
@@ -192,8 +201,11 @@ namespace cb
                 return;
 
             const auto msg = fmt::vformat(format_str, fmt::make_format_args(args...));
-            const auto formatted = fmt::format("[{}][{}:{}]: {}\n", fmt::styled(level, style),
-                                               loc.file_name(), loc.line(), msg);
+            const auto formatted =
+                fmt::format("{}{}: {}\n", fmt::styled(level, style | fmt::emphasis::bold),
+                            fmt::styled(fmt::format("[{}:{}]", loc.file_name(), loc.line()),
+                                        fmt::fg(fmt::color::gray)),
+                            msg);
             std::lock_guard<std::mutex> lock(m_mutex);
             std::cout << formatted;
         }
@@ -206,8 +218,10 @@ namespace cb
 
 #ifndef NDEBUG
 #define LOG_DEBUG(...) cb::logger::instance().debug(__VA_ARGS__)
+#define LOG_TRACE(...) cb::logger::instance().trace(__VA_ARGS__)
 #else
 #define LOG_DEBUG(...) (void)0
+#define LOG_TRACE(...) (void)0
 #endif
 #define LOG_UNIMPLEMENTED(...)                                                                     \
     cb::logger::instance().unimplemented(std::source_location::current(), __VA_ARGS__)

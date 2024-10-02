@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/constants.hpp"
+#include "core/constants.h"
 #include "util.h"
 #include <array>
 
-namespace cb::video
+namespace cb
 {
     class frame_buffer
     {
@@ -26,25 +26,25 @@ namespace cb::video
     {
         u8 value;
 
-        bool bg_on() const { return value & (1 << 0); }
-        bool obj_on() const { return value & (1 << 1); }
-        bool obj_size() const { return value & (1 << 2); }
-        bool bg_map() const { return value & (1 << 3); }
-        bool bg_addr() const { return value & (1 << 4); }
-        bool window_on() const { return value & (1 << 5); }
-        bool window_map() const { return value & (1 << 6); }
-        bool lcd_on() const { return value & (1 << 7); }
+        bool bg_on() const { return value & BIT(0); }
+        bool obj_on() const { return value & BIT(1); }
+        bool obj_size() const { return value & BIT(2); }
+        bool bg_map() const { return value & BIT(3); }
+        bool bg_addr() const { return value & BIT(4); }
+        bool window_on() const { return value & BIT(5); }
+        bool window_map() const { return value & BIT(6); }
+        bool lcd_on() const { return value & BIT(7); }
     };
 
     struct stat
     {
         u8 value;
 
-        bool compare() const { return value & (1 << 2); }
-        bool int_hblank() const { return value & (1 << 3); }
-        bool int_vblank() const { return value & (1 << 4); }
-        bool int_access_oam() const { return value & (1 << 5); }
-        bool int_compare() const { return value & (1 << 6); }
+        bool compare() const { return value & BIT(2); }
+        bool int_hblank() const { return value & BIT(3); }
+        bool int_vblank() const { return value & BIT(4); }
+        bool int_access_oam() const { return value & BIT(5); }
+        bool int_compare() const { return value & BIT(6); }
     };
 
     enum class mode
@@ -54,17 +54,6 @@ namespace cb::video
         oam_scan,
         transfer
     };
-
-    inline usz mode_cycles(mode mode)
-    {
-        switch (mode)
-        {
-        case mode::hblank: return cycles_hblank;
-        case mode::vblank: return cycles_vblank;
-        case mode::oam_scan: return cycles_oam_scan;
-        case mode::transfer: return cycles_transfer;
-        }
-    }
 
     class ppu
     {
@@ -81,6 +70,8 @@ namespace cb::video
     private:
         void write_lcdc(u8 value);
         void enter_mode(mode mode);
+        usz mode_cycles(mode mode) const;
+
         void render_bg_scanline();
 
     private:
@@ -88,14 +79,14 @@ namespace cb::video
         std::array<u8, 8_KiB> m_vram{};
         mode m_mode{mode::hblank};
         usz m_cycles{};
-        control m_control{};
-        stat m_stat{};
+        usz m_off_cycles{};
+        control m_control{0x91};
+        stat m_stat{0x85};
         bool m_should_redraw{};
-        u8 m_vram_bank{};
-        u8 m_scroll_y{};
-        u8 m_scroll_x{};
-        u8 m_line_y{};
-        u8 m_line_y_compare{};
-        u8 m_bg_palette{};
+        u8 m_scroll_y{0x00};
+        u8 m_scroll_x{0x00};
+        u8 m_line_y{0x00};
+        u8 m_line_y_compare{0x00};
+        u8 m_bg_palette{0xFC};
     };
-} // namespace cb::video
+} // namespace cb
