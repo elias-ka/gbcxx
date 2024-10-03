@@ -422,6 +422,107 @@ namespace cb
         set_reg(reg16::hl, m_sp + static_cast<u16>(e));
     }
 
+    // 16-bit arithmetic
+    void processor::inc_rr(reg16 rr) { set_reg(rr, reg(rr) + 1); }
+
+    void processor::dec_rr(reg16 rr) { set_reg(rr, reg(rr) - 1); }
+
+    void processor::add_hl_rr(reg16 rr)
+    {
+        const u16 rr_val = reg(rr);
+        const u16 hl_val = reg(reg16::hl);
+        const int result = hl_val + rr_val;
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, (rr_val & 0xFFF) + (hl_val & 0xFFF) > 0xFFF);
+        m_f.set(flag::c, result > 0xFFFF);
+        set_reg(reg16::hl, static_cast<u16>(result));
+    }
+
+    void processor::add_hl_sp_e()
+    {
+        const auto e = static_cast<s8>(read_operand());
+        const int result = m_sp + e;
+        m_f.set(flag::z, false);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, ((m_sp & 0xF) + (e & 0xF)) > 0xF);
+        m_f.set(flag::c, ((m_sp & 0xFF) + (e & 0xFF)) > 0xFF);
+        m_sp = static_cast<u16>(result);
+    }
+
+    // Control flow
+    void processor::jp_nn()
+    {
+        const u16 nn = read_operands();
+        m_pc = nn;
+    }
+
+    void processor::jp_hl() { m_pc = reg(reg16::hl); }
+
+    void processor::jp_cc_nn(condition cc)
+    {
+        const u16 nn = read_operands();
+        if (check_condition(cc))
+        {
+            m_pc = nn;
+        }
+    }
+
+    void processor::jr_e()
+    {
+        const auto e = static_cast<s8>(read_operand());
+        m_pc += e;
+    }
+
+    void processor::jr_cc_e(condition cc)
+    {
+        const auto e = static_cast<s8>(read_operand());
+        if (check_condition(cc))
+        {
+            m_pc += e;
+        }
+    }
+
+    void processor::call_nn()
+    {
+        const u16 nn = read_operands();
+        write8(--m_sp, m_pc >> 8);
+        write8(--m_sp, m_pc & 0xFF);
+        m_pc = nn;
+    }
+
+    void processor::call_cc_nn(condition cc)
+    {
+        const u16 nn = read_operands();
+        if (check_condition(cc))
+        {
+            write8(--m_sp, m_pc >> 8);
+            write8(--m_sp, m_pc & 0xFF);
+            m_pc = nn;
+        }
+    }
+
+    void processor::ret() { m_pc = pop16(); }
+
+    void processor::ret_cc(condition cc)
+    {
+        if (check_condition(cc))
+        {
+            m_pc = pop16();
+        }
+    }
+
+    void processor::reti()
+    {
+        m_pc = pop16();
+        m_ime = true;
+    }
+
+    void processor::rst_n(u8 vec)
+    {
+        push16(m_pc);
+        m_pc = vec;
+    }
+
     void processor::nop() {}
 
 } // namespace cb

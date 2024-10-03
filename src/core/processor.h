@@ -57,6 +57,14 @@ namespace cb
         sp
     };
 
+    enum class condition
+    {
+        nz,
+        z,
+        nc,
+        c
+    };
+
     class processor
     {
     public:
@@ -109,6 +117,17 @@ namespace cb
         u16 pop16();
 
         void execute(u8 opcode);
+
+        bool check_condition(condition cond)
+        {
+            switch (cond)
+            {
+            case condition::nz: return !m_f.z();
+            case condition::z: return m_f.z();
+            case condition::nc: return !m_f.c();
+            case condition::c: return m_f.c();
+            }
+        }
 
         // 8-bit loads
         void ld_r_r(reg8 dst, reg8 src);
@@ -171,6 +190,25 @@ namespace cb
         void pop_rr(reg16 dst);
         void ld_hl_sp_e();
 
+        // 16-bit arithmetic
+        void inc_rr(reg16 rr);
+        void dec_rr(reg16 rr);
+        void add_hl_rr(reg16 rr);
+        void add_hl_sp_e();
+
+        // Control flow
+        void jp_nn();
+        void jp_hl();
+        void jp_cc_nn(condition cc);
+        void jr_e();
+        void jr_cc_e(condition cc);
+        void call_nn();
+        void call_cc_nn(condition cc);
+        void ret();
+        void ret_cc(condition cc);
+        void reti();
+        void rst_n(u8 vec);
+
         void nop();
 
     private:
@@ -186,5 +224,6 @@ namespace cb
         u8 m_e{};
         u8 m_h{};
         u8 m_l{};
+        bool m_ime{};
     };
 } // namespace cb

@@ -182,5 +182,17 @@ static const std::vector<std::filesystem::path> eight_bit_arithmetic_and_logical
     "3f.json", "37.json", "2f.json",
 };
 
+static const std::vector<std::filesystem::path> sixteen_bit_arithmetic_instructions = {
+    "09.json", "19.json", "29.json", "39.json", "e8.json", "03.json", "13.json",
+    "23.json", "33.json", "0b.json", "1b.json", "2b.json", "3b.json",
+};
+
+static const std::vector<std::filesystem::path> control_flow_instructions = {
+    "c3.json", "e9.json", "c2.json", "ca.json", "d2.json", "da.json", "18.json", "20.json",
+    "28.json", "30.json", "38.json", "cd.json", "c4.json", "cc.json", "d4.json", "dc.json",
+    "c9.json", "c0.json", "c8.json", "d0.json", "d8.json", "d9.json", "c7.json", "cf.json",
+    "d7.json", "df.json", "e7.json", "ef.json", "f7.json", "ff.json",
+};
+
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,
-                         testing::ValuesIn(eight_bit_arithmetic_and_logical_instructions));
+                         testing::ValuesIn(control_flow_instructions));

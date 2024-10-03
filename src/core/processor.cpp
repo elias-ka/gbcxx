@@ -358,6 +358,53 @@ namespace cb
         case 0xE1: pop_rr(reg16::hl); break;
         case 0xF1: pop_rr(reg16::af); break;
 
+        // 16-bit arithmetic
+        case 0x09: add_hl_rr(reg16::bc); break;
+        case 0x19: add_hl_rr(reg16::de); break;
+        case 0x29: add_hl_rr(reg16::hl); break;
+        case 0x39: add_hl_rr(reg16::sp); break;
+        case 0xE8: add_hl_sp_e(); break;
+        case 0x03: inc_rr(reg16::bc); break;
+        case 0x13: inc_rr(reg16::de); break;
+        case 0x23: inc_rr(reg16::hl); break;
+        case 0x33: inc_rr(reg16::sp); break;
+        case 0x0B: dec_rr(reg16::bc); break;
+        case 0x1B: dec_rr(reg16::de); break;
+        case 0x2B: dec_rr(reg16::hl); break;
+        case 0x3B: dec_rr(reg16::sp); break;
+
+        // Control flow
+        case 0xC3: jp_nn(); break;
+        case 0xE9: jp_hl(); break;
+        case 0xC2: jp_cc_nn(condition::nz); break;
+        case 0xCA: jp_cc_nn(condition::z); break;
+        case 0xD2: jp_cc_nn(condition::nc); break;
+        case 0xDA: jp_cc_nn(condition::c); break;
+        case 0x18: jr_e(); break;
+        case 0x20: jr_cc_e(condition::nz); break;
+        case 0x28: jr_cc_e(condition::z); break;
+        case 0x30: jr_cc_e(condition::nc); break;
+        case 0x38: jr_cc_e(condition::c); break;
+        case 0xCD: call_nn(); break;
+        case 0xC4: call_cc_nn(condition::nz); break;
+        case 0xCC: call_cc_nn(condition::z); break;
+        case 0xD4: call_cc_nn(condition::nc); break;
+        case 0xDC: call_cc_nn(condition::c); break;
+        case 0xC9: ret(); break;
+        case 0xC0: ret_cc(condition::nz); break;
+        case 0xC8: ret_cc(condition::z); break;
+        case 0xD0: ret_cc(condition::nc); break;
+        case 0xD8: ret_cc(condition::c); break;
+        case 0xD9: reti(); break;
+        case 0xC7: rst_n(0x00); break;
+        case 0xCF: rst_n(0x08); break;
+        case 0xD7: rst_n(0x10); break;
+        case 0xDF: rst_n(0x18); break;
+        case 0xE7: rst_n(0x20); break;
+        case 0xEF: rst_n(0x28); break;
+        case 0xF7: rst_n(0x30); break;
+        case 0xFF: rst_n(0x38); break;
+
         case 0x00: nop(); break;
         default: LOG_UNIMPLEMENTED("opcode {:#04x}", opcode);
         }
