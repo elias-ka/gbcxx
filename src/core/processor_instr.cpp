@@ -1,5 +1,7 @@
 #include "processor.h"
 
+// to-do: a lot of duplication in this file can be reduced
+
 namespace cb
 {
     // 8-bit loads
@@ -376,6 +378,20 @@ namespace cb
         m_f.set(flag::h, false);
         m_f.set(flag::c, false);
         m_a = result;
+    }
+
+    void processor::ccf()
+    {
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, !m_f.c());
+    }
+
+    void processor::scf()
+    {
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, true);
     }
 
     // 16-bit loads

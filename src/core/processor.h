@@ -158,6 +158,9 @@ namespace cb
         void xor_r(reg8 r);
         void xor_mem_hl();
         void xor_n();
+        void ccf();
+        void scf();
+        // to-do: daa
 
         // 16-bit loads
         void ld_rr_nn(reg16 dst);

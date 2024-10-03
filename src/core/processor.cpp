@@ -337,6 +337,8 @@ namespace cb
         case 0xAD: xor_r(reg8::l); break;
         case 0xAE: xor_mem_hl(); break;
         case 0xEE: xor_n(); break;
+        case 0x3F: ccf(); break;
+        case 0x37: scf(); break;
 
         // 16-bit loads
         case 0x01: ld_rr_nn(reg16::bc); break;
