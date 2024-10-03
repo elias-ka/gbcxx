@@ -179,6 +179,7 @@ static const std::vector<std::filesystem::path> eight_bit_arithmetic_and_logical
     "1d.json", "25.json", "2d.json", "35.json", "a7.json", "a0.json", "a1.json", "a2.json",
     "a3.json", "a4.json", "a5.json", "a6.json", "e6.json", "b7.json", "b0.json", "b1.json",
     "b2.json", "b3.json", "b4.json", "b5.json", "b6.json", "f6.json", "ae.json", "ee.json",
+    "3f.json", "37.json", "2f.json",
 };
 
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,

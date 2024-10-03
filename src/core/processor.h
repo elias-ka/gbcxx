@@ -161,6 +161,7 @@ namespace cb
         void ccf();
         void scf();
         // to-do: daa
+        void cpl();
 
         // 16-bit loads
         void ld_rr_nn(reg16 dst);

@@ -394,6 +394,13 @@ namespace cb
         m_f.set(flag::c, true);
     }
 
+    void processor::cpl()
+    {
+        m_a = ~m_a;
+        m_f.set(flag::n, true);
+        m_f.set(flag::h, true);
+    }
+
     // 16-bit loads
     void processor::ld_rr_nn(reg16 dst) { set_reg(dst, read_operands()); }
 
