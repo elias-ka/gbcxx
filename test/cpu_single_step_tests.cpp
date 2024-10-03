@@ -167,5 +167,19 @@ static const std::vector<std::filesystem::path> sixteen_bit_load_instructions = 
 
 };
 
+static const std::vector<std::filesystem::path> eight_bit_arithmetic_and_logical_instructions = {
+    "af.json", "a8.json", "a9.json", "aa.json", "ab.json", "ac.json", "ad.json", "87.json",
+    "80.json", "81.json", "82.json", "83.json", "84.json", "85.json", "86.json", "c6.json",
+    "8f.json", "88.json", "89.json", "8a.json", "8b.json", "8c.json", "8d.json", "8e.json",
+    "ce.json", "97.json", "90.json", "91.json", "92.json", "93.json", "94.json", "95.json",
+    "96.json", "d6.json", "9f.json", "98.json", "99.json", "9a.json", "9b.json", "9c.json",
+    "9d.json", "9e.json", "de.json", "bf.json", "b8.json", "b9.json", "ba.json", "bb.json",
+    "bc.json", "bd.json", "be.json", "fe.json", "3c.json", "04.json", "0c.json", "14.json",
+    "1c.json", "24.json", "2c.json", "34.json", "3d.json", "05.json", "0d.json", "15.json",
+    "1d.json", "25.json", "2d.json", "35.json", "a7.json", "a0.json", "a1.json", "a2.json",
+    "a3.json", "a4.json", "a5.json", "a6.json", "e6.json", "b7.json", "b0.json", "b1.json",
+    "b2.json", "b3.json", "b4.json", "b5.json", "b6.json", "f6.json", "ae.json", "ee.json",
+};
+
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,
-                         testing::ValuesIn(sixteen_bit_load_instructions));
+                         testing::ValuesIn(eight_bit_arithmetic_and_logical_instructions));

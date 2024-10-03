@@ -129,6 +129,36 @@ namespace cb
         void ld_a_mem_hl_inc();
         void ld_mem_hl_inc_a();
 
+        // 8-bit arithmetic and logical
+        void add_r(reg8 r);
+        void add_mem_hl();
+        void add_n();
+        void adc_r(reg8 r);
+        void adc_mem_hl();
+        void adc_n();
+        void sub_r(reg8 r);
+        void sub_mem_hl();
+        void sub_n();
+        void sbc_r(reg8 r);
+        void sbc_mem_hl();
+        void sbc_n();
+        void cp_r(reg8 r);
+        void cp_mem_hl();
+        void cp_n();
+        void inc_r(reg8 r);
+        void inc_mem_hl();
+        void dec_r(reg8 r);
+        void dec_mem_hl();
+        void and_r(reg8 r);
+        void and_mem_hl();
+        void and_n();
+        void or_r(reg8 r);
+        void or_mem_hl();
+        void or_n();
+        void xor_r(reg8 r);
+        void xor_mem_hl();
+        void xor_n();
+
         // 16-bit loads
         void ld_rr_nn(reg16 dst);
         void ld_mem_nn_sp();
