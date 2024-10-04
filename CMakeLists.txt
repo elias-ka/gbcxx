@@ -73,8 +73,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
       -Woverloaded-virtual
       -Wnon-virtual-dtor
       -Wold-style-cast
-      -Wno-gnu-statement-expression-from-macro-expansion
-  )
+)
 endif()
 
 add_executable(cringeboy
