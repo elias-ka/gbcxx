@@ -485,8 +485,7 @@ namespace cb
     void processor::call_nn()
     {
         const u16 nn = read_operands();
-        write8(--m_sp, m_pc >> 8);
-        write8(--m_sp, m_pc & 0xFF);
+        push16(m_pc);
         m_pc = nn;
     }
 
@@ -495,8 +494,7 @@ namespace cb
         const u16 nn = read_operands();
         if (check_condition(cc))
         {
-            write8(--m_sp, m_pc >> 8);
-            write8(--m_sp, m_pc & 0xFF);
+            push16(m_pc);
             m_pc = nn;
         }
     }
@@ -523,6 +521,146 @@ namespace cb
         m_pc = vec;
     }
 
+    // Miscellaneous
     void processor::nop() {}
+
+    // Rotate, shift, and bit operations
+    void processor::rlca()
+    {
+        const bool carry = m_a & BIT(7);
+        const auto result = static_cast<u8>((m_a << 1) | carry);
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        m_a = result;
+    }
+
+    void processor::rrca()
+    {
+        const bool carry = m_a & BIT(0);
+        const auto result = static_cast<u8>((m_a >> 1) | (carry << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        m_a = result;
+    }
+
+    void processor::rla()
+    {
+        const auto result = static_cast<u8>((m_a << 1) | m_f.c());
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, m_a & BIT(7));
+        m_a = result;
+    }
+
+    void processor::rra()
+    {
+        const auto result = static_cast<u8>((m_a >> 1) | (m_f.c() << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, m_a & BIT(0));
+        m_a = result;
+    }
+
+    void processor::rlc_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const bool carry = r_val & BIT(7);
+        const auto result = static_cast<u8>((r_val << 1) | carry);
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        set_reg(r, result);
+    }
+
+    void processor::rlc_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const bool carry = data & BIT(7);
+        const auto result = static_cast<u8>((data << 1) | carry);
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        m_mmu->write8(addr, result);
+    }
+
+    void processor::rrc_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const bool carry = r_val & BIT(0);
+        const auto result = static_cast<u8>((r_val >> 1) | (carry << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        set_reg(r, result);
+    }
+
+    void processor::rrc_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const bool carry = data & BIT(0);
+        const auto result = static_cast<u8>((data >> 1) | (carry << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        m_mmu->write8(addr, result);
+    }
+
+    void processor::rl_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const auto result = static_cast<u8>((r_val << 1) | m_f.c());
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, r_val & BIT(7));
+        set_reg(r, result);
+    }
+
+    void processor::rl_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const auto result = static_cast<u8>((data << 1) | m_f.c());
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, data & BIT(7));
+        m_mmu->write8(addr, result);
+    }
+
+    void processor::rr_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const auto result = static_cast<u8>((r_val >> 1) | (m_f.c() << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, r_val & BIT(0));
+        set_reg(r, result);
+    }
+
+    void processor::rr_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const auto result = static_cast<u8>((data >> 1) | (m_f.c() << 7));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, data & BIT(0));
+        m_mmu->write8(addr, result);
+    }
 
 } // namespace cb

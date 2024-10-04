@@ -93,8 +93,8 @@ TEST_P(SingleStepParameterizedTest, All)
         mmu mmu{cartridge{mbc_rom_only{{}}}};
         mmu.resize_memory(64_KiB);
 
-        auto ram = initial_obj["ram"].get_array();
-        for (simdjson::dom::array child_arr : ram)
+        auto initial_ram = initial_obj["ram"].get_array();
+        for (simdjson::dom::array child_arr : initial_ram)
         {
             const auto addr = get<u16>(child_arr.at(0));
             const auto value = get<u8>(child_arr.at(1));
@@ -117,6 +117,14 @@ TEST_P(SingleStepParameterizedTest, All)
                                      .e = get<u8>(expected_obj["e"]),
                                      .h = get<u8>(expected_obj["h"]),
                                      .l = get<u8>(expected_obj["l"])};
+
+        auto expected_ram = expected_obj["ram"].get_array();
+        for (simdjson::dom::array child_arr : expected_ram)
+        {
+            const auto addr = get<u16>(child_arr.at(0));
+            const auto value = get<u8>(child_arr.at(1));
+            EXPECT_EQ(mmu.read8(addr), value);
+        }
 
         const test_state my_state = {.pc = cpu.pc(),
                                      .sp = cpu.sp(),
@@ -194,5 +202,12 @@ static const std::vector<std::filesystem::path> control_flow_instructions = {
     "d7.json", "df.json", "e7.json", "ef.json", "f7.json", "ff.json",
 };
 
+static const std::vector<std::filesystem::path> rotate_instructions = {
+    "cb 07.json", "cb 0f.json", "cb 17.json", "cb 1f.json", "cb 00.json", "cb 01.json",
+    "cb 02.json", "cb 03.json", "cb 04.json", "cb 05.json", "cb 06.json", "cb 08.json",
+    "cb 09.json", "cb 0a.json", "cb 0b.json", "cb 0c.json", "cb 0d.json", "cb 0e.json",
+    "cb 10.json", "cb 11.json", "cb 12.json", "cb 13.json", "cb 14.json", "cb 15.json",
+    "cb 16.json", "cb 1e.json"};
+
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,
-                         testing::ValuesIn(control_flow_instructions));
+                         testing::ValuesIn(rotate_instructions));

@@ -405,7 +405,52 @@ namespace cb
         case 0xF7: rst_n(0x30); break;
         case 0xFF: rst_n(0x38); break;
 
+        // Miscellaneous
         case 0x00: nop(); break;
+
+        // CB prefixed
+        case 0xCB:
+        {
+            // Eat the prefix
+            opcode = read_operand();
+            switch (opcode)
+            {
+            // Rotate, shift, and bit operations
+            case 0x07: rlca(); break;
+            case 0x0F: rrca(); break;
+            case 0x17: rla(); break;
+            case 0x1F: rra(); break;
+            case 0x00: rlc_r(reg8::b); break;
+            case 0x01: rlc_r(reg8::c); break;
+            case 0x02: rlc_r(reg8::d); break;
+            case 0x03: rlc_r(reg8::e); break;
+            case 0x04: rlc_r(reg8::h); break;
+            case 0x05: rlc_r(reg8::l); break;
+            case 0x06: rlc_mem_hl(); break;
+            case 0x08: rrc_r(reg8::b); break;
+            case 0x09: rrc_r(reg8::c); break;
+            case 0x0A: rrc_r(reg8::d); break;
+            case 0x0B: rrc_r(reg8::e); break;
+            case 0x0C: rrc_r(reg8::h); break;
+            case 0x0D: rrc_r(reg8::l); break;
+            case 0x0E: rrc_mem_hl(); break;
+            case 0x10: rl_r(reg8::b); break;
+            case 0x11: rl_r(reg8::c); break;
+            case 0x12: rl_r(reg8::d); break;
+            case 0x13: rl_r(reg8::e); break;
+            case 0x14: rl_r(reg8::h); break;
+            case 0x15: rl_r(reg8::l); break;
+            case 0x16: rl_mem_hl(); break;
+            case 0x18: rr_r(reg8::b); break;
+            case 0x19: rr_r(reg8::c); break;
+            case 0x1A: rr_r(reg8::d); break;
+            case 0x1B: rr_r(reg8::e); break;
+            case 0x1C: rr_r(reg8::h); break;
+            case 0x1D: rr_r(reg8::l); break;
+            case 0x1E: rr_mem_hl(); break;
+            }
+            break;
+        }
         default: LOG_UNIMPLEMENTED("opcode {:#04x}", opcode);
         }
     }

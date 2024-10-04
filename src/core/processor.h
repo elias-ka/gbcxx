@@ -209,7 +209,22 @@ namespace cb
         void reti();
         void rst_n(u8 vec);
 
+        // Miscellaneous
         void nop();
+
+        // Rotate, shift, and bit operations
+        void rlca();
+        void rrca();
+        void rla();
+        void rra();
+        void rlc_r(reg8 r);
+        void rlc_mem_hl();
+        void rrc_r(reg8 r);
+        void rrc_mem_hl();
+        void rl_r(reg8 r);
+        void rl_mem_hl();
+        void rr_r(reg8 r);
+        void rr_mem_hl();
 
     private:
         usz m_cycles_elapsed{};
