@@ -408,6 +408,12 @@ namespace cb
         // Miscellaneous
         case 0x00: nop(); break;
 
+        // Rotate accumulator
+        case 0x07: rlca(); break;
+        case 0x0F: rrca(); break;
+        case 0x17: rla(); break;
+        case 0x1F: rra(); break;
+
         // CB prefixed
         case 0xCB:
         {
@@ -416,10 +422,6 @@ namespace cb
             switch (opcode)
             {
             // Rotate, shift, and bit operations
-            case 0x07: rlca(); break;
-            case 0x0F: rrca(); break;
-            case 0x17: rla(); break;
-            case 0x1F: rra(); break;
             case 0x00: rlc_r(reg8::b); break;
             case 0x01: rlc_r(reg8::c); break;
             case 0x02: rlc_r(reg8::d); break;
