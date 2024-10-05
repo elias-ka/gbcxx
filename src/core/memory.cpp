@@ -29,7 +29,7 @@ namespace cb
 
     namespace
     {
-        memory_bank_controller make_mbc(std::vector<u8> cartrom)
+        mbc_variant make_mbc(std::vector<u8> cartrom)
         {
             switch (cartrom[0x0147])
             {
@@ -52,8 +52,6 @@ namespace cb
     cartridge::cartridge(std::vector<u8> cartrom)
         : mbc(make_mbc(std::move(cartrom)))
     {
-        {
-        }
     }
 
     u8 cartridge::read(uint16_t addr) const
@@ -142,8 +140,8 @@ namespace cb
 
     mmu::mmu(cartridge cartridge, bootrom bios)
         : m_bootrom(bios)
-        , m_cartridge(std::move(cartridge))
         , m_memory(0x10000)
+        , m_cartridge(std::move(cartridge))
     {
     }
 
@@ -156,49 +154,28 @@ namespace cb
 
         if (interval(0x0000, 0x7FFF).contains(addr)) // Cartridge
         {
-            if (!static_cast<bool>(m_bootrom_disabled) && addr <= 0x00FF)
-            {
+            if (in_bootrom() && addr <= 0x00FF)
                 return m_bootrom.at(addr);
-            }
+
             return m_cartridge.read(addr);
         }
-        if (interval(0x8000, 0x9FFF).contains(addr)) // VRAM
-            return m_ppu.read8(addr);
 
         if (interval(0xA000, 0xBFFF).contains(addr)) // External RAM
             return m_cartridge.read(addr);
 
-        if (interval(0xC000, 0xDFFF).contains(addr)) // Work RAM
-        {
-            return m_memory.at(addr);
-        }
         if (interval(0xE000, 0xFDFF).contains(addr)) // Echo RAM
             return read8(addr - 0x2000);
 
         if (interval(0xFE00, 0xFE9F).contains(addr)) // OAM
         {
-            LOG_UNIMPLEMENTED("read from OAM");
-            return 0x00;
+            // LOG_UNIMPLEMENTED("read from OAM");
+            return 0xFF;
         }
+
         if (interval(0xFEA0, 0xFEFF).contains(addr)) // Not usable
             return 0xFF;
 
-        if (interval(0xFF00, 0xFF7F).contains(addr)) // I/O registers
-            return read8_io(addr);
-
-        if (interval(0xFF80, 0xFFFE).contains(addr)) // High RAM
-        {
-            LOG_UNIMPLEMENTED("read from high ram");
-            return 0xFF;
-        }
-        if (addr == 0xFFFF) // Interrupt Enable register
-        {
-            LOG_UNIMPLEMENTED("read from Interrupt Enable register");
-            return 0xFF;
-        }
-
-        LOG_DEBUG("unmapped read from {:#04x}", addr);
-        return 0xFF;
+        return m_memory.at(addr);
     }
 
     u16 mmu::read16(u16 addr) const
@@ -218,20 +195,18 @@ namespace cb
 
         if (interval(0x0000, 0x7FFF).contains(addr)) // Cartridge
         {
-            m_cartridge.write(addr, data);
-            return;
-        }
-        else if (interval(0x8000, 0x9FFF).contains(addr)) // VRAM
-        {
-            m_ppu.write8(addr, data);
+            if (in_bootrom() && addr <= 0x00FF)
+            {
+                LOG_ERROR("Tried to write to boot ROM");
+            }
+            else
+            {
+                m_cartridge.write(addr, data);
+            }
         }
         else if (interval(0xA000, 0xBFFF).contains(addr)) // External RAM
         {
             m_cartridge.write(addr, data);
-        }
-        else if (interval(0xC000, 0xDFFF).contains(addr)) // Work RAM
-        {
-            m_memory.at(addr) = data;
         }
         else if (interval(0xE000, 0xFDFF).contains(addr)) // Echo RAM
         {
@@ -239,28 +214,17 @@ namespace cb
         }
         else if (interval(0xFE00, 0xFE9F).contains(addr)) // OAM
         {
-            LOG_UNIMPLEMENTED("write to OAM");
+            // LOG_UNIMPLEMENTED("write to OAM");
             return;
         }
         else if (interval(0xFEA0, 0xFEFF).contains(addr)) // Not usable
         {
             return;
         }
-        else if (interval(0xFF00, 0xFF7F).contains(addr)) // I/O registers
+        else
         {
-            write8_io(addr, data);
+            m_memory.at(addr) = data;
         }
-        else if (interval(0xFF80, 0xFFFE).contains(addr)) // High RAM
-        {
-            LOG_UNIMPLEMENTED("write to high RAM");
-            return;
-        }
-        else if (addr == 0xFFFF) // Interrupt Enable register
-        {
-            LOG_UNIMPLEMENTED("write to Interrupt Enable register");
-        }
-
-        LOG_UNIMPLEMENTED("write to unmapped address {:#04x} with data {:#02x}", addr, data);
     }
 
     void mmu::write16(u16 addr, u16 data)
@@ -269,51 +233,5 @@ namespace cb
         write8(addr + 1, static_cast<u8>(data >> 8));
     }
 
-    u8 mmu::read8_io(u16 addr) const
-    {
-        LOG_TRACE("mmu::read8_io({:#04x})", addr);
-
-        switch (addr)
-        {
-        case reg_lcdc:
-        case reg_stat:
-        case reg_scy:
-        case reg_scx:
-        case reg_ly:
-        case reg_lyc:
-        case reg_bgp:
-            // case reg_obp0:
-            // case reg_obp1:
-            // case reg_wx:
-            // case reg_wy:
-            return m_ppu.read8(addr);
-        case 0xFF50: return m_bootrom_disabled;
-        }
-        LOG_UNIMPLEMENTED("read from unmapped I/O address {:#04x}", addr);
-        return 0xFF;
-    }
-
-    void mmu::write8_io(u16 addr, u8 data)
-    {
-        LOG_TRACE("mmu::write8_io({:#04x})", addr);
-        switch (addr)
-        {
-        case reg_lcdc:
-        case reg_stat:
-        case reg_scy:
-        case reg_scx:
-        case reg_ly:
-        case reg_lyc:
-        case reg_bgp:
-            // case reg_obp0:
-            // case reg_obp1:
-            // case reg_wx:
-            // case reg_wy:
-            m_ppu.write8(addr, data);
-            break;
-        case 0xFF50: m_bootrom_disabled = data; break;
-        }
-        LOG_UNIMPLEMENTED("write to unmapped I/O address {:#04x} with data {:#02x}", addr, data);
-    }
-
+    bool mmu::in_bootrom() const { return read8(reg_bootrom) != 0; }
 } // namespace cb

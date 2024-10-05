@@ -5,19 +5,21 @@
 namespace cb
 {
     inline constexpr u16 ram_enable_start = 0x0000;
-    inline constexpr u16 ram_enable_end = 0x1fff;
+    inline constexpr u16 ram_enable_end = 0x1FFF;
     inline constexpr u16 secondary_bank_register_start = 0x4000;
-    inline constexpr u16 secondary_bank_register_end = 0x5fff;
+    inline constexpr u16 secondary_bank_register_end = 0x5FFF;
     inline constexpr u16 rom_bank_start = 0x2000;
-    inline constexpr u16 rom_bank_end = 0x3fff;
+    inline constexpr u16 rom_bank_end = 0x3FFF;
     inline constexpr u16 rom_slot_0_start = 0x0000;
-    inline constexpr u16 rom_slot_0_end = 0x3fff;
+    inline constexpr u16 rom_slot_0_end = 0x3FFF;
     inline constexpr u16 rom_slot_1_start = 0x4000;
-    inline constexpr u16 rom_slot_1_end = 0x7fff;
+    inline constexpr u16 rom_slot_1_end = 0x7FFF;
     inline constexpr u16 banking_mode_start = 0x6000;
-    inline constexpr u16 banking_mode_end = 0x7fff;
-    inline constexpr u16 external_ram_start = 0xa000;
-    inline constexpr u16 external_ram_end = 0xbfff;
+    inline constexpr u16 banking_mode_end = 0x7FFF;
+    inline constexpr u16 external_ram_start = 0xA000;
+    inline constexpr u16 external_ram_end = 0xBFFF;
+
+    inline constexpr u16 reg_bootrom = 0xFF50;
 
     inline constexpr usz cycles_oam_scan = 80;
     inline constexpr usz cycles_transfer = 172;

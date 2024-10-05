@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/video.h"
 #include "util.h"
 
 namespace cb
@@ -38,15 +37,15 @@ namespace cb
         }
     };
 
-    using memory_bank_controller = std::variant<std::monostate, mbc_rom_only, mbc1>;
+    using mbc_variant = std::variant<std::monostate, mbc_rom_only, mbc1>;
 
     struct cartridge
     {
-        memory_bank_controller mbc;
+        mbc_variant mbc;
 
         explicit cartridge(std::vector<u8> cartrom);
 
-        explicit cartridge(memory_bank_controller mbc)
+        explicit cartridge(mbc_variant mbc)
             : mbc(std::move(mbc))
         {
         }
@@ -66,9 +65,11 @@ namespace cb
         void write8(u16 addr, u8 data);
         void write16(u16 addr, u16 data);
 
-        void tick_components() { m_ppu.tick(); }
-
-        ppu& ppu() { return m_ppu; }
+        template <std::constructible_from<u8> T>
+        T read_as(u16 addr) const
+        {
+            return T(read8(addr));
+        }
 
         void resize_memory(usz new_size) { m_memory.resize(new_size); }
 
@@ -77,11 +78,11 @@ namespace cb
         void write8_io(u16 addr, u8 data);
 
         bool in_bootrom() const;
-        std::array<u8, 256> m_bootrom{};
-        cartridge m_cartridge;
+
+    private:
+        bootrom m_bootrom{};
         std::vector<u8> m_memory{};
-        class ppu m_ppu = {};
-        u8 m_bootrom_disabled{};
+        cartridge m_cartridge;
     };
 
 } // namespace cb

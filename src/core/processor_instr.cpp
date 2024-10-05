@@ -5,82 +5,82 @@
 namespace cb
 {
     // 8-bit loads
-    void processor::ld_r_r(reg8 dest, reg8 src) { set_reg(dest, reg(src)); }
+    void cpu::ld_r_r(reg8 dest, reg8 src) { set_reg(dest, reg(src)); }
 
-    void processor::ld_r_n(reg8 dest) { set_reg(dest, read_operand()); }
+    void cpu::ld_r_n(reg8 dest) { set_reg(dest, read_operand()); }
 
-    void processor::ld_r_mem_hl(reg8 dest) { set_reg(dest, m_mmu->read8(reg(reg16::hl))); }
+    void cpu::ld_r_mem_hl(reg8 dest) { set_reg(dest, m_mmu->read8(reg(reg16::hl))); }
 
-    void processor::ld_mem_hl_r(reg8 src) { write8(m_mmu->read8(reg(reg16::hl)), reg(src)); }
+    void cpu::ld_mem_hl_r(reg8 src) { cycle_write8(reg(reg16::hl), reg(src)); }
 
-    void processor::ld_mem_hl_n() { write8(m_mmu->read8(reg(reg16::hl)), read_operand()); }
+    void cpu::ld_mem_hl_n() { cycle_write8(reg(reg16::hl), read_operand()); }
 
-    void processor::ld_a_mem_rr(reg16 src) { m_a = m_mmu->read8(reg(src)); }
+    void cpu::ld_a_mem_rr(reg16 src) { m_a = m_mmu->read8(reg(src)); }
 
-    void processor::ld_mem_rr_a(reg16 dst) { write8(m_mmu->read8(reg(dst)), m_a); }
+    void cpu::ld_mem_rr_a(reg16 dst) { cycle_write8(reg(dst), m_a); }
 
-    void processor::ld_a_mem_nn() { m_a = m_mmu->read8(read_operands()); }
+    void cpu::ld_a_mem_nn() { m_a = m_mmu->read8(read_operands()); }
 
-    void processor::ld_mem_nn_a()
+    void cpu::ld_mem_nn_a()
     {
         const auto addr = read_operands();
-        write8(addr, m_a);
+        cycle_write8(addr, m_a);
     }
 
-    void processor::ldh_a_mem_c()
+    void cpu::ldh_a_mem_c()
     {
         const auto addr = static_cast<u16>(0xFF00 + m_c);
         set_reg(reg8::a, m_mmu->read8(addr));
     }
 
-    void processor::ldh_mem_c_a()
+    void cpu::ldh_mem_c_a()
     {
         const auto addr = static_cast<u16>(0xFF00 + m_c);
-        write8(addr, m_a);
+        cycle_write8(addr, m_a);
     }
 
-    void processor::ldh_a_mem_n()
+    void cpu::ldh_a_mem_n()
     {
         const auto addr = static_cast<u16>(0xFF00 + read_operand());
         set_reg(reg8::a, m_mmu->read8(addr));
     }
 
-    void processor::ldh_mem_n_a()
+    void cpu::ldh_mem_n_a()
     {
         const auto addr = static_cast<u16>(0xFF00 + read_operand());
-        write8(addr, m_a);
+        cycle_write8(addr, m_a);
     }
 
-    void processor::ld_a_mem_hl_dec()
+    void cpu::ld_a_mem_hl_dec()
     {
         const auto hl = reg(reg16::hl);
         set_reg(reg8::a, m_mmu->read8(hl));
         set_reg(reg16::hl, hl - 1);
     }
 
-    void processor::ld_mem_hl_dec_a()
+    void cpu::ld_mem_hl_dec_a()
     {
         const auto hl = reg(reg16::hl);
-        write8(hl, m_a);
+        cycle_write8(hl, m_a);
         set_reg(reg16::hl, hl - 1);
     }
 
-    void processor::ld_a_mem_hl_inc()
+    void cpu::ld_a_mem_hl_inc()
     {
         const auto hl = reg(reg16::hl);
         set_reg(reg8::a, m_mmu->read8(hl));
         set_reg(reg16::hl, hl + 1);
     }
 
-    void processor::ld_mem_hl_inc_a()
+    void cpu::ld_mem_hl_inc_a()
     {
-        const auto hl = reg(reg16::hl);
-        write8(m_mmu->read8(hl), m_a);
-        set_reg(reg16::hl, hl + 1);
+        const auto hl_val = reg(reg16::hl);
+        cycle_write8(hl_val, m_a);
+        set_reg(reg16::hl, hl_val + 1);
     }
 
     // 8-bit arithmetic and logical
-    void processor::add_r(reg8 r)
+    void cpu::add_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u16 result = m_a + r_val;
@@ -91,7 +91,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::add_mem_hl()
+    void cpu::add_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u16 result = m_a + data;
@@ -102,7 +102,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::add_n()
+    void cpu::add_n()
     {
         const u8 n = read_operand();
         const u16 result = m_a + n;
@@ -113,7 +113,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::adc_r(reg8 r)
+    void cpu::adc_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u16 result = m_a + r_val + m_f.c();
@@ -124,7 +124,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::adc_mem_hl()
+    void cpu::adc_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u16 result = m_a + data + m_f.c();
@@ -135,7 +135,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::adc_n()
+    void cpu::adc_n()
     {
         const u8 n = read_operand();
         const u16 result = m_a + n + m_f.c();
@@ -146,7 +146,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::sub_r(reg8 r)
+    void cpu::sub_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u8 result = m_a - r_val;
@@ -157,7 +157,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::sub_mem_hl()
+    void cpu::sub_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u16 result = m_a - data;
@@ -168,7 +168,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::sub_n()
+    void cpu::sub_n()
     {
         const u8 n = read_operand();
         const u16 result = m_a - n;
@@ -179,7 +179,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::sbc_r(reg8 r)
+    void cpu::sbc_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const int result = m_a - r_val - m_f.c();
@@ -190,7 +190,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::sbc_mem_hl()
+    void cpu::sbc_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const int result = m_a - data - m_f.c();
@@ -201,7 +201,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::sbc_n()
+    void cpu::sbc_n()
     {
         const u8 n = read_operand();
         const int result = m_a - n - m_f.c();
@@ -212,7 +212,7 @@ namespace cb
         m_a = static_cast<u8>(result);
     }
 
-    void processor::cp_r(reg8 r)
+    void cpu::cp_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u8 result = m_a - r_val;
@@ -222,7 +222,7 @@ namespace cb
         m_f.set(flag::c, m_a < r_val);
     }
 
-    void processor::cp_mem_hl()
+    void cpu::cp_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u16 result = m_a - data;
@@ -232,7 +232,7 @@ namespace cb
         m_f.set(flag::c, m_a < data);
     }
 
-    void processor::cp_n()
+    void cpu::cp_n()
     {
         const u8 n = read_operand();
         const u16 result = m_a - n;
@@ -242,7 +242,7 @@ namespace cb
         m_f.set(flag::c, m_a < n);
     }
 
-    void processor::inc_r(reg8 r)
+    void cpu::inc_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u16 result = r_val + 1;
@@ -252,7 +252,7 @@ namespace cb
         set_reg(r, static_cast<u8>(result));
     }
 
-    void processor::inc_mem_hl()
+    void cpu::inc_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -260,10 +260,10 @@ namespace cb
         m_f.set(flag::z, (result & 0xFF) == 0);
         m_f.set(flag::n, false);
         m_f.set(flag::h, (data & 0xF) == 0xF);
-        write8(addr, static_cast<u8>(result));
+        cycle_write8(addr, static_cast<u8>(result));
     }
 
-    void processor::dec_r(reg8 r)
+    void cpu::dec_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const u8 result = r_val - 1;
@@ -273,7 +273,7 @@ namespace cb
         set_reg(r, static_cast<u8>(result));
     }
 
-    void processor::dec_mem_hl()
+    void cpu::dec_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -281,10 +281,10 @@ namespace cb
         m_f.set(flag::z, (result & 0xFF) == 0);
         m_f.set(flag::n, true);
         m_f.set(flag::h, (result & 0xF) == 0xF);
-        write8(addr, static_cast<u8>(result));
+        cycle_write8(addr, static_cast<u8>(result));
     }
 
-    void processor::and_r(reg8 r)
+    void cpu::and_r(reg8 r)
     {
         const u8 result = m_a & reg(r);
         m_f.set(flag::z, result == 0);
@@ -294,7 +294,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::and_mem_hl()
+    void cpu::and_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u8 result = m_a & data;
@@ -305,7 +305,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::and_n()
+    void cpu::and_n()
     {
         const u8 n = read_operand();
         const u8 result = m_a & n;
@@ -316,7 +316,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::or_r(reg8 r)
+    void cpu::or_r(reg8 r)
     {
         const u8 result = m_a | reg(r);
         m_f.set(flag::z, result == 0);
@@ -326,7 +326,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::or_mem_hl()
+    void cpu::or_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u8 result = m_a | data;
@@ -337,7 +337,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::or_n()
+    void cpu::or_n()
     {
         const u8 n = read_operand();
         const u8 result = m_a | n;
@@ -348,7 +348,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::xor_r(reg8 r)
+    void cpu::xor_r(reg8 r)
     {
         const u8 result = m_a ^ reg(r);
         m_f.set(flag::z, result == 0);
@@ -358,7 +358,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::xor_mem_hl()
+    void cpu::xor_mem_hl()
     {
         const u8 data = m_mmu->read8(reg(reg16::hl));
         const u8 result = m_a ^ data;
@@ -369,7 +369,7 @@ namespace cb
         m_a = result;
     }
 
-    void processor::xor_n()
+    void cpu::xor_n()
     {
         const u8 n = read_operand();
         const u8 result = m_a ^ n;
@@ -380,21 +380,21 @@ namespace cb
         m_a = result;
     }
 
-    void processor::ccf()
+    void cpu::ccf()
     {
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, !m_f.c());
     }
 
-    void processor::scf()
+    void cpu::scf()
     {
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, true);
     }
 
-    void processor::cpl()
+    void cpu::cpl()
     {
         m_a = ~m_a;
         m_f.set(flag::n, true);
@@ -402,17 +402,17 @@ namespace cb
     }
 
     // 16-bit loads
-    void processor::ld_rr_nn(reg16 dst) { set_reg(dst, read_operands()); }
+    void cpu::ld_rr_nn(reg16 dst) { set_reg(dst, read_operands()); }
 
-    void processor::ld_mem_nn_sp() { write16(read_operands(), m_sp); }
+    void cpu::ld_mem_nn_sp() { cycle_write16(read_operands(), m_sp); }
 
-    void processor::ld_sp_hl() { m_sp = reg(reg16::hl); }
+    void cpu::ld_sp_hl() { m_sp = reg(reg16::hl); }
 
-    void processor::push_rr(reg16 src) { push16(reg(src)); }
+    void cpu::push_rr(reg16 src) { push16(reg(src)); }
 
-    void processor::pop_rr(reg16 dst) { set_reg(dst, pop16()); }
+    void cpu::pop_rr(reg16 dst) { set_reg(dst, pop16()); }
 
-    void processor::ld_hl_sp_e()
+    void cpu::ld_hl_sp_e()
     {
         const auto e = static_cast<s8>(read_operand());
         m_f.set(flag::z, false);
@@ -423,11 +423,11 @@ namespace cb
     }
 
     // 16-bit arithmetic
-    void processor::inc_rr(reg16 rr) { set_reg(rr, reg(rr) + 1); }
+    void cpu::inc_rr(reg16 rr) { set_reg(rr, reg(rr) + 1); }
 
-    void processor::dec_rr(reg16 rr) { set_reg(rr, reg(rr) - 1); }
+    void cpu::dec_rr(reg16 rr) { set_reg(rr, reg(rr) - 1); }
 
-    void processor::add_hl_rr(reg16 rr)
+    void cpu::add_hl_rr(reg16 rr)
     {
         const u16 rr_val = reg(rr);
         const u16 hl_val = reg(reg16::hl);
@@ -438,7 +438,7 @@ namespace cb
         set_reg(reg16::hl, static_cast<u16>(result));
     }
 
-    void processor::add_hl_sp_e()
+    void cpu::add_hl_sp_e()
     {
         const auto e = static_cast<s8>(read_operand());
         const int result = m_sp + e;
@@ -450,15 +450,15 @@ namespace cb
     }
 
     // Control flow
-    void processor::jp_nn()
+    void cpu::jp_nn()
     {
         const u16 nn = read_operands();
         m_pc = nn;
     }
 
-    void processor::jp_hl() { m_pc = reg(reg16::hl); }
+    void cpu::jp_hl() { m_pc = reg(reg16::hl); }
 
-    void processor::jp_cc_nn(condition cc)
+    void cpu::jp_cc_nn(condition cc)
     {
         const u16 nn = read_operands();
         if (check_condition(cc))
@@ -467,13 +467,13 @@ namespace cb
         }
     }
 
-    void processor::jr_e()
+    void cpu::jr_e()
     {
         const auto e = static_cast<s8>(read_operand());
         m_pc += e;
     }
 
-    void processor::jr_cc_e(condition cc)
+    void cpu::jr_cc_e(condition cc)
     {
         const auto e = static_cast<s8>(read_operand());
         if (check_condition(cc))
@@ -482,14 +482,14 @@ namespace cb
         }
     }
 
-    void processor::call_nn()
+    void cpu::call_nn()
     {
         const u16 nn = read_operands();
         push16(m_pc);
         m_pc = nn;
     }
 
-    void processor::call_cc_nn(condition cc)
+    void cpu::call_cc_nn(condition cc)
     {
         const u16 nn = read_operands();
         if (check_condition(cc))
@@ -499,9 +499,9 @@ namespace cb
         }
     }
 
-    void processor::ret() { m_pc = pop16(); }
+    void cpu::ret() { m_pc = pop16(); }
 
-    void processor::ret_cc(condition cc)
+    void cpu::ret_cc(condition cc)
     {
         if (check_condition(cc))
         {
@@ -509,65 +509,65 @@ namespace cb
         }
     }
 
-    void processor::reti()
+    void cpu::reti()
     {
         m_pc = pop16();
         m_ime = true;
     }
 
-    void processor::rst_n(u8 vec)
+    void cpu::rst_n(u8 vec)
     {
         push16(m_pc);
         m_pc = vec;
     }
 
     // Miscellaneous
-    void processor::nop() {}
+    void cpu::nop() {}
 
     // Rotate, shift, and bit operations
-    void processor::rlca()
+    void cpu::rlca()
     {
         const bool carry = m_a & BIT(7);
         const auto result = static_cast<u8>((m_a << 1) | carry);
-        m_f.set(flag::z, result == 0);
+        m_f.set(flag::z, false);
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, carry);
         m_a = result;
     }
 
-    void processor::rrca()
+    void cpu::rrca()
     {
         const bool carry = m_a & BIT(0);
         const auto result = static_cast<u8>((m_a >> 1) | (carry << 7));
-        m_f.set(flag::z, result == 0);
+        m_f.set(flag::z, false);
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, carry);
         m_a = result;
     }
 
-    void processor::rla()
+    void cpu::rla()
     {
         const auto result = static_cast<u8>((m_a << 1) | m_f.c());
-        m_f.set(flag::z, result == 0);
+        m_f.set(flag::z, false);
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, m_a & BIT(7));
         m_a = result;
     }
 
-    void processor::rra()
+    void cpu::rra()
     {
         const auto result = static_cast<u8>((m_a >> 1) | (m_f.c() << 7));
-        m_f.set(flag::z, result == 0);
+        m_f.set(flag::z, false);
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, m_a & BIT(0));
         m_a = result;
     }
 
-    void processor::rlc_r(reg8 r)
+    void cpu::rlc_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const bool carry = r_val & BIT(7);
@@ -579,7 +579,7 @@ namespace cb
         set_reg(r, result);
     }
 
-    void processor::rlc_mem_hl()
+    void cpu::rlc_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -589,10 +589,10 @@ namespace cb
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, carry);
-        m_mmu->write8(addr, result);
+        cycle_write8(addr, result);
     }
 
-    void processor::rrc_r(reg8 r)
+    void cpu::rrc_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const bool carry = r_val & BIT(0);
@@ -604,7 +604,7 @@ namespace cb
         set_reg(r, result);
     }
 
-    void processor::rrc_mem_hl()
+    void cpu::rrc_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -614,10 +614,10 @@ namespace cb
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, carry);
-        m_mmu->write8(addr, result);
+        cycle_write8(addr, result);
     }
 
-    void processor::rl_r(reg8 r)
+    void cpu::rl_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const auto result = static_cast<u8>((r_val << 1) | m_f.c());
@@ -628,7 +628,7 @@ namespace cb
         set_reg(r, result);
     }
 
-    void processor::rl_mem_hl()
+    void cpu::rl_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -637,10 +637,10 @@ namespace cb
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, data & BIT(7));
-        m_mmu->write8(addr, result);
+        cycle_write8(addr, result);
     }
 
-    void processor::rr_r(reg8 r)
+    void cpu::rr_r(reg8 r)
     {
         const u8 r_val = reg(r);
         const auto result = static_cast<u8>((r_val >> 1) | (m_f.c() << 7));
@@ -651,7 +651,7 @@ namespace cb
         set_reg(r, result);
     }
 
-    void processor::rr_mem_hl()
+    void cpu::rr_mem_hl()
     {
         const u16 addr = reg(reg16::hl);
         const u8 data = m_mmu->read8(addr);
@@ -660,7 +660,7 @@ namespace cb
         m_f.set(flag::n, false);
         m_f.set(flag::h, false);
         m_f.set(flag::c, data & BIT(0));
-        m_mmu->write8(addr, result);
+        cycle_write8(addr, result);
     }
 
 } // namespace cb

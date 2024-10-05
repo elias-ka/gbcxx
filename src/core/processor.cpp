@@ -29,7 +29,7 @@ namespace cb
         }
     }
 
-    u8 processor::reg(reg8 r) const
+    u8 cpu::reg(reg8 r) const
     {
         switch (r)
         {
@@ -43,7 +43,7 @@ namespace cb
         }
     }
 
-    u16 processor::reg(reg16 r) const
+    u16 cpu::reg(reg16 r) const
     {
         switch (r)
         {
@@ -55,7 +55,7 @@ namespace cb
         }
     }
 
-    void processor::set_reg(reg8 reg, u8 val)
+    void cpu::set_reg(reg8 reg, u8 val)
     {
         switch (reg)
         {
@@ -69,7 +69,7 @@ namespace cb
         }
     }
 
-    void processor::set_reg(reg16 reg, u16 val)
+    void cpu::set_reg(reg16 reg, u16 val)
     {
         switch (reg)
         {
@@ -93,62 +93,72 @@ namespace cb
         }
     }
 
-    void processor::step()
+    void cpu::step()
     {
         m_cycles_elapsed = 0;
         const auto opcode = read_operand();
         execute(opcode);
     }
 
-    void processor::write8(u16 addr, u8 data)
+    void cpu::cycle_write8(u16 addr, u8 data)
     {
         tick4();
         m_mmu->write8(addr, data);
     }
 
-    void processor::write16(u16 addr, u16 data)
+    void cpu::cycle_write16(u16 addr, u16 data)
     {
         tick4();
         m_mmu->write16(addr, data);
     }
 
-    u8 processor::read_operand()
+    u8 cpu::read_operand()
     {
         tick4();
         return m_mmu->read8(m_pc++);
     }
 
-    u16 processor::read_operands()
+    u16 cpu::read_operands()
     {
         const auto lo = read_operand();
         const auto hi = read_operand();
         return static_cast<u16>((hi << 8) | lo);
     }
 
-    void processor::push8(u8 value) { write8(--m_sp, value); }
+    void cpu::push8(u8 value)
+    {
+        // fixme: should tick4 be called here?
+        tick4();
+        cycle_write8(--m_sp, value);
+    }
 
-    void processor::push16(u16 value)
+    void cpu::push16(u16 value)
     {
         push8(value >> 8);
         push8(static_cast<u8>(value));
     }
 
-    u8 processor::pop8() { return m_mmu->read8(m_sp++); }
+    u8 cpu::pop8()
+    {
+        // fixme: should tick4 be called here?
+        tick4();
+        return m_mmu->read8(m_sp++);
+    }
 
-    u16 processor::pop16()
+    u16 cpu::pop16()
     {
         const auto lo = pop8();
         const auto hi = pop8();
         return static_cast<u16>((hi << 8) | lo);
     }
 
-    void processor::tick()
+    void cpu::tick()
     {
         m_cycles_elapsed += 1;
-        m_mmu->tick_components();
+        m_on_tick_components();
     }
 
-    void processor::tick4()
+    void cpu::tick4()
     {
         tick();
         tick();
@@ -156,7 +166,7 @@ namespace cb
         tick();
     }
 
-    void processor::execute(u8 opcode)
+    void cpu::execute(u8 opcode)
     {
         LOG_TRACE("processor::execute({:#04x})", opcode);
         // https://gekkio.fi/files/gb-docs/gbctr.pdf
@@ -422,6 +432,7 @@ namespace cb
             switch (opcode)
             {
             // Rotate, shift, and bit operations
+            case 0x07: rlc_r(reg8::a); break;
             case 0x00: rlc_r(reg8::b); break;
             case 0x01: rlc_r(reg8::c); break;
             case 0x02: rlc_r(reg8::d); break;
@@ -429,6 +440,7 @@ namespace cb
             case 0x04: rlc_r(reg8::h); break;
             case 0x05: rlc_r(reg8::l); break;
             case 0x06: rlc_mem_hl(); break;
+            case 0x0F: rrc_r(reg8::a); break;
             case 0x08: rrc_r(reg8::b); break;
             case 0x09: rrc_r(reg8::c); break;
             case 0x0A: rrc_r(reg8::d); break;
@@ -436,6 +448,7 @@ namespace cb
             case 0x0C: rrc_r(reg8::h); break;
             case 0x0D: rrc_r(reg8::l); break;
             case 0x0E: rrc_mem_hl(); break;
+            case 0x17: rl_r(reg8::a); break;
             case 0x10: rl_r(reg8::b); break;
             case 0x11: rl_r(reg8::c); break;
             case 0x12: rl_r(reg8::d); break;
@@ -443,6 +456,7 @@ namespace cb
             case 0x14: rl_r(reg8::h); break;
             case 0x15: rl_r(reg8::l); break;
             case 0x16: rl_mem_hl(); break;
+            case 0x1F: rr_r(reg8::a); break;
             case 0x18: rr_r(reg8::b); break;
             case 0x19: rr_r(reg8::c); break;
             case 0x1A: rr_r(reg8::d); break;

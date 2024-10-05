@@ -4,7 +4,9 @@
 #include "util.h"
 #include <array>
 #include <fmt/base.h>
+#include <functional>
 #include <string>
+#include <utility>
 
 namespace cb
 {
@@ -65,15 +67,15 @@ namespace cb
         c
     };
 
-    class processor
+    class cpu
     {
     public:
-        explicit processor(mmu* mmu)
+        explicit cpu(mmu* mmu)
             : m_mmu(mmu)
         {
         }
 
-        processor(mmu* mmu, u16 pc, u16 sp, flags f, u8 a, u8 b, u8 c, u8 d, u8 e, u8 h, u8 l)
+        cpu(mmu* mmu, u16 pc, u16 sp, flags f, u8 a, u8 b, u8 c, u8 d, u8 e, u8 h, u8 l)
             : m_mmu(mmu)
             , m_pc(pc)
             , m_sp(sp)
@@ -101,12 +103,17 @@ namespace cb
         void set_reg(reg8 reg, u8 val);
         void set_reg(reg16 reg, u16 val);
 
+        void register_on_tick_components_callback(std::function<void()> cb)
+        {
+            m_on_tick_components = std::move(cb);
+        }
+
     private:
         void tick();
         void tick4();
 
-        void write8(u16 addr, u8 data);
-        void write16(u16 addr, u16 data);
+        void cycle_write8(u16 addr, u8 data);
+        void cycle_write16(u16 addr, u16 data);
 
         u8 read_operand();
         u16 read_operands();
@@ -118,7 +125,7 @@ namespace cb
 
         void execute(u8 opcode);
 
-        bool check_condition(condition cond)
+        bool check_condition(condition cond) const
         {
             switch (cond)
             {
@@ -227,6 +234,7 @@ namespace cb
         void rr_mem_hl();
 
     private:
+        std::function<void()> m_on_tick_components = {[] {}};
         usz m_cycles_elapsed{};
         mmu* m_mmu;
         u16 m_pc{};

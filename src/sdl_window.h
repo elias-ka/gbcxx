@@ -19,16 +19,6 @@ SPECIALIZE_DEFAULT_DELETE(SDL_Window, SDL_DestroyWindow);
 SPECIALIZE_DEFAULT_DELETE(SDL_Texture, SDL_DestroyTexture);
 SPECIALIZE_DEFAULT_DELETE(SDL_Renderer, SDL_DestroyRenderer);
 
-template <auto F>
-struct deleter
-{
-    decltype(auto) operator()(auto obj) const
-        requires requires { F(obj); }
-    {
-        return F(obj);
-    }
-};
-
 class sdl_window : public cb::window
 {
 public:
@@ -40,7 +30,7 @@ public:
     sdl_window operator=(const sdl_window&) = delete;
     sdl_window operator=(sdl_window&&) = delete;
 
-    void draw(cb::frame_buffer& buf) override;
+    void draw(const cb::frame_buffer& buf) override;
     void poll_events() override;
 
     void set_title(std::string_view title) override;

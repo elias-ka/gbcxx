@@ -18,7 +18,7 @@ namespace cb
         window operator=(const window&) = delete;
         window operator=(window&&) = delete;
 
-        virtual void draw(frame_buffer& buf) = 0;
+        virtual void draw(const frame_buffer& buf) = 0;
         virtual void poll_events() = 0;
 
         virtual void set_title(std::string_view title) = 0;
@@ -35,8 +35,11 @@ namespace cb
         explicit emulator(std::vector<u8> cartrom);
         void run(window* win);
 
+        void tick_components() { m_ppu.tick(); }
+
     private:
         mmu m_mmu;
-        processor m_cpu;
+        ppu m_ppu;
+        cpu m_cpu;
     };
 } // namespace cb

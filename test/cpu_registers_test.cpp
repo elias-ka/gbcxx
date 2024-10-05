@@ -7,7 +7,7 @@ class CpuRegistersTest : public ::testing::Test
 {
 protected:
     mmu mmu{cartridge{mbc_rom_only{{}}}};
-    processor cpu{&mmu};
+    cpu cpu{&mmu};
 };
 
 TEST_F(CpuRegistersTest, HandlesAFRegister)

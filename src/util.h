@@ -78,37 +78,30 @@ namespace cb
         return range<T>(low, high);
     }
 
-    namespace color
+    struct rgba
     {
-        struct rgba
+        u8 r{};
+        u8 g{};
+        u8 b{};
+        u8 a{0xFF};
+
+        constexpr rgba() = default;
+        constexpr rgba(u8 r, u8 g, u8 b, u8 a = 0xFF)
+            : r(r)
+            , g(g)
+            , b(b)
+            , a(a)
         {
-            u8 r{};
-            u8 g{};
-            u8 b{};
-            u8 a{0xFF};
+        }
 
-            constexpr rgba() = default;
-            constexpr rgba(u8 r, u8 g, u8 b, u8 a = 0xFF)
-                : r(r)
-                , g(g)
-                , b(b)
-                , a(a)
-            {
-            }
+        constexpr bool operator==(const rgba&) const = default;
 
-            constexpr bool operator==(const rgba&) const = default;
-
-            explicit constexpr operator u32() const
-            {
-                return (static_cast<u32>(r) << 24) | (static_cast<u32>(g) << 16) |
-                       (static_cast<u32>(b) << 8) | (static_cast<u32>(a));
-            }
-        };
-
-        inline constexpr rgba white = {0xFF, 0xFF, 0xFF, 0xFF};
-        inline constexpr rgba black = {0x00, 0x00, 0x00, 0xFF};
-
-    } // namespace color
+        explicit constexpr operator u32() const
+        {
+            return (static_cast<u32>(r) << 24) | (static_cast<u32>(g) << 16) |
+                   (static_cast<u32>(b) << 8) | (static_cast<u32>(a));
+        }
+    };
 
     enum class log_level : u8
     {

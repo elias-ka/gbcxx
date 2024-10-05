@@ -62,19 +62,18 @@ void sdl_window::poll_events()
     }
 }
 
-void sdl_window::draw(cb::frame_buffer& buf)
+void sdl_window::draw(const cb::frame_buffer& buf)
 {
     void* pixels_ptr = nullptr;
     int pitch = 0;
 
     SDL_LockTexture(m_screen_texture.get(), nullptr, &pixels_ptr, &pitch);
-    auto* pixels = static_cast<uint32_t*>(pixels_ptr);
-    // does it even work?
+    auto* pixels = static_cast<u32*>(pixels_ptr);
     for (u32 y = 0; y < cb::screen_height; y++)
     {
         for (u32 x = 0; x < cb::screen_width; x++)
         {
-            cb::color::rgba color = buf.pixel_color(x, y);
+            const auto color = buf.pixel_color(x, y);
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             pixels[cb::screen_width * y + x] = static_cast<u32>(color);
         }

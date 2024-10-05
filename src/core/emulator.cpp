@@ -33,8 +33,10 @@ namespace cb
 
     emulator::emulator(std::vector<u8> cartrom)
         : m_mmu(cartridge{verify_checksum(cartrom)})
+        , m_ppu(&m_mmu)
         , m_cpu(&m_mmu)
     {
+        m_cpu.register_on_tick_components_callback([this] { tick_components(); });
     }
 
     void emulator::run(window* win)
@@ -50,7 +52,7 @@ namespace cb
 
         while (win->is_open())
         {
-            m_mmu.ppu().clear_should_redraw();
+            m_ppu.clear_should_redraw();
             win->poll_events();
 
             while (cycles_delta < cycles_per_frame)
@@ -60,9 +62,9 @@ namespace cb
             }
 
             cycles_delta -= cycles_per_frame;
-            if (m_mmu.ppu().should_redraw())
+            if (m_ppu.should_redraw())
             {
-                win->draw(m_mmu.ppu().buffer());
+                win->draw(m_ppu.buffer());
             }
         }
     }

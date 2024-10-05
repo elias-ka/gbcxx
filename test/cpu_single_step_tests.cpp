@@ -101,8 +101,8 @@ TEST_P(SingleStepParameterizedTest, All)
             mmu.write8(addr, value);
         }
 
-        processor cpu{&mmu,      initial.pc, initial.sp, initial.f, initial.a, initial.b,
-                      initial.c, initial.d,  initial.e,  initial.h, initial.l};
+        cpu cpu{&mmu,      initial.pc, initial.sp, initial.f, initial.a, initial.b,
+                initial.c, initial.d,  initial.e,  initial.h, initial.l};
 
         cpu.step();
 
@@ -210,4 +210,4 @@ static const std::vector<std::filesystem::path> rotate_instructions = {
     "cb 16.json", "cb 1e.json"};
 
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,
-                         testing::ValuesIn(rotate_instructions));
+                         testing::ValuesIn(control_flow_instructions));

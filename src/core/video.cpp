@@ -1,6 +1,7 @@
 #include "core/video.h"
 
 #include "core/constants.h"
+#include "core/memory.h"
 #include "util.h"
 #include <cassert>
 
@@ -8,8 +9,10 @@ namespace cb
 {
     namespace
     {
-        constexpr std::array<color::rgba, 4> dmg_palette = {
-            color::black, {0xAA, 0xAA, 0xAA, 0xFF}, {0x55, 0x55, 0x55, 0xFF}, color::white};
+        constexpr std::array<rgba, 4> dmg_palette = {{{0x7B, 0x82, 0x10, 0xFF},
+                                                      {0x39, 0x59, 0x4A, 0xFF},
+                                                      {0x55, 0x55, 0x55, 0xFF},
+                                                      {0x5A, 0x79, 0x42, 0xFF}}};
     } // namespace
 
     void ppu::tick()
@@ -23,8 +26,8 @@ namespace cb
             if (m_cycles == mode_cycles(mode::hblank))
             {
                 m_cycles = 0;
-                m_line_y += 1;
-                if (m_line_y == 144)
+                increment_ly();
+                if (m_mmu->read8(reg_ly) == 144)
                 {
                     enter_mode(mode::vblank);
                     m_should_redraw = true;
@@ -41,11 +44,11 @@ namespace cb
             if (m_cycles == mode_cycles(mode::vblank))
             {
                 m_cycles = 0;
-                m_line_y += 1;
-                if (m_line_y == 154)
+                increment_ly();
+                if (m_mmu->read8(reg_ly) == 154)
                 {
                     enter_mode(mode::oam_scan);
-                    m_line_y = 0;
+                    m_mmu->write8(reg_ly, 0);
                 }
             }
             break;
@@ -72,50 +75,6 @@ namespace cb
         }
     }
 
-    u8 ppu::read8(u16 addr) const
-    {
-        if (0x8000 <= addr && addr <= 0x9FFF)
-        {
-            return m_vram.at(addr - 0x8000);
-        }
-
-        switch (addr)
-        {
-        case reg_lcdc: return m_control.value;
-        case reg_stat: return m_stat.value;
-        case reg_ly: return m_line_y;
-        case reg_lyc: return m_line_y_compare;
-        case reg_scy: return m_scroll_y;
-        case reg_scx: return m_scroll_x;
-        case reg_bgp: return m_bg_palette;
-        default:
-        {
-            LOG_UNIMPLEMENTED("ppu::read8({:#04x})", addr);
-            return 0xFF;
-        }
-        }
-    }
-
-    void ppu::write8(u16 addr, u8 data)
-    {
-        if (0x8000 <= addr && addr <= 0x9FFF)
-        {
-            m_vram.at(addr - 0x8000) = data;
-        }
-
-        switch (addr)
-        {
-        case reg_lcdc: m_control.value = data; break;
-        case reg_stat: m_stat.value = data; break;
-        case reg_ly: m_line_y = data; break;
-        case reg_lyc: m_line_y_compare = data; break;
-        case reg_scy: m_scroll_y = data; break;
-        case reg_scx: m_scroll_x = data; break;
-        case reg_bgp: m_bg_palette = data; break;
-        default: LOG_UNIMPLEMENTED("ppu::write8({:#04x}, {:#02x})", addr, data);
-        }
-    }
-
     void ppu::enter_mode(mode mode) { m_mode = mode; }
 
     usz ppu::mode_cycles(mode mode) const
@@ -124,7 +83,7 @@ namespace cb
         {
         case mode::hblank:
         {
-            switch (m_scroll_x % 8)
+            switch (m_mmu->read8(reg_scx) % 8)
             {
             case 0: return 204;
             case 1:
@@ -143,35 +102,39 @@ namespace cb
         }
     }
 
+    void ppu::increment_ly()
+    {
+        const u8 ly = m_mmu->read8(reg_ly);
+        m_mmu->write8(reg_ly, ly + 1);
+    }
+
     void ppu::render_bg_scanline()
     {
-        if (!m_control.bg_on())
+        const auto lcdc = m_mmu->read_as<lcd_control>(reg_lcdc);
+        if (!lcdc.bg_on())
             return;
 
-        const u16 map_mask = m_control.bg_map() ? 0x1C00 : 0x1800;
-        const u16 y = m_line_y + m_scroll_y;
-        const usz row = y / 8;
+        const u8 screen_y = m_mmu->read8(reg_ly);
+        const u8 scroll_y = m_mmu->read8(reg_scy);
 
-        for (u8 i = 0; i < screen_width; i++)
+        for (u8 screen_x = 0; screen_x < screen_width; screen_x++)
         {
-            const u8 x = i + m_scroll_x;
-            const usz col = x / 8;
-
-            usz tile_num = m_vram.at(((row * 32 + col) | map_mask) & 0x1FFF);
-            if (!m_control.bg_addr())
-            {
-                tile_num =
-                    static_cast<usz>(128 + static_cast<s16>(static_cast<s8>(tile_num)) + 128);
-            }
-
-            const usz line = static_cast<usz>(y % 8) * 2;
-            const usz tile_mask = tile_num << 4;
-            const u8 data1 = m_vram.at((tile_mask | line) & 0x1FFF);
-            const u8 data2 = m_vram.at((tile_mask | (line + 1)) & 0x1FFF);
-            // const auto bit = static_cast<usz>(((x % 8) + 7) * 0xFF);
-            // const u8 color_value =
-            //     static_cast<u8>(((data2 >> bit) & 1) << 1) | ((data1 >> bit) & 1);
-            // m_buffer.set_pixel_color(x, y, dmg_palette.at(color_value));
+            const u8 scroll_x = m_mmu->read8(reg_scx);
+            const u8 tile_x = (scroll_x + screen_x) / 8;
+            const u8 tile_y = (scroll_y + screen_y) / 8;
+            const u16 tile_map_addr = 0x9800 + (tile_y * 32) + tile_x;
+            const u8 tile_number = m_mmu->read8(tile_map_addr);
+            const u16 tile_data_addr =
+                lcdc.bg_addr() ? (0x8000 + tile_number * 16) :
+                                 (0x8800 + static_cast<u16>(static_cast<s8>(tile_number) * 16));
+            const u8 tile_line = (scroll_y + screen_y) % 8;
+            const u8 tile_data1 = m_mmu->read8(tile_data_addr + tile_line * 2);
+            const u8 tile_data2 = m_mmu->read8(tile_data_addr + tile_line * 2 + 1);
+            const u8 bit_position = (scroll_x + screen_x) % 8;
+            const u8 color_bit1 = (tile_data1 >> (7 - bit_position)) & 1;
+            const u8 color_bit2 = (tile_data2 >> (7 - bit_position)) & 1;
+            const u8 color_number = static_cast<u8>((color_bit2 << 1) | color_bit1);
+            m_buffer.set_pixel_color(screen_x, screen_y, dmg_palette.at(color_number));
         }
     }
 

@@ -6,23 +6,22 @@
 
 namespace cb
 {
+    class mmu;
+
     class frame_buffer
     {
     public:
-        constexpr color::rgba pixel_color(usz x, usz y) const { return m_buf.at(index(x, y)); }
-        constexpr void set_pixel_color(usz x, usz y, color::rgba color)
-        {
-            m_buf.at(index(x, y)) = color;
-        }
-        constexpr void fill(color::rgba color) { m_buf.fill(color); }
+        constexpr rgba pixel_color(usz x, usz y) const { return m_buf.at(index(x, y)); }
+        constexpr void set_pixel_color(usz x, usz y, rgba color) { m_buf.at(index(x, y)) = color; }
+        constexpr void fill(rgba color) { m_buf.fill(color); }
 
     private:
         usz index(usz x, usz y) const { return y * screen_width + x; }
 
-        std::array<color::rgba, screen_width * screen_height> m_buf;
+        std::array<rgba, screen_width * screen_height> m_buf;
     };
 
-    struct control
+    struct lcd_control
     {
         u8 value;
 
@@ -36,7 +35,7 @@ namespace cb
         bool lcd_on() const { return value & BIT(7); }
     };
 
-    struct stat
+    struct lcd_status
     {
         u8 value;
 
@@ -58,35 +57,27 @@ namespace cb
     class ppu
     {
     public:
+        explicit ppu(mmu* mmu)
+            : m_mmu(mmu)
+        {
+        }
+
         void tick();
-
-        u8 read8(u16 addr) const;
-        void write8(u16 addr, u8 data);
-
-        frame_buffer& buffer() { return m_buffer; }
+        const frame_buffer& buffer() const { return m_buffer; }
         bool should_redraw() const { return m_should_redraw; }
         void clear_should_redraw() { m_should_redraw = false; }
 
     private:
-        void write_lcdc(u8 value);
         void enter_mode(mode mode);
         usz mode_cycles(mode mode) const;
-
+        void increment_ly();
         void render_bg_scanline();
 
     private:
         frame_buffer m_buffer{};
-        std::array<u8, 8_KiB> m_vram{};
         mode m_mode{mode::hblank};
         usz m_cycles{};
-        usz m_off_cycles{};
-        control m_control{0x91};
-        stat m_stat{0x85};
         bool m_should_redraw{};
-        u8 m_scroll_y{0x00};
-        u8 m_scroll_x{0x00};
-        u8 m_line_y{0x00};
-        u8 m_line_y_compare{0x00};
-        u8 m_bg_palette{0xFC};
+        mmu* m_mmu{};
     };
 } // namespace cb
