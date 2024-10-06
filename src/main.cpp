@@ -22,14 +22,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    const auto ext = rom_file.extension();
-    if (ext != ".dmg" && ext != ".gb" && ext != ".gbc" && ext != ".bin")
-    {
-        fmt::println("Error: Invalid file extension \"{}\".", ext.string());
-        fmt::println("Supported extensions are:\n  - .dmg\n  - .bin\n  - .gb\n  - .gbc");
-        return 1;
-    }
-
 #ifndef NDEBUG
     if (args.size() > 2 && std::string_view{args[2]} == "--trace")
     {
@@ -41,8 +33,8 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    std::unique_ptr<cb::window> window = std::make_unique<sdl_window>(160, 144, "CringeBoy");
+    cb::sdl_window window{160 * 4, 144 * 4, "CringeBoy"};
     const std::vector<u8> cartrom = cb::fs::read(rom_file);
     auto emulator = cb::emulator{cartrom};
-    emulator.run(window.get());
+    emulator.run(&window);
 }

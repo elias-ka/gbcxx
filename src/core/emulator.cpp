@@ -39,7 +39,7 @@ namespace cb
         m_cpu.register_on_tick_components_callback([this] { tick_components(); });
     }
 
-    void emulator::run(window* win)
+    void emulator::run(sdl_window* win)
     {
         const double frame_time = 1.0 / win->refresh_rate();
         const auto cycles_per_frame = static_cast<usz>(frame_time / clock_cycle);

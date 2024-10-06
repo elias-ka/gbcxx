@@ -38,6 +38,8 @@ add_library(cringeboy_core
   src/core/processor_instr.cpp
   src/core/video.cpp
   src/core/video.h
+  src/sdl_window.h
+  src/sdl_window.cpp
   src/util.cpp
   src/util.h
 )
@@ -78,8 +80,6 @@ endif()
 
 add_executable(cringeboy
   src/main.cpp
-  src/sdl_window.h
-  src/sdl_window.cpp
 )
 target_link_libraries(cringeboy PRIVATE cringeboy_core)
 
