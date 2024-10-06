@@ -394,6 +394,35 @@ namespace cb
         m_f.set(flag::c, true);
     }
 
+    void cpu::daa()
+    {
+        // from
+        // https://forums.nesdev.org/viewtopic.php?p=196282&sid=38a75719934a07d0ae8ac78a3e1448ad#p196282
+        if (!m_f.n())
+        {
+            if (m_f.c() || m_a > 0x99)
+            {
+                m_a += 0x60;
+                m_f.set(flag::c, true);
+            }
+            if (m_f.h() || (m_a & 0x0f) > 0x09)
+            {
+                m_a += 0x6;
+            }
+        }
+        else
+        {
+            if (m_f.c())
+                m_a -= 0x60;
+
+            if (m_f.h())
+                m_a -= 0x6;
+        }
+
+        m_f.set(flag::z, m_a == 0);
+        m_f.set(flag::h, false);
+    }
+
     void cpu::cpl()
     {
         m_a = ~m_a;

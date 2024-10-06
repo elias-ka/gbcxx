@@ -186,7 +186,7 @@ namespace cb
         void xor_n();
         void ccf();
         void scf();
-        // to-do: daa
+        void daa();
         void cpl();
 
         // 16-bit loads
