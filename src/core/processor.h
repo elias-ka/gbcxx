@@ -136,6 +136,33 @@ namespace cb
             }
         }
 
+        enum class state
+        {
+            running,
+            halted,
+            stopped,
+            // IME is scheduled to be enabled after next cycle
+            enable_ime,
+        };
+
+    private:
+        std::function<void()> m_on_tick_components = {[] {}};
+        usz m_cycles_elapsed{};
+        mmu* m_mmu;
+        u16 m_pc{0x100};
+        u16 m_sp{0xFFFE};
+        flags m_f{BIT(7)};
+        u8 m_a{0x01};
+        u8 m_b{0x00};
+        u8 m_c{0x13};
+        u8 m_d{0x00};
+        u8 m_e{0xD8};
+        u8 m_h{0x01};
+        u8 m_l{0x4D};
+        bool m_ime{};
+        state m_state{state::running};
+
+    private:
         // 8-bit loads
         void ld_r_r(reg8 dst, reg8 src);
         void ld_r_n(reg8 dst);
@@ -217,6 +244,10 @@ namespace cb
         void rst_n(u8 vec);
 
         // Miscellaneous
+        void halt();
+        void stop();
+        void di();
+        void ei();
         void nop();
 
         // Rotate, shift, and bit operations
@@ -246,21 +277,5 @@ namespace cb
         void res_b_mem_hl(u8 b);
         void set_b_r(u8 b, reg8 r);
         void set_b_mem_hl(u8 b);
-
-    private:
-        std::function<void()> m_on_tick_components = {[] {}};
-        usz m_cycles_elapsed{};
-        mmu* m_mmu;
-        u16 m_pc{};
-        u16 m_sp{};
-        flags m_f{};
-        u8 m_a{};
-        u8 m_b{};
-        u8 m_c{};
-        u8 m_d{};
-        u8 m_e{};
-        u8 m_h{};
-        u8 m_l{};
-        bool m_ime{};
     };
 } // namespace cb

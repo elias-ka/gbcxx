@@ -96,9 +96,32 @@ namespace cb
     void cpu::step()
     {
         m_cycles_elapsed = 0;
-        const auto opcode = read_operand();
-        execute(opcode);
+
+        switch (m_state)
+        {
+        case state::running:
+        {
+            execute(read_operand());
+            break;
+        }
+        case state::halted:
+        case state::stopped:
+        {
+            // to-do what to do?
+            break;
+        }
+        case state::enable_ime:
+        {
+            // fixme: not sure if this is correct
+            m_ime = true;
+            m_state = state::running;
+            execute(read_operand());
+            break;
+        }
+        }
     }
+
+    // fixme: should i have cycle_read?
 
     void cpu::cycle_write8(u16 addr, u8 data)
     {
@@ -417,6 +440,10 @@ namespace cb
         case 0xFF: rst_n(0x38); break;
 
         // Miscellaneous
+        case 0x76: halt(); break;
+        case 0x10: stop(); break;
+        case 0xF3: di(); break;
+        case 0xFB: ei(); break;
         case 0x00: nop(); break;
 
         // Rotate accumulator

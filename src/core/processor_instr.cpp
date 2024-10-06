@@ -551,6 +551,10 @@ namespace cb
     }
 
     // Miscellaneous
+    void cpu::halt() { m_state = state::halted; }
+    void cpu::stop() { m_state = state::stopped; }
+    void cpu::di() { m_ime = false; }
+    void cpu::ei() { m_state = state::enable_ime; }
     void cpu::nop() {}
 
     // Rotate, shift, and bit operations
