@@ -232,6 +232,20 @@ namespace cb
         void rl_mem_hl();
         void rr_r(reg8 r);
         void rr_mem_hl();
+        void sla_r(reg8 r);
+        void sla_mem_hl();
+        void sra_r(reg8 r);
+        void sra_mem_hl();
+        void swap_r(reg8 r);
+        void swap_mem_hl();
+        void srl_r(reg8 r);
+        void srl_mem_hl();
+        void bit_b_r(u8 b, reg8 r);
+        void bit_b_mem_hl(u8 b);
+        void res_b_r(u8 b, reg8 r);
+        void res_b_mem_hl(u8 b);
+        void set_b_r(u8 b, reg8 r);
+        void set_b_mem_hl(u8 b);
 
     private:
         std::function<void()> m_on_tick_components = {[] {}};

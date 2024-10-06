@@ -663,4 +663,134 @@ namespace cb
         cycle_write8(addr, result);
     }
 
+    void cpu::sla_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const bool carry = r_val & BIT(7);
+        const auto result = static_cast<u8>(r_val << 1);
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        set_reg(r, result);
+    }
+
+    void cpu::sla_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const bool carry = data & BIT(7);
+        const auto result = static_cast<u8>(data << 1);
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        cycle_write8(addr, result);
+    }
+
+    void cpu::sra_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const bool carry = r_val & BIT(0);
+        const u8 result = static_cast<u8>((r_val >> 1) | (r_val & BIT(7)));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        set_reg(r, result);
+    }
+
+    void cpu::sra_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const bool carry = data & BIT(0);
+        const u8 result = static_cast<u8>((data >> 1) | (data & BIT(7)));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        cycle_write8(addr, result);
+    }
+
+    void cpu::swap_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const u8 result = static_cast<u8>(((r_val & 0x0F) << 4) | (((r_val & 0xF0) >> 4) & 0xF));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, false);
+        set_reg(r, result);
+    }
+
+    void cpu::swap_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const u8 result = static_cast<u8>(((data & 0x0F) << 4) | (((data & 0xF0) >> 4) & 0xF));
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, false);
+        cycle_write8(addr, result);
+    }
+
+    void cpu::srl_r(reg8 r)
+    {
+        const u8 r_val = reg(r);
+        const bool carry = r_val & BIT(0);
+        const u8 result = r_val >> 1;
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        set_reg(r, result);
+    }
+
+    void cpu::srl_mem_hl()
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        const bool carry = data & BIT(0);
+        const u8 result = data >> 1;
+        m_f.set(flag::z, result == 0);
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, false);
+        m_f.set(flag::c, carry);
+        cycle_write8(addr, result);
+    }
+
+    void cpu::bit_b_r(u8 b, reg8 r)
+    {
+        m_f.set(flag::z, !(reg(r) & BIT(b)));
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, true);
+    }
+
+    void cpu::bit_b_mem_hl(u8 b)
+    {
+        m_f.set(flag::z, !(m_mmu->read8(reg(reg16::hl)) & BIT(b)));
+        m_f.set(flag::n, false);
+        m_f.set(flag::h, true);
+    }
+
+    void cpu::res_b_r(u8 b, reg8 r) { set_reg(r, (reg(r) & ~BIT(b))); }
+
+    void cpu::res_b_mem_hl(u8 b)
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        cycle_write8(addr, data & ~BIT(b));
+    }
+
+    void cpu::set_b_r(u8 b, reg8 r) { set_reg(r, u8(reg(r) | BIT(b))); }
+
+    void cpu::set_b_mem_hl(u8 b)
+    {
+        const u16 addr = reg(reg16::hl);
+        const u8 data = m_mmu->read8(addr);
+        cycle_write8(addr, u8(data | BIT(b)));
+    }
+
 } // namespace cb
