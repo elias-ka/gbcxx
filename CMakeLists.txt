@@ -20,6 +20,17 @@ CPMAddPackage(
 )
 suppress_third_party_warnings(fmt)
 
+CPMAddPackage(
+  NAME spdlog
+  GIT_TAG v1.14.1
+  GITHUB_REPOSITORY gabime/spdlog
+  OPTIONS "SPDLOG_INSTALL OFF"
+          "SPDLOG_FMT_EXTERNAL ON"
+          "SPDLOG_SYSTEM_INCLUES ON"
+          "SPDLOG_NO_EXCEPTIONS ON"
+  GIT_SHALLOW
+)
+
 find_package(SDL2 REQUIRED)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -46,7 +57,7 @@ add_library(cringeboy_core
 
 target_compile_features(cringeboy_core PUBLIC cxx_std_20)
 target_include_directories(cringeboy_core PUBLIC src)
-target_link_libraries(cringeboy_core PUBLIC SDL2::SDL2 fmt)
+target_link_libraries(cringeboy_core PUBLIC SDL2::SDL2 fmt::fmt spdlog::spdlog)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(

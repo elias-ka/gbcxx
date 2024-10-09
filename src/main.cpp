@@ -6,6 +6,7 @@
 
 int main(int argc, char* argv[])
 {
+    spdlog::set_pattern("[%^%l%$] %v");
 
     const auto args = std::span(argv, static_cast<usz>(argc));
     if (args.size() < 2)
@@ -25,11 +26,11 @@ int main(int argc, char* argv[])
 #ifndef NDEBUG
     if (args.size() > 2 && std::string_view{args[2]} == "--trace")
     {
-        cb::logger::instance().set_log_level(cb::log_level::trace);
+        spdlog::set_level(spdlog::level::trace);
     }
     else
     {
-        cb::logger::instance().set_log_level(cb::log_level::debug);
+        spdlog::set_level(spdlog::level::debug);
     }
 #endif
 
@@ -37,4 +38,6 @@ int main(int argc, char* argv[])
     const std::vector<u8> cartrom = cb::fs::read(rom_file);
     auto emulator = cb::emulator{cartrom};
     emulator.run(&window);
+
+    spdlog::shutdown();
 }
