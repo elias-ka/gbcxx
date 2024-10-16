@@ -1,7 +1,7 @@
-#include "core/video.h"
+#include "core/video.hpp"
 
-#include "core/constants.h"
-#include "util.h"
+#include "core/constants.hpp"
+#include "util.hpp"
 #include <cassert>
 
 namespace cb

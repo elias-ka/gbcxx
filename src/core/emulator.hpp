@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/processor.h"
-#include "sdl_window.h"
+#include "core/processor.hpp"
+#include "sdl_window.hpp"
 
 namespace cb
 {

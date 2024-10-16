@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/constants.h"
-#include "util.h"
+#include "core/constants.hpp"
+#include "util.hpp"
 #include <array>
 
 namespace cb

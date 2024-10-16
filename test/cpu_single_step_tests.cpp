@@ -1,5 +1,5 @@
-#include "core/memory.h"
-#include "core/processor.h"
+#include "core/memory.hpp"
+#include "core/processor.hpp"
 #include <filesystem>
 #include <fmt/format.h>
 #include <gtest/gtest.h>

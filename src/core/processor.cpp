@@ -1,6 +1,6 @@
-#include "core/processor.h"
-#include "core/memory.h"
-#include "util.h"
+#include "core/processor.hpp"
+#include "core/memory.hpp"
+#include "util.hpp"
 #include <fmt/base.h>
 
 namespace cb

@@ -1,7 +1,7 @@
-#include "core/memory.h"
+#include "core/memory.hpp"
 
-#include "core/constants.h"
-#include "util.h"
+#include "core/constants.hpp"
+#include "util.hpp"
 #include <cassert>
 #include <utility>
 

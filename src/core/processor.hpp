@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/mbc.h"
-#include "core/memory.h"
-#include "util.h"
+#include "core/mbc.hpp"
+#include "core/memory.hpp"
+#include "util.hpp"
 #include <array>
 #include <fmt/base.h>
 #include <string>

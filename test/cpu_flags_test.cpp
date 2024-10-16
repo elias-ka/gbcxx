@@ -1,4 +1,4 @@
-#include "core/processor.h"
+#include "core/processor.hpp"
 #include <gtest/gtest.h>
 
 class CpuFlagsTest : public ::testing::Test

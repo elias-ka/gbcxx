@@ -1,6 +1,6 @@
-#include "core/emulator.h"
-#include "sdl_window.h"
-#include "util.h"
+#include "core/emulator.hpp"
+#include "sdl_window.hpp"
+#include "util.hpp"
 #include <fmt/format.h>
 #include <span>
 

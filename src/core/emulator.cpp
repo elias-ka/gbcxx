@@ -1,5 +1,5 @@
-#include "emulator.h"
-#include "../util.h"
+#include "core/emulator.hpp"
+#include "util.hpp"
 #include <SDL_timer.h>
 #include <fmt/format.h>
 

@@ -39,22 +39,22 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
 endif()
 
 add_library(cringeboy_core
-  src/core/constants.h
+  src/core/constants.hpp
   src/core/emulator.cpp
-  src/core/emulator.h
+  src/core/emulator.hpp
   src/core/mbc.cpp
-  src/core/mbc.h
+  src/core/mbc.hpp
   src/core/memory.cpp
-  src/core/memory.h
+  src/core/memory.hpp
   src/core/processor.cpp
-  src/core/processor.h
+  src/core/processor.hpp
   src/core/processor_instr.cpp
   src/core/video.cpp
-  src/core/video.h
-  src/sdl_window.h
+  src/core/video.hpp
+  src/sdl_window.hpp
   src/sdl_window.cpp
   src/util.cpp
-  src/util.h
+  src/util.hpp
 )
 
 target_compile_features(cringeboy_core PUBLIC cxx_std_20)

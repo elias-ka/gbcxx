@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/video.h"
+#include "core/video.hpp"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>

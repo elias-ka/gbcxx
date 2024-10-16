@@ -1,5 +1,5 @@
-#include "sdl_window.h"
-#include "util.h"
+#include "sdl_window.hpp"
+#include "util.hpp"
 #include <SDL2/SDL.h>
 #include <fmt/format.h>
 

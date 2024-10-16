@@ -2,9 +2,9 @@
 
 #include <utility>
 
-#include "core/mbc.h"
-#include "core/video.h"
-#include "util.h"
+#include "core/mbc.hpp"
+#include "core/video.hpp"
+#include "util.hpp"
 
 namespace cb
 {

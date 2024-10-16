@@ -1,4 +1,4 @@
-#include "core/mbc.h"
+#include "core/mbc.hpp"
 
 namespace cb
 {
