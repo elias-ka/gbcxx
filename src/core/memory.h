@@ -1,88 +1,58 @@
 #pragma once
 
+#include <utility>
+
+#include "core/mbc.h"
+#include "core/video.h"
 #include "util.h"
 
 namespace cb
 {
-    using bootrom = std::array<u8, 0x100>;
-    extern const bootrom default_bootrom;
-
-    struct mbc_rom_only
+    struct Cartridge
     {
-        explicit mbc_rom_only(std::vector<u8> cartrom)
-            : rom(std::move(cartrom))
-            , ram(8_KiB)
-        {
-        }
+        MbcVariant mbc;
 
-        std::vector<u8> rom;
-        std::vector<u8> ram;
-    };
+        explicit Cartridge(std::vector<u8> cartrom);
 
-    struct mbc1
-    {
-        std::vector<u8> rom;
-        std::vector<u8> ram;
-        u16 rom_bank{1};
-        u16 ram_bank{0};
-        bool ram_enabled{};
-        bool banking_mode{};
-        bool supports_advanced_banking;
-
-        explicit mbc1(std::vector<u8> cartrom)
-            : rom(std::move(cartrom))
-            , ram(32_KiB)
-            , supports_advanced_banking(rom.size() > 512_KiB)
-        {
-        }
-    };
-
-    using mbc_variant = std::variant<std::monostate, mbc_rom_only, mbc1>;
-
-    struct cartridge
-    {
-        mbc_variant mbc;
-
-        explicit cartridge(std::vector<u8> cartrom);
-
-        explicit cartridge(mbc_variant mbc)
+        explicit Cartridge(MbcVariant mbc)
             : mbc(std::move(mbc))
         {
         }
 
-        u8 read(uint16_t addr) const;
-        void write(uint16_t addr, u8 value);
+        u8 read(u16 address) const;
+        void write(u16 address, u8 value);
     };
 
-    class mmu
+    class Mmu
     {
     public:
-        mmu(cartridge cartridge, bootrom bootrom = default_bootrom);
+        explicit Mmu(MbcVariant mbc);
 
-        u8 read8(u16 addr) const;
-        u16 read16(u16 addr) const;
+        void tick();
 
-        void write8(u16 addr, u8 data);
-        void write16(u16 addr, u16 data);
+        u8 read(u16 address) const;
+        u16 read16(u16 address) const;
 
-        template <std::constructible_from<u8> T>
-        T read_as(u16 addr) const
-        {
-            return T(read8(addr));
-        }
+        void write(u16 address, u8 data);
+        void write16(u16 address, u16 data);
 
-        void resize_memory(usz new_size) { m_memory.resize(new_size); }
+        void resize_memory(usz new_size) { m_wram.resize(new_size); }
+
+        Ppu& ppu() { return m_ppu; }
 
     private:
-        u8 read8_io(u16 addr) const;
-        void write8_io(u16 addr, u8 data);
-
-        bool in_bootrom() const;
+        bool in_bootrom() const { return m_reg_bootrom == 0; }
 
     private:
-        bootrom m_bootrom{};
-        std::vector<u8> m_memory{};
-        cartridge m_cartridge;
+        Ppu m_ppu{};
+
+        std::array<u8, 0x100> m_bootrom{};
+        u8 m_reg_bootrom{1};
+        std::vector<u8> m_wram;
+        std::vector<u8> m_hram;
+        Cartridge m_cartridge;
+        u8 m_ie{};
+        u8 m_if{};
     };
 
 } // namespace cb

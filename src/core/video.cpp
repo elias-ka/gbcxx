@@ -1,7 +1,6 @@
 #include "core/video.h"
 
 #include "core/constants.h"
-#include "core/memory.h"
 #include "util.h"
 #include <cassert>
 
@@ -9,65 +8,124 @@ namespace cb
 {
     namespace
     {
-        constexpr std::array<rgba, 4> dmg_palette = {{{0x7B, 0x82, 0x10, 0xFF},
-                                                      {0x39, 0x59, 0x4A, 0xFF},
-                                                      {0x55, 0x55, 0x55, 0xFF},
-                                                      {0x5A, 0x79, 0x42, 0xFF}}};
+        constexpr std::array<Rgba, 4> dmg_palette = {{{0xFF, 0xFF, 0xFF, 0xFF},
+                                                      {0xB0, 0xB0, 0xB0, 0xFF},
+                                                      {0x68, 0x68, 0x68, 0xFF},
+                                                      {0x00, 0x00, 0x00, 0xFF}}};
     } // namespace
 
-    void ppu::tick()
+    u8 Ppu::read(u16 addr) const
     {
-        m_cycles += 1;
-        // LOG_DEBUG("ppu cycles={}, mode={}", m_cycles, to_underlying(m_mode));
+        if (VRAM_START <= addr && addr <= VRAM_END)
+            return m_vram.at(addr - VRAM_START);
+
+        if (OAM_START <= addr && addr <= OAM_END)
+            return m_oam.at(addr - OAM_START);
+
+        switch (addr)
+        {
+        case REG_LCDC: return m_lcdc.raw;
+        case REG_STAT: return m_stat.raw;
+        case REG_SCY: return m_scy;
+        case REG_SCX: return m_scx;
+        case REG_LY: return m_ly;
+        case REG_LYC: return m_lyc;
+        case REG_BGP: return m_bgp;
+        case REG_OBP0: return m_obp0;
+        case REG_OBP1: return m_obp1;
+        case REG_WY: return m_wy;
+        case REG_WX: return m_wx;
+        default: return 0;
+        }
+    }
+
+    void Ppu::write(u16 addr, u8 data)
+    {
+        if (VRAM_START <= addr && addr <= VRAM_END)
+        {
+            m_vram.at(addr - VRAM_START) = data;
+            return;
+        }
+
+        if (OAM_START <= addr && addr <= OAM_END)
+        {
+            m_oam.at(addr - OAM_START) = data;
+            return;
+        }
+
+        switch (addr)
+        {
+        case REG_LCDC: m_lcdc.raw = data; break;
+        case REG_STAT:
+        {
+            m_stat.raw = data & 0xF8;
+            break;
+        }
+        case REG_SCY: m_scy = data; break;
+        case REG_SCX: m_scx = data; break;
+        case REG_LY: m_ly = data; break;
+        case REG_BGP: m_bgp = data; break;
+        case REG_OBP0: m_obp0 = data; break;
+        case REG_OBP1: m_obp1 = data; break;
+        case REG_WY: m_wy = data; break;
+        case REG_WX: m_wx = data; break;
+        // read-only
+        case REG_LYC: break;
+        }
+    }
+
+    void Ppu::tick()
+    {
+        m_cycles++;
         switch (m_mode)
         {
-        case mode::hblank:
+        case Mode::hblank:
         {
-            if (m_cycles == mode_cycles(mode::hblank))
+            if (m_cycles == mode_cycles(Mode::hblank))
             {
                 m_cycles = 0;
-                increment_ly();
-                if (m_mmu->read8(reg_ly) == 144)
+                m_ly++;
+                if (m_ly == 144)
                 {
-                    enter_mode(mode::vblank);
+                    enter_mode(Mode::vblank);
                     m_should_redraw = true;
                 }
                 else
                 {
-                    enter_mode(mode::oam_scan);
+                    enter_mode(Mode::oam_scan);
                 }
             }
             break;
         }
-        case mode::vblank:
+        case Mode::vblank:
         {
-            if (m_cycles == mode_cycles(mode::vblank))
+            if (m_cycles == mode_cycles(Mode::vblank))
             {
                 m_cycles = 0;
-                increment_ly();
-                if (m_mmu->read8(reg_ly) == 154)
+                m_ly++;
+                if (m_ly == 154)
                 {
-                    enter_mode(mode::oam_scan);
-                    m_mmu->write8(reg_ly, 0);
+                    enter_mode(Mode::oam_scan);
+                    m_ly = 0;
                 }
             }
             break;
         }
-        case mode::oam_scan:
+        case Mode::oam_scan:
         {
-            if (m_cycles == mode_cycles(mode::oam_scan))
+            if (m_cycles == mode_cycles(Mode::oam_scan))
             {
                 m_cycles = 0;
-                enter_mode(mode::transfer);
+                enter_mode(Mode::transfer);
             }
             break;
         }
-        case mode::transfer:
+        case Mode::transfer:
         {
-            if (m_cycles == mode_cycles(mode::transfer))
+            if (m_cycles == mode_cycles(Mode::transfer))
             {
                 m_cycles = 0;
-                enter_mode(mode::hblank);
+                enter_mode(Mode::hblank);
                 render_bg_scanline();
             }
             break;
@@ -75,17 +133,17 @@ namespace cb
         }
     }
 
-    void ppu::enter_mode(mode mode) { m_mode = mode; }
+    void Ppu::enter_mode(Mode mode) { m_mode = mode; }
 
-    usz ppu::mode_cycles(mode mode) const
+    usz Ppu::mode_cycles(Mode mode) const
     {
         switch (mode)
         {
-        case mode::hblank:
+        case Mode::hblank:
         {
-            switch (m_mmu->read8(reg_scx) % 8)
+            switch (m_scx % 8)
             {
-            case 0: return 204;
+            case 0: return CYCLES_HBLANK;
             case 1:
             case 2:
             case 3:
@@ -96,46 +154,38 @@ namespace cb
             default: return 0;
             }
         };
-        case mode::vblank: return cycles_vblank;
-        case mode::oam_scan: return cycles_oam_scan;
-        case mode::transfer: return cycles_transfer;
+        case Mode::vblank: return CYCLES_VBLANK;
+        case Mode::oam_scan: return CYCLES_OAM_SCAN;
+        case Mode::transfer: return CYCLES_TRANSFER;
         }
     }
 
-    void ppu::increment_ly()
+    void Ppu::render_bg_scanline()
     {
-        const u8 ly = m_mmu->read8(reg_ly);
-        m_mmu->write8(reg_ly, ly + 1);
-    }
-
-    void ppu::render_bg_scanline()
-    {
-        const auto lcdc = m_mmu->read_as<lcd_control>(reg_lcdc);
-        if (!lcdc.bg_on())
+        if (!m_lcdc.bg_on())
             return;
 
-        const u8 screen_y = m_mmu->read8(reg_ly);
-        const u8 scroll_y = m_mmu->read8(reg_scy);
-
-        for (u8 screen_x = 0; screen_x < screen_width; screen_x++)
+        const u8 scrolled_y = m_ly + m_scy;
+        for (u8 lx = 0; lx < SCREEN_WIDTH; lx++)
         {
-            const u8 scroll_x = m_mmu->read8(reg_scx);
-            const u8 tile_x = (scroll_x + screen_x) / 8;
-            const u8 tile_y = (scroll_y + screen_y) / 8;
-            const u16 tile_map_addr = 0x9800 + (tile_y * 32) + tile_x;
-            const u8 tile_number = m_mmu->read8(tile_map_addr);
-            const u16 tile_data_addr =
-                lcdc.bg_addr() ? (0x8000 + tile_number * 16) :
-                                 (0x8800 + static_cast<u16>(static_cast<s8>(tile_number) * 16));
-            const u8 tile_line = (scroll_y + screen_y) % 8;
-            const u8 tile_data1 = m_mmu->read8(tile_data_addr + tile_line * 2);
-            const u8 tile_data2 = m_mmu->read8(tile_data_addr + tile_line * 2 + 1);
-            const u8 bit_position = (scroll_x + screen_x) % 8;
-            const u8 color_bit1 = (tile_data1 >> (7 - bit_position)) & 1;
-            const u8 color_bit2 = (tile_data2 >> (7 - bit_position)) & 1;
-            const u8 color_number = static_cast<u8>((color_bit2 << 1) | color_bit1);
-            m_buffer.set_pixel_color(screen_x, screen_y, dmg_palette.at(color_number));
+            const u8 scrolled_x = lx + m_scx;
+            m_buffer.set_pixel_color(lx, m_ly, bg_color(scrolled_x, scrolled_y));
         }
+    }
+
+    Rgba Ppu::bg_color(u8 x, u8 y) const
+    {
+        u16 address = (m_lcdc.bg_map() ? 0x1C00 : 0x1800) + ((y >> 3) & 31) * 32 + ((x >> 3) & 31);
+        const u8 tile_id = m_vram.at(address);
+        if (m_lcdc.bg_addr())
+            address = static_cast<u16>((tile_id << 4) + ((y & 7) << 1));
+        else
+            address = static_cast<u16>((static_cast<s8>(tile_id) << 4) + ((y & 7) << 1) + 0x1000);
+        const u8 mask = static_cast<u8>(1 << (7 - (x & 7)));
+        const u8 byte1 = m_vram.at(address);
+        const u8 byte2 = m_vram.at(address + 1);
+        const u8 color = static_cast<u8>(((byte1 & mask) ? 1 : 0) + ((byte2 & mask) ? 2 : 0));
+        return dmg_palette.at(color);
     }
 
 } // namespace cb

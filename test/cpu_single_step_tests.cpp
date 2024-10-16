@@ -1,3 +1,4 @@
+#include "core/memory.h"
 #include "core/processor.h"
 #include <filesystem>
 #include <fmt/format.h>
@@ -15,7 +16,7 @@ public:
     {
         if (g_enable_tracing)
         {
-            logger::instance().set_log_level(log_level::trace);
+            spdlog::set_level(spdlog::level::trace);
         }
         if (!parser)
             parser = std::make_unique<simdjson::dom::parser>();
@@ -28,15 +29,15 @@ protected:
 
 std::unique_ptr<simdjson::dom::parser> SingleStepParameterizedTest::parser = nullptr;
 
-struct test_state
+struct TestState
 {
     u16 pc, sp;
-    flags f;
+    Flags f;
     u8 a, b, c, d, e, h, l;
 
-    bool operator==(const test_state&) const = default;
+    bool operator==(const TestState&) const = default;
 
-    friend std::ostream& operator<<(std::ostream& os, const test_state& state)
+    friend std::ostream& operator<<(std::ostream& os, const TestState& state)
     {
         return os << fmt::format("PC={:#06x} SP={:#06x} A={:#04x} B={:#04x} C={:#04x} "
                                  "D={:#04x} E={:#04x} H={:#04x} L={:#04x} FLAGS: {}",
@@ -44,15 +45,14 @@ struct test_state
                                  state.h, state.l, state.f);
     }
 
-    friend void PrintTo(const test_state& state, std::ostream* os) { *os << state; }
+    friend void PrintTo(const TestState& state, std::ostream* os) { *os << state; }
 };
 
 testing::AssertionResult MyStateEqExpectedState([[maybe_unused]] const char* my_state_expr,
                                                 [[maybe_unused]] const char* expected_expr,
                                                 [[maybe_unused]] const char* initial_expr,
-                                                const test_state& my_state,
-                                                const test_state& expected,
-                                                const test_state& initial)
+                                                const TestState& my_state,
+                                                const TestState& expected, const TestState& initial)
 {
     if (my_state == expected)
         return testing::AssertionSuccess();
@@ -78,63 +78,61 @@ TEST_P(SingleStepParameterizedTest, All)
     for (auto test : root_array)
     {
         auto initial_obj = test["initial"].get_object();
-        const test_state initial = {.pc = get<u16>(initial_obj["pc"]),
-                                    .sp = get<u16>(initial_obj["sp"]),
-                                    .f = flags{get<u8>(initial_obj["f"])},
-                                    .a = get<u8>(initial_obj["a"]),
-                                    .b = get<u8>(initial_obj["b"]),
-                                    .c = get<u8>(initial_obj["c"]),
-                                    .d = get<u8>(initial_obj["d"]),
-                                    .e = get<u8>(initial_obj["e"]),
-                                    .h = get<u8>(initial_obj["h"]),
-                                    .l = get<u8>(initial_obj["l"])};
+        const TestState initial = {.pc = get<u16>(initial_obj["pc"]),
+                                   .sp = get<u16>(initial_obj["sp"]),
+                                   .f = Flags{get<u8>(initial_obj["f"])},
+                                   .a = get<u8>(initial_obj["a"]),
+                                   .b = get<u8>(initial_obj["b"]),
+                                   .c = get<u8>(initial_obj["c"]),
+                                   .d = get<u8>(initial_obj["d"]),
+                                   .e = get<u8>(initial_obj["e"]),
+                                   .h = get<u8>(initial_obj["h"]),
+                                   .l = get<u8>(initial_obj["l"])};
 
-        mmu mmu{cartridge{mbc_rom_only{{}}}};
-        mmu.resize_memory(64_KiB);
+        Cpu cpu{MbcRomOnly{{{}}}, initial.pc, initial.sp, initial.f, initial.a, initial.b,
+                initial.c,        initial.d,  initial.e,  initial.h, initial.l};
 
+        cpu.mmu().resize_memory(64_KiB);
         auto initial_ram = initial_obj["ram"].get_array();
         for (simdjson::dom::array child_arr : initial_ram)
         {
             const auto addr = get<u16>(child_arr.at(0));
             const auto value = get<u8>(child_arr.at(1));
-            mmu.write8(addr, value);
+            cpu.mmu().write(addr, value);
         }
-
-        cpu cpu{&mmu,      initial.pc, initial.sp, initial.f, initial.a, initial.b,
-                initial.c, initial.d,  initial.e,  initial.h, initial.l};
 
         cpu.step();
 
         auto expected_obj = test["final"].get_object();
-        const test_state expected = {.pc = get<u16>(expected_obj["pc"]),
-                                     .sp = get<u16>(expected_obj["sp"]),
-                                     .f = flags{get<u8>(expected_obj["f"])},
-                                     .a = get<u8>(expected_obj["a"]),
-                                     .b = get<u8>(expected_obj["b"]),
-                                     .c = get<u8>(expected_obj["c"]),
-                                     .d = get<u8>(expected_obj["d"]),
-                                     .e = get<u8>(expected_obj["e"]),
-                                     .h = get<u8>(expected_obj["h"]),
-                                     .l = get<u8>(expected_obj["l"])};
+        const TestState expected = {.pc = get<u16>(expected_obj["pc"]),
+                                    .sp = get<u16>(expected_obj["sp"]),
+                                    .f = Flags{get<u8>(expected_obj["f"])},
+                                    .a = get<u8>(expected_obj["a"]),
+                                    .b = get<u8>(expected_obj["b"]),
+                                    .c = get<u8>(expected_obj["c"]),
+                                    .d = get<u8>(expected_obj["d"]),
+                                    .e = get<u8>(expected_obj["e"]),
+                                    .h = get<u8>(expected_obj["h"]),
+                                    .l = get<u8>(expected_obj["l"])};
 
         auto expected_ram = expected_obj["ram"].get_array();
         for (simdjson::dom::array child_arr : expected_ram)
         {
             const auto addr = get<u16>(child_arr.at(0));
             const auto value = get<u8>(child_arr.at(1));
-            EXPECT_EQ(mmu.read8(addr), value);
+            EXPECT_EQ(cpu.mmu().read(addr), value);
         }
 
-        const test_state my_state = {.pc = cpu.pc(),
-                                     .sp = cpu.sp(),
-                                     .f = cpu.f(),
-                                     .a = cpu.reg(reg8::a),
-                                     .b = cpu.reg(reg8::b),
-                                     .c = cpu.reg(reg8::c),
-                                     .d = cpu.reg(reg8::d),
-                                     .e = cpu.reg(reg8::e),
-                                     .h = cpu.reg(reg8::h),
-                                     .l = cpu.reg(reg8::l)};
+        const TestState my_state = {.pc = cpu.pc(),
+                                    .sp = cpu.sp(),
+                                    .f = cpu.flags(),
+                                    .a = cpu.reg(Reg8::a),
+                                    .b = cpu.reg(Reg8::b),
+                                    .c = cpu.reg(Reg8::c),
+                                    .d = cpu.reg(Reg8::d),
+                                    .e = cpu.reg(Reg8::e),
+                                    .h = cpu.reg(Reg8::h),
+                                    .l = cpu.reg(Reg8::l)};
 
         EXPECT_PRED_FORMAT3(MyStateEqExpectedState, my_state, expected, initial);
     }

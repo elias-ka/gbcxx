@@ -1,23 +1,18 @@
 #pragma once
 
-#include "core/memory.h"
 #include "core/processor.h"
-#include "core/video.h"
 #include "sdl_window.h"
 
 namespace cb
 {
-    class emulator
+    class Emulator
     {
     public:
-        explicit emulator(std::vector<u8> cartrom);
-        void run(sdl_window* win);
+        explicit Emulator(const std::vector<u8>& cartrom);
 
-        void tick_components() { m_ppu.tick(); }
+        void run(SdlWindow* win);
 
     private:
-        mmu m_mmu;
-        ppu m_ppu;
-        cpu m_cpu;
+        Cpu m_cpu;
     };
 } // namespace cb

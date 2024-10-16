@@ -42,6 +42,8 @@ add_library(cringeboy_core
   src/core/constants.h
   src/core/emulator.cpp
   src/core/emulator.h
+  src/core/mbc.cpp
+  src/core/mbc.h
   src/core/memory.cpp
   src/core/memory.h
   src/core/processor.cpp

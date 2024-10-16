@@ -20,18 +20,18 @@ SPECIALIZE_DEFAULT_DELETE(SDL_Renderer, SDL_DestroyRenderer);
 
 namespace cb
 {
-    class sdl_window
+    class SdlWindow
     {
     public:
-        sdl_window(int width, int height, std::string_view title);
-        ~sdl_window();
+        SdlWindow(int width, int height, std::string_view title);
+        ~SdlWindow();
 
-        sdl_window(const sdl_window&) = delete;
-        sdl_window(sdl_window&&) = delete;
-        sdl_window operator=(const sdl_window&) = delete;
-        sdl_window operator=(sdl_window&&) = delete;
+        SdlWindow(const SdlWindow&) = delete;
+        SdlWindow(SdlWindow&&) = delete;
+        SdlWindow operator=(const SdlWindow&) = delete;
+        SdlWindow operator=(SdlWindow&&) = delete;
 
-        void draw(const cb::frame_buffer& buf);
+        void draw(const cb::FrameBuffer& buf);
         void poll_events();
 
         void set_title(std::string_view title);
