@@ -138,7 +138,11 @@ namespace cb
     {
     }
 
-    void Mmu::tick() { m_ppu.tick(); }
+    void Mmu::tick()
+    {
+        m_ppu.tick();
+        m_if |= m_ppu.get_and_clear_interrupts();
+    }
 
     u8 Mmu::read(u16 address) const
     {
@@ -242,7 +246,10 @@ namespace cb
             case REG_OBP0:
             case REG_OBP1:
             case REG_WX:
-            case REG_WY: return m_ppu.read(address);
+            case REG_WY:
+            {
+                return m_ppu.read(address);
+            }
             default:
             {
                 return 0;

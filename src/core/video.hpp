@@ -57,7 +57,7 @@ namespace cb
         {
         }
 
-        enum class Mode
+        enum class Mode : u8
         {
             hblank,
             vblank,
@@ -72,11 +72,19 @@ namespace cb
         const FrameBuffer& buffer() const { return m_buffer; }
         bool should_redraw() const { return m_should_redraw; }
         void clear_should_redraw() { m_should_redraw = false; }
+        u8 get_and_clear_interrupts()
+        {
+            const u8 interrupts = m_interrupts;
+            m_interrupts = 0;
+            return interrupts;
+        }
 
     private:
-        void enter_mode(Mode mode);
         usz mode_cycles(Mode mode) const;
-        void increment_ly();
+        void enter_mode(Mode mode);
+        void check_lyc_interrupt();
+        void check_stat_interrupt();
+        void render_scanline();
         void render_bg_scanline();
         Rgba bg_color(u8 x, u8 y) const;
 
@@ -87,6 +95,7 @@ namespace cb
         Mode m_mode{Mode::oam_scan};
         usz m_cycles{};
         bool m_should_redraw{};
+        u8 m_interrupts{};
 
         LcdControl m_lcdc{0x91};
         LcdStatus m_stat{0x85};

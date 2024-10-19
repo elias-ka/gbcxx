@@ -120,6 +120,7 @@ namespace cb
         }
 
         void step();
+        void subtract_cycles(usz cycles) { m_cycles_elapsed -= cycles; }
         usz cycles_elapsed() const { return m_cycles_elapsed; }
 
         u16 pc() const { return m_pc; }
@@ -169,7 +170,7 @@ namespace cb
         Registers m_regs{};
         usz m_cycles_elapsed{};
         u16 m_pc{0x100};
-        bool m_ime{};
+        bool m_ime{true};
         bool m_ime_pending{};
         bool m_halted{};
 

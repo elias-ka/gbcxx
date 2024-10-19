@@ -1,4 +1,5 @@
 #include "core/processor.hpp"
+#include "core/interrupt.hpp"
 #include "core/memory.hpp"
 #include "util.hpp"
 #include <fmt/base.h>
@@ -95,11 +96,9 @@ namespace cb
 
     void Cpu::step()
     {
-        if (m_ime)
-        {
-            handle_interrupts();
-        }
-        else if (m_halted)
+        handle_interrupts();
+
+        if (m_halted)
         {
             tick();
         }
@@ -190,27 +189,54 @@ namespace cb
 
     void Cpu::handle_interrupts()
     {
-        if (!m_ime && !m_halted)
-            return;
+        if (m_ime_pending)
+        {
+            LOG_DEBUG("IME was pending, enabling it.");
+            m_ime = true;
+            m_ime_pending = false;
+        }
 
         const u8 intf = m_mmu.read(REG_IF);
         const u8 inte = m_mmu.read(REG_IE);
-        const u8 vector = intf & inte;
-        if (!vector)
-            return;
+        const u8 enabled_interrupts = intf & inte;
 
-        m_halted = false;
-        if (!m_ime)
+        if (!enabled_interrupts || !m_ime)
+        {
+            // LOG_DEBUG("No interrupts enabled or IME is disabled.");
             return;
+        }
+
         m_ime = false;
+        m_halted = false;
 
-        const auto n = std::countr_zero(vector);
-        if (n > 4)
-            DIE("Invalid interrupt vector: {:#04x}", vector);
+        // The highest priority bit is the one with the lowest index.
+        const auto highest_prio = BIT(std::countr_zero(enabled_interrupts));
+        LOG_DEBUG("Highest priority interrupt: {:#04x}", highest_prio);
+        // Clear the interrupt flag.
+        m_mmu.write(REG_IF, intf & ~highest_prio);
 
-        m_mmu.write(REG_IF, intf & ~BIT(n));
+        // Two wait states (2 M-cycles).
+        tick();
+        tick();
+
+        // Push the current PC to the stack (2 M-cycles).
         push16(m_pc);
-        m_pc = static_cast<u16>(0x0040 | (n << 3));
+
+        // The PC register is set to the address of the handler.
+        // This consumes one last M-cycle.
+        u16 handler = 0;
+        const auto interrupt = static_cast<Interrupt>(highest_prio);
+        LOG_DEBUG("Handling interrupt: {}", interrupt);
+        switch (interrupt)
+        {
+        case Interrupt::vblank: handler = 0x0040; break;
+        case Interrupt::lcd_stat: handler = 0x0048; break;
+        case Interrupt::timer: handler = 0x0050; break;
+        case Interrupt::serial: handler = 0x0058; break;
+        case Interrupt::joypad: handler = 0x0060; break;
+        }
+        m_pc = handler;
+        tick();
     }
 
     void Cpu::execute(u8 opcode)

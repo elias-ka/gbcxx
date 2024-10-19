@@ -41,6 +41,9 @@ using s32 = std::int32_t;
 using s64 = std::int64_t;
 using ssz = std::make_signed_t<std::size_t>;
 
+using f32 = float;
+using f64 = double;
+
 namespace cb
 {
     template <typename Enum>
@@ -84,5 +87,22 @@ namespace cb
             , r(r)
         {
         }
+
+        static Rgba from_bgp(u8 bgp)
+        {
+            return Rgba{static_cast<u8>(bgp & 0x03), static_cast<u8>((bgp >> 2) & 0x03),
+                        static_cast<u8>((bgp >> 4) & 0x03)};
+        }
     };
 } // namespace cb
+
+template <typename EnumT>
+    requires std::is_enum_v<EnumT>
+struct fmt::formatter<EnumT> : fmt::formatter<std::underlying_type_t<EnumT>>
+{
+    auto format(const EnumT& enum_value, format_context& ctx) const
+    {
+        fmt::formatter<std::underlying_type_t<EnumT>> formatter;
+        return formatter.format(cb::to_underlying(enum_value), ctx);
+    }
+};

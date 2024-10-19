@@ -1,6 +1,7 @@
 #include "core/video.hpp"
 
 #include "core/constants.hpp"
+#include "core/interrupt.hpp"
 #include "util.hpp"
 #include <cassert>
 
@@ -9,8 +10,8 @@ namespace cb
     namespace
     {
         constexpr std::array<Rgba, 4> dmg_palette = {{{0xFF, 0xFF, 0xFF, 0xFF},
-                                                      {0xB0, 0xB0, 0xB0, 0xFF},
-                                                      {0x68, 0x68, 0x68, 0xFF},
+                                                      {0xAA, 0xAA, 0xAA, 0xFF},
+                                                      {0x55, 0x55, 0x55, 0xFF},
                                                       {0x00, 0x00, 0x00, 0xFF}}};
     } // namespace
 
@@ -25,7 +26,7 @@ namespace cb
         switch (addr)
         {
         case REG_LCDC: return m_lcdc.raw;
-        case REG_STAT: return m_stat.raw;
+        case REG_STAT: return m_stat.raw | BIT(7);
         case REG_SCY: return m_scy;
         case REG_SCX: return m_scx;
         case REG_LY: return m_ly;
@@ -55,57 +56,103 @@ namespace cb
 
         switch (addr)
         {
-        case REG_LCDC: m_lcdc.raw = data; break;
+        case REG_LCDC:
+        {
+            bool lcd_was_on = m_lcdc.lcd_on();
+            m_lcdc.raw = data;
+
+            if (lcd_was_on && !m_lcdc.lcd_on())
+            {
+                // LCD was turned off
+                if (m_mode == Mode::vblank)
+                {
+                    // Draw white screen (DMG)
+                    m_buffer.fill(dmg_palette[0]);
+                }
+                enter_mode(Mode::hblank);
+                m_ly = 0;
+            }
+            else if (!lcd_was_on && m_lcdc.lcd_on())
+            {
+                // LCD was turned on
+                enter_mode(Mode::oam_scan);
+                check_stat_interrupt();
+                check_lyc_interrupt();
+                m_cycles = 0;
+            }
+            break;
+        }
         case REG_STAT:
         {
             m_stat.raw = data & 0xF8;
+            if (m_lcdc.lcd_on())
+                check_stat_interrupt();
             break;
         }
         case REG_SCY: m_scy = data; break;
         case REG_SCX: m_scx = data; break;
         case REG_LY: m_ly = data; break;
+        case REG_LYC:
+        {
+            m_lyc = data;
+            if (m_lcdc.lcd_on())
+            {
+                check_stat_interrupt();
+                check_lyc_interrupt();
+            }
+            break;
+        }
         case REG_BGP: m_bgp = data; break;
         case REG_OBP0: m_obp0 = data; break;
         case REG_OBP1: m_obp1 = data; break;
         case REG_WY: m_wy = data; break;
         case REG_WX: m_wx = data; break;
-        // read-only
-        case REG_LYC: break;
         }
     }
 
     void Ppu::tick()
     {
+        if (!m_lcdc.lcd_on())
+            return;
+
         m_cycles++;
         switch (m_mode)
         {
         case Mode::hblank:
         {
-            if (m_cycles == mode_cycles(Mode::hblank))
+            if (m_cycles >= mode_cycles(Mode::hblank))
             {
-                m_cycles = 0;
+                m_cycles -= mode_cycles(Mode::hblank);
                 m_ly++;
+
                 if (m_ly == 144)
                 {
                     enter_mode(Mode::vblank);
+                    m_interrupts |= to_underlying(Interrupt::vblank);
                     m_should_redraw = true;
                 }
                 else
                 {
                     enter_mode(Mode::oam_scan);
+                    check_stat_interrupt();
                 }
             }
             break;
         }
         case Mode::vblank:
         {
-            if (m_cycles == mode_cycles(Mode::vblank))
+            if (m_cycles >= mode_cycles(Mode::vblank))
             {
-                m_cycles = 0;
+                m_cycles -= mode_cycles(Mode::vblank);
                 m_ly++;
+                check_lyc_interrupt();
+                check_stat_interrupt();
+
                 if (m_ly == 154)
                 {
                     enter_mode(Mode::oam_scan);
+                    check_lyc_interrupt();
+                    check_stat_interrupt();
                     m_ly = 0;
                 }
             }
@@ -113,27 +160,26 @@ namespace cb
         }
         case Mode::oam_scan:
         {
-            if (m_cycles == mode_cycles(Mode::oam_scan))
+            if (m_cycles >= mode_cycles(Mode::oam_scan))
             {
-                m_cycles = 0;
+                m_cycles -= mode_cycles(Mode::oam_scan);
                 enter_mode(Mode::transfer);
             }
             break;
         }
         case Mode::transfer:
         {
-            if (m_cycles == mode_cycles(Mode::transfer))
+            if (m_cycles >= mode_cycles(Mode::transfer))
             {
-                m_cycles = 0;
+                m_cycles -= mode_cycles(Mode::transfer);
                 enter_mode(Mode::hblank);
-                render_bg_scanline();
+                check_stat_interrupt();
+                render_scanline();
             }
             break;
         }
         }
     }
-
-    void Ppu::enter_mode(Mode mode) { m_mode = mode; }
 
     usz Ppu::mode_cycles(Mode mode) const
     {
@@ -160,11 +206,46 @@ namespace cb
         }
     }
 
+    void Ppu::enter_mode(Mode mode)
+    {
+        m_mode = mode;
+        m_stat.raw = (m_stat.raw & 0xFC) | to_underlying(mode);
+    }
+
+    void Ppu::check_lyc_interrupt()
+    {
+        if (m_ly == m_lyc)
+            m_interrupts |= to_underlying(Interrupt::lcd_stat);
+        else
+            m_interrupts &= ~to_underlying(Interrupt::lcd_stat);
+    }
+
+    void Ppu::check_stat_interrupt()
+    {
+        if ((m_mode == Mode::hblank && m_stat.int_hblank()) ||
+            (m_mode == Mode::vblank && m_stat.int_vblank()) ||
+            (m_mode == Mode::oam_scan && m_stat.int_access_oam()) ||
+            (m_mode == Mode::transfer && m_stat.int_compare()) ||
+            (m_stat.compare() && m_stat.int_compare()))
+        {
+            m_interrupts |= to_underlying(Interrupt::lcd_stat);
+        }
+        else
+        {
+            m_interrupts &= ~to_underlying(Interrupt::lcd_stat);
+        }
+    }
+
+    void Ppu::render_scanline()
+    {
+        if (m_lcdc.bg_on())
+        {
+            render_bg_scanline();
+        }
+    }
+
     void Ppu::render_bg_scanline()
     {
-        if (!m_lcdc.bg_on())
-            return;
-
         const u8 scrolled_y = m_ly + m_scy;
         for (u8 lx = 0; lx < SCREEN_WIDTH; lx++)
         {
