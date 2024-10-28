@@ -8,11 +8,16 @@
       "name": "(gdb) Launch",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/cringeboy-debug/cringeboy",
-      "args": [],
+      "program": "${workspaceFolder}/build/gbcxx-debug/gbcxx",
+      "args": ["3rdparty/blargg/cpu_instrs/individual/03-op sp,hl.gb"],
       "stopAtEntry": false,
-      "cwd": "${fileDirname}",
-      "environment": [],
+      "cwd": "${workspaceFolder}",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=0"
+        }
+      ],
       "externalConsole": true,
       "MIMode": "gdb",
       "setupCommands": [

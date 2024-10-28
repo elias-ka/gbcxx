@@ -1,58 +1,36 @@
 #pragma once
 
-#include <utility>
-
 #include "core/mbc.hpp"
 #include "core/video.hpp"
 #include "util.hpp"
 
-namespace cb
-{
-    struct Cartridge
-    {
-        MbcVariant mbc;
+namespace gbcxx {
+class Mmu {
+ public:
+  explicit Mmu(std::unique_ptr<Mbc> mbc);
 
-        explicit Cartridge(std::vector<u8> cartrom);
+  void tick();
 
-        explicit Cartridge(MbcVariant mbc)
-            : mbc(std::move(mbc))
-        {
-        }
+  u8 read(u16 address) const;
+  u16 read16(u16 address) const;
 
-        u8 read(u16 address) const;
-        void write(u16 address, u8 value);
-    };
+  void write(u16 address, u8 data);
+  void write16(u16 address, u16 data);
 
-    class Mmu
-    {
-    public:
-        explicit Mmu(MbcVariant mbc);
+  void resize_memory(usz new_size) { m_wram.resize(new_size); }
 
-        void tick();
+  Ppu& ppu() { return m_ppu; }
 
-        u8 read(u16 address) const;
-        u16 read16(u16 address) const;
+ private:
+  Ppu m_ppu{};
 
-        void write(u16 address, u8 data);
-        void write16(u16 address, u16 data);
+  std::array<u8, 0x100> m_bootrom;
+  std::vector<u8> m_wram;
+  std::vector<u8> m_hram;
+  std::unique_ptr<Mbc> m_mbc;
+  bool m_bootrom_enabled{false};  // to-do: change default to true
+  u8 m_inte{0x00};
+  u8 m_intf{0xE1};
+};
 
-        void resize_memory(usz new_size) { m_wram.resize(new_size); }
-
-        Ppu& ppu() { return m_ppu; }
-
-    private:
-        bool in_bootrom() const { return m_reg_bootrom == 0; }
-
-    private:
-        Ppu m_ppu{};
-
-        std::array<u8, 0x100> m_bootrom{};
-        u8 m_reg_bootrom{1};
-        std::vector<u8> m_wram;
-        std::vector<u8> m_hram;
-        Cartridge m_cartridge;
-        u8 m_ie{};
-        u8 m_if{};
-    };
-
-} // namespace cb
+}  // namespace gbcxx

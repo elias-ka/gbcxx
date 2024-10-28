@@ -1,41 +1,22 @@
 #pragma once
 
-#include "util.hpp"
 #include <vector>
 
-namespace cb
-{
-    struct MbcRomOnly
-    {
-        explicit MbcRomOnly(std::vector<u8> cartrom)
-            : rom(std::move(cartrom))
-            , ram(8_KiB)
-        {
-        }
+#include "util.hpp"
 
-        std::vector<u8> rom;
-        std::vector<u8> ram;
-    };
+namespace gbcxx {
+class Mbc {
+ public:
+  virtual ~Mbc() = default;
 
-    struct Mbc1
-    {
-        std::vector<u8> rom;
-        std::vector<u8> ram;
-        u16 rom_bank{1};
-        u16 ram_bank{0};
-        bool ram_enabled{};
-        bool banking_mode{};
-        bool supports_advanced_banking;
+  virtual u8 read_rom(u16 address) const = 0;
+  virtual u8 read_ram(u16 address) const = 0;
+  virtual void write_rom(u16 address, u8 value) = 0;
+  virtual void write_ram(u16 address, u8 value) = 0;
+};
 
-        explicit Mbc1(std::vector<u8> cartrom)
-            : rom(std::move(cartrom))
-            , ram(32_KiB)
-            , supports_advanced_banking(rom.size() > 512_KiB)
-        {
-        }
-    };
+std::unique_ptr<Mbc> make_mbc(std::vector<u8> cartrom);
+u8 count_ram_banks(u8 value);
+u8 count_rom_banks(u8 value);
 
-    using MbcVariant = std::variant<std::monostate, MbcRomOnly, Mbc1>;
-
-    MbcVariant load_cartridge(const std::vector<u8>& cartrom);
-} // namespace cb
+}  // namespace gbcxx
