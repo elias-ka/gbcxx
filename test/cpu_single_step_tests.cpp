@@ -267,4 +267,4 @@ static const std::vector<std::filesystem::path> bit_instructions = {
 };
 
 INSTANTIATE_TEST_SUITE_P(SingleStepTests, SingleStepParameterizedTest,
-                         testing::ValuesIn(sixteen_bit_load_instructions));
+                         testing::ValuesIn(load_test_files()));

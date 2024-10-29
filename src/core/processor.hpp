@@ -50,6 +50,7 @@ class Registers {
         m_l(l) {}
 
   Flags flags() const { return m_f; }
+  Flags& flags() { return m_f; }
 
   u8 get(Reg8 reg) const;
   u16 get(Reg16 reg) const;
@@ -85,7 +86,7 @@ class Cpu {
   u16 sp() const { return m_reg.get(Reg16::sp); }
 
   Flags flags() const { return m_reg.flags(); }
-  void set_flag(Flag f, bool set = true) { flags().set(f, set); }
+  void set_flag(Flag f, bool set = true) { m_reg.flags().set(f, set); }
 
   u8 reg(Reg8 reg) const { return m_reg.get(reg); }
   u16 reg(Reg16 reg) const { return m_reg.get(reg); }
