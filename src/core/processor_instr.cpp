@@ -162,31 +162,37 @@ void Cpu::sub_n() {
 
 void Cpu::sbc_r(Reg8 r) {
   const u8 r_val = reg(r);
-  const int result = reg(Reg8::a) - r_val - flags().c();
-  set_flag(Flag::z, result == 0);
+  const u8 a = reg(Reg8::a);
+  const bool carry = flags().c();
+  const int result = a - r_val - carry;
+  set_flag(Flag::z, static_cast<u8>(result) == 0);
   set_flag(Flag::n, true);
-  set_flag(Flag::h, ((reg(Reg8::a) & 0xF) - (r_val & 0xF) - flags().c()) < 0);
-  set_flag(Flag::c, result < 0);
+  set_flag(Flag::h, (a & 0xF) < ((r_val & 0xF) + carry));
+  set_flag(Flag::c, a < (r_val + carry));
   set_reg(Reg8::a, static_cast<u8>(result));
 }
 
 void Cpu::sbc_mem_hl() {
   const u8 data = cycle_read(reg(Reg16::hl));
-  const int result = reg(Reg8::a) - data - flags().c();
-  set_flag(Flag::z, result == 0);
+  const u8 a = reg(Reg8::a);
+  const bool carry = flags().c();
+  const int result = a - data - carry;
+  set_flag(Flag::z, static_cast<u8>(result) == 0);
   set_flag(Flag::n, true);
-  set_flag(Flag::h, ((reg(Reg8::a) & 0xF) - (data & 0xF) - flags().c()) < 0);
-  set_flag(Flag::c, result < 0);
+  set_flag(Flag::h, (a & 0xF) < ((data & 0xF) + carry));
+  set_flag(Flag::c, a < (data + carry));
   set_reg(Reg8::a, static_cast<u8>(result));
 }
 
 void Cpu::sbc_n() {
   const u8 n = read_operand();
-  const int result = reg(Reg8::a) - n - flags().c();
-  set_flag(Flag::z, result == 0);
+  const u16 a = reg(Reg8::a);
+  const bool carry = flags().c();
+  const u16 result = a - n - carry;
+  set_flag(Flag::z, static_cast<u8>(result) == 0);
   set_flag(Flag::n, true);
-  set_flag(Flag::h, ((reg(Reg8::a) & 0xF) - (n & 0xF) - flags().c()) < 0);
-  set_flag(Flag::c, result < 0);
+  set_flag(Flag::h, ((a & 0xF) < ((n & 0xF) + carry)));
+  set_flag(Flag::c, a < (n + carry));
   set_reg(Reg8::a, static_cast<u8>(result));
 }
 

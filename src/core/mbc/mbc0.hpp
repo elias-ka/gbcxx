@@ -14,7 +14,6 @@ class Mbc0 final : public Mbc {
 
  private:
   std::vector<u8> m_rom;
-  std::vector<u8> m_ram;
 };
 
 }  // namespace gbcxx

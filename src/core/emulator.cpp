@@ -6,26 +6,9 @@
 #include "util.hpp"
 
 namespace gbcxx {
-namespace {
-bool checksum_matches(const std::vector<u8>& cartrom) {
-  u8 checksum = 0;
-  for (u16 address = 0x0134; address <= 0x014C; address++) {
-    checksum -= cartrom[address] + 1;
-  }
-  return cartrom[0x14D] == checksum;
-}
 
-const std::vector<u8>& verify_checksum(const std::vector<u8>& cartrom) {
-  if (!checksum_matches(cartrom)) {
-    DIE("Invalid header checksum, the program won't be run.");
-  }
-
-  return cartrom;
-}
-}  // namespace
-
-Emulator::Emulator(const std::vector<u8>& cartrom)
-    : m_cpu(make_mbc(verify_checksum(cartrom))) {}
+Emulator::Emulator(std::vector<u8> cartrom)
+    : m_cpu(make_mbc(std::move(cartrom))) {}
 
 void Emulator::run(SdlWindow* win) {
   static const f64 CLOCK_RATE = 4194304.0;

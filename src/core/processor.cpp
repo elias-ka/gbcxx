@@ -124,15 +124,11 @@ void Cpu::cycle_write16(u16 addr, u16 data) {
   cycle_write(addr + 1, static_cast<u8>(data >> 8));
 }
 
-u8 Cpu::read_operand() {
-  const auto operand = cycle_read(m_pc++);
-  LOG_TRACE("Read operand {:#04x} from {:#06x}", operand, m_pc);
-  return operand;
-}
+u8 Cpu::read_operand() { return cycle_read(m_pc++); }
 
 u16 Cpu::read_operands() {
-  const auto lo = read_operand();
-  const auto hi = read_operand();
+  const u8 lo = read_operand();
+  const u8 hi = read_operand();
   return static_cast<u16>((hi << 8) | lo);
 }
 
@@ -144,9 +140,9 @@ void Cpu::push(u16 value) {
 }
 
 u16 Cpu::pop() {
-  const auto lo = cycle_read(reg(Reg16::sp));
+  const u8 lo = cycle_read(reg(Reg16::sp));
   set_reg(Reg16::sp, reg(Reg16::sp) + 1);
-  const auto hi = cycle_read(reg(Reg16::sp));
+  const u8 hi = cycle_read(reg(Reg16::sp));
   set_reg(Reg16::sp, reg(Reg16::sp) + 1);
   return static_cast<u16>((hi << 8) | lo);
 }

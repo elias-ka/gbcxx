@@ -6,7 +6,7 @@
 namespace gbcxx {
 class Emulator {
  public:
-  explicit Emulator(const std::vector<u8>& cartrom);
+  explicit Emulator(std::vector<u8> cartrom);
 
   void run(SdlWindow* win);
 
