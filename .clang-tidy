@@ -10,5 +10,11 @@ Checks: -*,
   -modernize-use-trailing-return-type,
   performance-*,
   portability-*,
-  readability-*
-  -readability-magic-numbers
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-function-cognitive-complexity,
+  -readability-function-size,
+  -readability-identifier-length,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -readability-redundant-access-specifiers,
