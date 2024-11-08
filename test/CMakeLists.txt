@@ -3,7 +3,7 @@ enable_testing()
 add_executable(
   gbcxx_tests EXCLUDE_FROM_ALL main.cpp cpu_flags_test.cpp
                                cpu_registers_test.cpp cpu_single_step_tests.cpp)
-target_compile_features(gbcxx_tests PRIVATE cxx_std_20)
+target_compile_features(gbcxx_tests PRIVATE cxx_std_23)
 target_link_libraries(gbcxx_tests PRIVATE gbcxx_core GTest::gtest_main
                                           simdjson::simdjson)
 target_compile_definitions(

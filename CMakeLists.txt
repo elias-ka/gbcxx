@@ -67,7 +67,7 @@ add_library(
   src/util.cpp
   src/util.hpp)
 
-target_compile_features(gbcxx_core PUBLIC cxx_std_20)
+target_compile_features(gbcxx_core PUBLIC cxx_std_23)
 target_include_directories(gbcxx_core PUBLIC src)
 target_link_libraries(gbcxx_core PUBLIC SDL2::SDL2 fmt::fmt spdlog::spdlog)
 
