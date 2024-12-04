@@ -2,9 +2,10 @@
 
 #include "core/mbc/mbc0.hpp"
 #include "core/mbc/mbc1.hpp"
+#include "util.hpp"
 
 namespace gbcxx {
-std::unique_ptr<Mbc> make_mbc(std::vector<u8> cartrom) {
+std::unique_ptr<Mbc> make_mbc(std::vector<uint8_t> cartrom) {
   {
     switch (cartrom.at(0x147)) {
       case 0x00: {
@@ -22,7 +23,7 @@ std::unique_ptr<Mbc> make_mbc(std::vector<u8> cartrom) {
   }
 }
 
-u8 count_ram_banks(u8 value) {
+uint8_t count_ram_banks(uint8_t value) {
   switch (value) {
     case 1:
     case 2: return 1;
@@ -33,9 +34,9 @@ u8 count_ram_banks(u8 value) {
   }
 }
 
-u8 count_rom_banks(u8 value) {
+uint8_t count_rom_banks(uint8_t value) {
   if (value < 9) {
-    return static_cast<u8>(2 << value);
+    return static_cast<uint8_t>(2 << value);
   }
   return 0;
 }

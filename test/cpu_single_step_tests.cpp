@@ -31,9 +31,9 @@ std::unique_ptr<simdjson::dom::parser> SingleStepParameterizedTest::parser =
     nullptr;
 
 struct TestState {
-  u16 pc, sp;
+  uint16_t pc, sp;
   Flags f;
-  u8 a, b, c, d, e, h, l;
+  uint8_t a, b, c, d, e, h, l;
 
   bool operator==(const TestState&) const = default;
 
@@ -76,46 +76,46 @@ TEST_P(SingleStepParameterizedTest, All) {
       parser->load(SINGLESTEP_TESTS_DIR / GetParam());
   for (auto test : root_array) {
     auto initial_obj = test["initial"].get_object();
-    const TestState initial = {.pc = get_as<u16>(initial_obj["pc"]),
-                               .sp = get_as<u16>(initial_obj["sp"]),
-                               .f = Flags{get_as<u8>(initial_obj["f"])},
-                               .a = get_as<u8>(initial_obj["a"]),
-                               .b = get_as<u8>(initial_obj["b"]),
-                               .c = get_as<u8>(initial_obj["c"]),
-                               .d = get_as<u8>(initial_obj["d"]),
-                               .e = get_as<u8>(initial_obj["e"]),
-                               .h = get_as<u8>(initial_obj["h"]),
-                               .l = get_as<u8>(initial_obj["l"])};
-    Cpu cpu(std::make_unique<Mbc0>(std::vector<u8>()), initial.pc, initial.sp,
-            initial.f, initial.a, initial.b, initial.c, initial.d, initial.e,
-            initial.h, initial.l);
+    const TestState initial = {.pc = get_as<uint16_t>(initial_obj["pc"]),
+                               .sp = get_as<uint16_t>(initial_obj["sp"]),
+                               .f = Flags{get_as<uint8_t>(initial_obj["f"])},
+                               .a = get_as<uint8_t>(initial_obj["a"]),
+                               .b = get_as<uint8_t>(initial_obj["b"]),
+                               .c = get_as<uint8_t>(initial_obj["c"]),
+                               .d = get_as<uint8_t>(initial_obj["d"]),
+                               .e = get_as<uint8_t>(initial_obj["e"]),
+                               .h = get_as<uint8_t>(initial_obj["h"]),
+                               .l = get_as<uint8_t>(initial_obj["l"])};
+    Cpu cpu(std::make_unique<Mbc0>(std::vector<uint8_t>()), initial.pc,
+            initial.sp, initial.f, initial.a, initial.b, initial.c, initial.d,
+            initial.e, initial.h, initial.l);
 
     cpu.mmu().resize_memory(64_KiB);
     auto initial_ram = initial_obj["ram"].get_array();
     for (simdjson::dom::array child_arr : initial_ram) {
-      const auto addr = get_as<u16>(child_arr.at(0));
-      const auto value = get_as<u8>(child_arr.at(1));
+      const auto addr = get_as<uint16_t>(child_arr.at(0));
+      const auto value = get_as<uint8_t>(child_arr.at(1));
       cpu.mmu().write(addr, value);
     }
 
     cpu.step();
 
     auto expected_obj = test["final"].get_object();
-    const TestState expected = {.pc = get_as<u16>(expected_obj["pc"]),
-                                .sp = get_as<u16>(expected_obj["sp"]),
-                                .f = Flags{get_as<u8>(expected_obj["f"])},
-                                .a = get_as<u8>(expected_obj["a"]),
-                                .b = get_as<u8>(expected_obj["b"]),
-                                .c = get_as<u8>(expected_obj["c"]),
-                                .d = get_as<u8>(expected_obj["d"]),
-                                .e = get_as<u8>(expected_obj["e"]),
-                                .h = get_as<u8>(expected_obj["h"]),
-                                .l = get_as<u8>(expected_obj["l"])};
+    const TestState expected = {.pc = get_as<uint16_t>(expected_obj["pc"]),
+                                .sp = get_as<uint16_t>(expected_obj["sp"]),
+                                .f = Flags{get_as<uint8_t>(expected_obj["f"])},
+                                .a = get_as<uint8_t>(expected_obj["a"]),
+                                .b = get_as<uint8_t>(expected_obj["b"]),
+                                .c = get_as<uint8_t>(expected_obj["c"]),
+                                .d = get_as<uint8_t>(expected_obj["d"]),
+                                .e = get_as<uint8_t>(expected_obj["e"]),
+                                .h = get_as<uint8_t>(expected_obj["h"]),
+                                .l = get_as<uint8_t>(expected_obj["l"])};
 
     auto expected_ram = expected_obj["ram"].get_array();
     for (simdjson::dom::array child_arr : expected_ram) {
-      const auto addr = get_as<u16>(child_arr.at(0));
-      const auto value = get_as<u8>(child_arr.at(1));
+      const auto addr = get_as<uint16_t>(child_arr.at(0));
+      const auto value = get_as<uint8_t>(child_arr.at(1));
       EXPECT_EQ(cpu.mmu().read(addr), value);
     }
 

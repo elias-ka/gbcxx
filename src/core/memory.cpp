@@ -8,13 +8,13 @@
 namespace gbcxx {
 
 namespace {
-constexpr usz WRAM_SIZE = 0x8000;
-constexpr usz HRAM_SIZE = 0x7F;
+constexpr size_t WRAM_SIZE = 0x8000;
+constexpr size_t HRAM_SIZE = 0x7F;
 }  // namespace
 
 // Extracted from SameBoy's DMG boot ROM:
 // https://github.com/LIJI32/SameBoy/tree/master/BootROMs/dmg_boot.asm
-static const std::array<u8, 0x100> DMG_BOOTROM = {
+static const std::array<uint8_t, 0x100> DMG_BOOTROM = {
     0x31, 0xFE, 0xFF, 0x21, 0x00, 0x80, 0xAF, 0x22, 0xCB, 0x6C, 0x28, 0xFB,
     0x3E, 0x80, 0xE0, 0x26, 0xE0, 0x11, 0x3E, 0xF3, 0xE0, 0x12, 0xE0, 0x25,
     0x3E, 0x77, 0xE0, 0x24, 0x3E, 0x54, 0xE0, 0x47, 0x11, 0x04, 0x01, 0x21,
@@ -46,12 +46,14 @@ Mmu::Mmu(std::unique_ptr<Mbc> mbc)
       m_mbc(std::move(mbc)) {}
 
 void Mmu::tick() {
+  m_timer.tick();
+  m_intf |= m_timer.get_and_clear_interrupts();
   m_ppu.tick();
   m_intf |= m_ppu.get_and_clear_interrupts();
 }
 
-u8 Mmu::read(u16 address) const {
-#ifdef TESTING
+uint8_t Mmu::read(uint16_t address) const {
+#ifdef GBCXX_TESTING
   return m_wram.at(address);
 #endif
 
@@ -60,34 +62,43 @@ u8 Mmu::read(u16 address) const {
       return m_bootrom.at(address);
     }
     return m_mbc->read_rom(address);
-  } else if ((VRAM_START <= address && address <= VRAM_END) ||
-             (OAM_START <= address && address <= OAM_END) ||
-             (REG_LCDC <= address && address <= REG_VBK)) {
+  }
+  if ((VRAM_START <= address && address <= VRAM_END) ||
+      (OAM_START <= address && address <= OAM_END) ||
+      (REG_LCDC <= address && address <= REG_VBK)) {
     return m_ppu.read(address);
-  } else if (EXTERNAL_RAM_START <= address && address <= EXTERNAL_RAM_END) {
+  }
+  if (EXTERNAL_RAM_START <= address && address <= EXTERNAL_RAM_END) {
     return m_mbc->read_ram(address);
-  } else if (WORK_RAM_START <= address && address <= WORK_RAM_END) {
+  }
+  if (WORK_RAM_START <= address && address <= WORK_RAM_END) {
     return m_wram.at(address - WORK_RAM_START);
-  } else if (ECHO_RAM_START <= address && address <= ECHO_RAM_END) {
+  }
+  if (ECHO_RAM_START <= address && address <= ECHO_RAM_END) {
     return m_wram.at(address & 0x1FFF);
-  } else if (NOT_USABLE_START <= address && address <= NOT_USABLE_END) {
-    return 0xFF;
-  } else if (HIGH_RAM_START <= address && address <= HIGH_RAM_END) {
+  }
+  if (NOT_USABLE_START <= address && address <= NOT_USABLE_END) {
+    return 0x00;
+  }
+  if (HIGH_RAM_START <= address && address <= HIGH_RAM_END) {
     return m_hram.at(address - HIGH_RAM_START);
-  } else if (address == REG_IE) {
+  }
+  if (address == REG_IE) {
     return m_inte;
-  } else if (address == REG_BOOTROM) {
+  }
+  if (address == REG_BOOTROM) {
     return m_bootrom_enabled;
-  } else if (IO_START <= address && address <= IO_END) {
+  }
+  if (IO_START <= address && address <= IO_END) {
     switch (address) {
-      case REG_IF: return m_intf;
+      case REG_IF: return m_intf & 0x1F;
       case REG_JOYP:
       case REG_SB:
-      case REG_SC:
+      case REG_SC: return 0xFF;
       case REG_DIV:
       case REG_TIMA:
       case REG_TMA:
-      case REG_TAC:
+      case REG_TAC: return m_timer.read(address);
       case REG_NR10:
       case REG_NR11:
       case REG_NR12:
@@ -118,14 +129,14 @@ u8 Mmu::read(u16 address) const {
   return 0xFF;
 }
 
-u16 Mmu::read16(u16 address) const {
-  const auto lo = static_cast<u16>(read(address));
-  const auto hi = static_cast<u16>(read(address + 1));
-  return static_cast<u16>(hi << 8) | lo;
+uint16_t Mmu::read16(uint16_t address) const {
+  const auto lo = static_cast<uint16_t>(read(address));
+  const auto hi = static_cast<uint16_t>(read(address + 1));
+  return static_cast<uint16_t>(hi << 8) | lo;
 }
 
-void Mmu::write(u16 address, u8 value) {
-#ifdef TESTING
+void Mmu::write(uint16_t address, uint8_t value) {
+#ifdef GBCXX_TESTING
   m_wram.at(address) = value;
   return;
 #endif
@@ -155,15 +166,15 @@ void Mmu::write(u16 address, u8 value) {
     m_bootrom_enabled = value;
   } else if (IO_START <= address && address <= IO_END) {
     switch (address) {
-      case REG_IF: m_intf = value; return;
+      case REG_IF: m_intf = value & 0x1F; return;
       case REG_BOOTROM: m_bootrom_enabled = value; return;
       case REG_JOYP:
       case REG_SB:
-      case REG_SC:
+      case REG_SC: return;
       case REG_DIV:
       case REG_TIMA:
       case REG_TMA:
-      case REG_TAC:
+      case REG_TAC: m_timer.write(address, value); return;
       case REG_NR10:
       case REG_NR11:
       case REG_NR12:
@@ -192,9 +203,9 @@ void Mmu::write(u16 address, u8 value) {
   }
 }
 
-void Mmu::write16(u16 address, u16 value) {
-  write(address, static_cast<u8>(value));
-  write(address + 1, static_cast<u8>(value >> 8));
+void Mmu::write16(uint16_t address, uint16_t value) {
+  write(address, static_cast<uint8_t>(value));
+  write(address + 1, static_cast<uint8_t>(value >> 8));
 }
 
 }  // namespace gbcxx

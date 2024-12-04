@@ -5,21 +5,21 @@
 namespace gbcxx {
 class Mbc1 final : public Mbc {
  public:
-  explicit Mbc1(std::vector<u8> cartrom);
+  explicit Mbc1(std::vector<uint8_t> cartrom);
 
-  u8 read_rom(u16 address) const override;
-  u8 read_ram(u16 address) const override;
-  void write_rom(u16, u8) override;
-  void write_ram(u16 address, u8 value) override;
+  uint8_t read_rom(uint16_t address) const override;
+  uint8_t read_ram(uint16_t address) const override;
+  void write_rom(uint16_t address, uint8_t value) override;
+  void write_ram(uint16_t address, uint8_t value) override;
 
  private:
-  std::vector<u8> m_rom;
-  u8 m_banking_mode{0};
-  u8 m_rom_bank{1};
-  u8 m_ram_bank{0};
-  u8 m_rom_banks_count{0};
-  u8 m_ram_banks_count{0};
-  std::vector<u8> m_ram;
+  std::vector<uint8_t> m_rom;
+  uint8_t m_banking_mode{0};
+  uint8_t m_rom_bank{1};
+  uint8_t m_ram_bank{0};
+  uint8_t m_rom_banks_count{0};
+  uint8_t m_ram_banks_count{0};
+  std::vector<uint8_t> m_ram;
   bool m_ram_enabled{false};
 };
 }  // namespace gbcxx

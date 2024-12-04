@@ -14,7 +14,7 @@ constexpr std::array<Rgba, 4> dmg_palette = {{{0xFF, 0xFF, 0xFF, 0xFF},
                                               {0x00, 0x00, 0x00, 0xFF}}};
 }  // namespace
 
-u8 Ppu::read(u16 address) const {
+uint8_t Ppu::read(uint16_t address) const {
   if (VRAM_START <= address && address <= VRAM_END)
     return m_vram.at(address - VRAM_START);
 
@@ -37,7 +37,7 @@ u8 Ppu::read(u16 address) const {
   }
 }
 
-void Ppu::write(u16 address, u8 data) {
+void Ppu::write(uint16_t address, uint8_t data) {
   if (VRAM_START <= address && address <= VRAM_END) {
     m_vram.at(address - VRAM_START) = data;
     return;
@@ -105,11 +105,10 @@ void Ppu::tick() {
 
         if (m_ly == 144) {
           enter_mode(Mode::vblank);
-          m_interrupts |= to_underlying(Interrupt::vblank);
+          m_interrupts |= std::to_underlying(Interrupt::VBlank);
           m_should_redraw = true;
         } else {
           enter_mode(Mode::oam_scan);
-          check_stat_interrupt();
         }
       }
       break;
@@ -118,13 +117,10 @@ void Ppu::tick() {
       if (m_cycles >= mode_cycles(Mode::vblank)) {
         m_cycles -= mode_cycles(Mode::vblank);
         m_ly++;
-        check_lyc_interrupt();
-        check_stat_interrupt();
 
         if (m_ly == 154) {
           enter_mode(Mode::oam_scan);
           check_lyc_interrupt();
-          check_stat_interrupt();
           m_ly = 0;
         }
       }
@@ -141,7 +137,6 @@ void Ppu::tick() {
       if (m_cycles >= mode_cycles(Mode::transfer)) {
         m_cycles -= mode_cycles(Mode::transfer);
         enter_mode(Mode::hblank);
-        check_stat_interrupt();
         render_scanline();
       }
       break;
@@ -149,7 +144,7 @@ void Ppu::tick() {
   }
 }
 
-usz Ppu::mode_cycles(Mode mode) const {
+size_t Ppu::mode_cycles(Mode mode) const {
   switch (mode) {
     case Mode::hblank: {
       switch (m_scx % 8) {
@@ -172,14 +167,15 @@ usz Ppu::mode_cycles(Mode mode) const {
 
 void Ppu::enter_mode(Mode mode) {
   m_mode = mode;
-  m_stat.raw = (m_stat.raw & 0xFC) | to_underlying(mode);
+  m_stat.raw = (m_stat.raw & 0xFC) | std::to_underlying(mode);
+  check_stat_interrupt();
 }
 
 void Ppu::check_lyc_interrupt() {
   if (m_ly == m_lyc)
-    m_interrupts |= to_underlying(Interrupt::lcd_stat);
+    m_interrupts |= std::to_underlying(Interrupt::LCDStat);
   else
-    m_interrupts &= ~to_underlying(Interrupt::lcd_stat);
+    m_interrupts &= ~std::to_underlying(Interrupt::LCDStat);
 }
 
 void Ppu::check_stat_interrupt() {
@@ -188,38 +184,38 @@ void Ppu::check_stat_interrupt() {
       (m_mode == Mode::oam_scan && m_stat.int_access_oam()) ||
       (m_mode == Mode::transfer && m_stat.int_compare()) ||
       (m_stat.compare() && m_stat.int_compare())) {
-    m_interrupts |= to_underlying(Interrupt::lcd_stat);
+    m_interrupts |= std::to_underlying(Interrupt::LCDStat);
   } else {
-    m_interrupts &= ~to_underlying(Interrupt::lcd_stat);
+    m_interrupts &= ~std::to_underlying(Interrupt::LCDStat);
   }
 }
 
 void Ppu::render_scanline() { render_bg_scanline(); }
 
 void Ppu::render_bg_scanline() {
-  const u8 scrolled_y = m_ly + m_scy;
-  for (u8 lx = 0; lx < SCREEN_WIDTH; lx++) {
-    const u8 scrolled_x = lx + m_scx;
+  const uint8_t scrolled_y = m_ly + m_scy;
+  for (uint8_t lx = 0; lx < SCREEN_WIDTH; lx++) {
+    const uint8_t scrolled_x = lx + m_scx;
     m_buffer.set_pixel_color(lx, m_ly, bg_color(scrolled_x, scrolled_y));
   }
 }
 
-Rgba Ppu::bg_color(u8 x, u8 y) const {
+Rgba Ppu::bg_color(uint8_t x, uint8_t y) const {
   if (!m_lcdc.bg_on()) return dmg_palette[0];
 
-  u16 address = (m_lcdc.bg_map() ? 0x1C00 : 0x1800) + ((y >> 3) & 31) * 32 +
-                ((x >> 3) & 31);
-  const u8 tile_id = m_vram.at(address);
+  uint16_t address = (m_lcdc.bg_map() ? 0x1C00 : 0x1800) +
+                     ((y >> 3) & 31) * 32 + ((x >> 3) & 31);
+  const uint8_t tile_id = m_vram.at(address);
   if (m_lcdc.bg_addr())
-    address = static_cast<u16>((tile_id << 4) + ((y & 7) << 1));
+    address = static_cast<uint16_t>((tile_id << 4) + ((y & 7) << 1));
   else
-    address = static_cast<u16>((static_cast<s8>(tile_id) << 4) +
-                               ((y & 7) << 1) + 0x1000);
-  const u8 mask = static_cast<u8>(1 << (7 - (x & 7)));
-  const u8 byte1 = m_vram.at(address);
-  const u8 byte2 = m_vram.at(address + 1);
-  const u8 color =
-      static_cast<u8>(((byte1 & mask) ? 1 : 0) + ((byte2 & mask) ? 2 : 0));
+    address = static_cast<uint16_t>((static_cast<int8_t>(tile_id) << 4) +
+                                    ((y & 7) << 1) + 0x1000);
+  const auto mask = static_cast<uint8_t>(1 << (7 - (x & 7)));
+  const uint8_t byte1 = m_vram.at(address);
+  const uint8_t byte2 = m_vram.at(address + 1);
+  const auto color =
+      static_cast<uint8_t>(((byte1 & mask) ? 1 : 0) + ((byte2 & mask) ? 2 : 0));
   return dmg_palette.at(color);
 }
 

@@ -7,13 +7,12 @@
 
 #include "core/mbc.hpp"
 #include "core/memory.hpp"
-#include "util.hpp"
 
 namespace gbcxx {
 enum class Flag { z, n, h, c };
 
 struct Flags {
-  u8 raw;
+  uint8_t raw;
 
   bool operator==(const Flags&) const = default;
 
@@ -31,14 +30,17 @@ inline std::string format_as(Flags f) {
   return {symbols.begin(), symbols.end()};
 }
 
-enum class Reg8 { a, b, c, d, e, h, l };
-enum class Reg16 { af, bc, de, hl, sp };
-enum class Condition { nz, z, nc, c };
+enum class Reg8 { A, B, C, D, E, H, L };
+enum class Reg16 { AF, BC, DE, HL, SP };
+enum class Condition { NZ, Z, NC, C };
 
 class Registers {
  public:
   Registers() = default;
-  explicit Registers(u16 sp, Flags f, u8 a, u8 b, u8 c, u8 d, u8 e, u8 h, u8 l)
+
+#ifdef GBCXX_TESTING
+  explicit Registers(uint16_t sp, Flags f, uint8_t a, uint8_t b, uint8_t c,
+                     uint8_t d, uint8_t e, uint8_t h, uint8_t l)
       : m_sp(sp),
         m_f(f),
         m_a(a),
@@ -48,89 +50,96 @@ class Registers {
         m_e(e),
         m_h(h),
         m_l(l) {}
+#endif
 
   Flags flags() const { return m_f; }
   Flags& flags() { return m_f; }
 
-  u8 get(Reg8 reg) const;
-  u16 get(Reg16 reg) const;
+  uint8_t get(Reg8 reg) const;
+  uint16_t get(Reg16 reg) const;
 
-  void set(Reg8 reg, u8 val);
-  void set(Reg16 reg, u16 val);
+  void set(Reg8 reg, uint8_t val);
+  void set(Reg16 reg, uint16_t val);
 
  private:
-  u16 m_sp{0xFFFE};
+  uint16_t m_sp{0xFFFE};
   Flags m_f{0xB0};
-  u8 m_a{0x01};
-  u8 m_b{0x00};
-  u8 m_c{0x13};
-  u8 m_d{0x00};
-  u8 m_e{0xD8};
-  u8 m_h{0x01};
-  u8 m_l{0x4D};
+  uint8_t m_a{0x01};
+  uint8_t m_b{0x00};
+  uint8_t m_c{0x13};
+  uint8_t m_d{0x00};
+  uint8_t m_e{0xD8};
+  uint8_t m_h{0x01};
+  uint8_t m_l{0x4D};
 };
 
 class Cpu {
  public:
   explicit Cpu(std::unique_ptr<Mbc> mbc) : m_mmu(std::move(mbc)) {}
 
-  Cpu(std::unique_ptr<Mbc> mbc, u16 pc, u16 sp, Flags f, u8 a, u8 b, u8 c, u8 d,
-      u8 e, u8 h, u8 l)
+#ifdef GBCXX_TESTING
+  Cpu(std::unique_ptr<Mbc> mbc, uint16_t pc, uint16_t sp, Flags f, uint8_t a,
+      uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t h, uint8_t l)
       : m_mmu(std::move(mbc)), m_reg(sp, f, a, b, c, d, e, h, l), m_pc(pc) {}
+#endif
 
   void step();
-  void subtract_cycles(usz cycles) { m_cycles_elapsed -= cycles; }
-  usz cycles_elapsed() const { return m_cycles_elapsed; }
+  void subtract_cycles(size_t cycles) { m_cycles_elapsed -= cycles; }
+  size_t cycles_elapsed() const { return m_cycles_elapsed; }
 
-  u16 pc() const { return m_pc; }
-  u16 sp() const { return m_reg.get(Reg16::sp); }
+  uint16_t pc() const { return m_pc; }
+  uint16_t sp() const { return m_reg.get(Reg16::SP); }
 
   Flags flags() const { return m_reg.flags(); }
   void set_flag(Flag f, bool set = true) { m_reg.flags().set(f, set); }
 
-  u8 reg(Reg8 reg) const { return m_reg.get(reg); }
-  u16 reg(Reg16 reg) const { return m_reg.get(reg); }
-  void set_reg(Reg8 reg, u8 val) { m_reg.set(reg, val); }
-  void set_reg(Reg16 reg, u16 val) { m_reg.set(reg, val); }
+  uint8_t reg(Reg8 reg) const { return m_reg.get(reg); }
+  uint16_t reg(Reg16 reg) const { return m_reg.get(reg); }
+  void set_reg(Reg8 reg, uint8_t val) { m_reg.set(reg, val); }
+  void set_reg(Reg16 reg, uint16_t val) { m_reg.set(reg, val); }
 
   Mmu& mmu() { return m_mmu; }
 
  private:
+  void log_for_gameboy_doctor();
+
   void tick();
   void tick4();
 
-  u8 cycle_read(u16 addr);
-  u16 cycle_read16(u16 addr);
-  void cycle_write(u16 addr, u8 data);
-  void cycle_write16(u16 addr, u16 data);
+  uint8_t cycle_read(uint16_t addr);
+  uint16_t cycle_read16(uint16_t addr);
+  void cycle_write(uint16_t addr, uint8_t data);
+  void cycle_write16(uint16_t addr, uint16_t data);
 
-  u8 read_operand();
-  u16 read_operands();
+  uint8_t read_operand();
+  uint16_t read_operands();
 
-  void push(u16 value);
-  u16 pop();
+  void push(uint8_t value);
+  void push16(uint16_t value);
+  uint16_t pop();
 
-  void handle_interrupts();
-  void execute(u8 opcode);
+  void handle_interrupt();
+  void interpret_instruction(uint8_t opcode);
 
   bool check_condition(Condition cond) const {
     const auto flags = m_reg.flags();
     switch (cond) {
-      case Condition::nz: return !flags.z();
-      case Condition::z: return flags.z();
-      case Condition::nc: return !flags.c();
-      case Condition::c: return flags.c();
+      case Condition::NZ: return !flags.z();
+      case Condition::Z: return flags.z();
+      case Condition::NC: return !flags.c();
+      case Condition::C: return flags.c();
     }
   }
 
  private:
+  enum class Mode { Default, Halt, Stop, HaltBug, HaltDI, IMEPending };
+
   Mmu m_mmu;
-  Registers m_reg{};
-  usz m_cycles_elapsed{};
-  u16 m_pc{0x100};
+  Registers m_reg;
+  size_t m_cycles_elapsed{};
+  uint16_t m_pc{0x100};
+  Mode m_mode{Mode::Default};
   bool m_ime{true};
-  bool m_ime_pending{};
-  bool m_halted{};
   std::fstream m_log_file{"log.txt", std::ios::out};
 
  private:
@@ -212,7 +221,7 @@ class Cpu {
   void ret();
   void ret_cc(Condition cc);
   void reti();
-  void rst_n(u8 vec);
+  void rst_n(uint8_t vec);
 
   // Miscellaneous
   void halt();
@@ -242,11 +251,11 @@ class Cpu {
   void swap_mem_hl();
   void srl_r(Reg8 r);
   void srl_mem_hl();
-  void bit_b_r(u8 b, Reg8 r);
-  void bit_b_mem_hl(u8 b);
-  void res_b_r(u8 b, Reg8 r);
-  void res_b_mem_hl(u8 b);
-  void set_b_r(u8 b, Reg8 r);
-  void set_b_mem_hl(u8 b);
+  void bit_b_r(uint8_t b, Reg8 r);
+  void bit_b_mem_hl(uint8_t b);
+  void res_b_r(uint8_t b, Reg8 r);
+  void res_b_mem_hl(uint8_t b);
+  void set_b_r(uint8_t b, Reg8 r);
+  void set_b_mem_hl(uint8_t b);
 };
 }  // namespace gbcxx

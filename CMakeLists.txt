@@ -60,6 +60,8 @@ add_library(
   src/core/processor.cpp
   src/core/processor.hpp
   src/core/processor_instr.cpp
+  src/core/timer.cpp
+  src/core/timer.hpp
   src/core/video.cpp
   src/core/video.hpp
   src/sdl_window.hpp
@@ -107,7 +109,7 @@ if(NOT BUILD_TESTING)
   return()
 endif()
 
-target_compile_definitions(gbcxx_core PRIVATE TESTING)
+target_compile_definitions(gbcxx_core PRIVATE GBCXX_TESTING)
 
 cpmaddpackage(
   NAME

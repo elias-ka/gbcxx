@@ -53,7 +53,7 @@ void SdlWindow::draw(const FrameBuffer& buf) {
   if (SDL_RenderClear(m_renderer.get()))
     DIE("Failed to clear renderer: {}", SDL_GetError());
 
-  u8* pixel_buf = nullptr;
+  uint8_t* pixel_buf = nullptr;
   int pitch = 0;
   if (SDL_LockTexture(m_screen_texture.get(), nullptr,
                       reinterpret_cast<void**>(&pixel_buf), &pitch)) {
@@ -64,7 +64,7 @@ void SdlWindow::draw(const FrameBuffer& buf) {
     std::memcpy(pixel_buf, buf.data(),
                 SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(Rgba));
   } else {
-    for (usz i = 0; i < SCREEN_HEIGHT; i++) {
+    for (size_t i = 0; i < SCREEN_HEIGHT; i++) {
       std::memcpy(pixel_buf, buf.data(), SCREEN_WIDTH * sizeof(Rgba));
       pixel_buf += SCREEN_WIDTH;
       pixel_buf += pitch;

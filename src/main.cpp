@@ -9,7 +9,7 @@
 int main(int argc, char* argv[]) {
   spdlog::set_pattern("[%^%l%$] %v");
 
-  const auto args = std::span(argv, static_cast<usz>(argc));
+  const auto args = std::span(argv, static_cast<size_t>(argc));
   if (args.size() < 2) {
     LOG_ERROR("Usage: gbcxx <ROM>");
     return 1;
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 #endif
 
   gbcxx::SdlWindow window{160 * 4, 144 * 4, "gbcxx"};
-  const std::vector<u8> cartrom = gbcxx::fs::read(rom_file);
+  const std::vector<uint8_t> cartrom = gbcxx::fs::read(rom_file);
   auto emulator = gbcxx::Emulator{cartrom};
   emulator.run(&window);
 
