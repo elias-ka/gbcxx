@@ -4,10 +4,10 @@
 
 namespace gbcxx {
 enum class Interrupt : uint8_t {
-  VBlank = 1 << 0,
-  LCDStat = 1 << 1,
-  Timer = 1 << 2,
-  Serial = 1 << 3,
-  Joypad = 1 << 4,
+    vblank = 1 << 0,
+    stat = 1 << 1,
+    timer = 1 << 2,
+    serial = 1 << 3,
+    joypad = 1 << 4,
 };
-}  // namespace gbcxx
+} // namespace gbcxx

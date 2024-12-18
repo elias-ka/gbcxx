@@ -4,16 +4,16 @@
 
 namespace gbcxx {
 class Mbc0 final : public Mbc {
- public:
-  explicit Mbc0(std::vector<uint8_t> cartrom);
+public:
+    explicit Mbc0(std::vector<uint8_t> cartrom);
 
-  uint8_t read_rom(uint16_t address) const override;
-  uint8_t read_ram(uint16_t address) const override;
-  void write_rom(uint16_t address, uint8_t value) override;
-  void write_ram(uint16_t address, uint8_t value) override;
+    [[nodiscard]] auto read_rom(uint16_t address) const -> uint8_t override;
+    [[nodiscard]] auto read_ram(uint16_t address) const -> uint8_t override;
+    auto write_rom(uint16_t address, uint8_t value) -> void override;
+    auto write_ram(uint16_t address, uint8_t value) -> void override;
 
- private:
-  std::vector<uint8_t> m_rom;
+private:
+    std::vector<uint8_t> m_rom;
 };
 
-}  // namespace gbcxx
+} // namespace gbcxx
