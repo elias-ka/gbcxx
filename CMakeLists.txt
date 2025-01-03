@@ -27,7 +27,7 @@ cpmaddpackage(
   NAME
   spdlog
   GIT_TAG
-  v1.14.1
+  v1.15.0
   GITHUB_REPOSITORY
   gabime/spdlog
   OPTIONS
@@ -37,7 +37,8 @@ cpmaddpackage(
   "SPDLOG_NO_EXCEPTIONS ON"
   GIT_SHALLOW)
 
-find_package(SDL2 REQUIRED)
+find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
   add_compile_options(-fsanitize=undefined -fsanitize=address)
@@ -57,6 +58,8 @@ add_library(
   src/core/mbc.hpp
   src/core/memory.cpp
   src/core/memory.hpp
+  src/core/ppu.cpp
+  src/core/ppu.hpp
   src/core/processor.cpp
   src/core/processor.hpp
   src/core/processor_instr.cpp
@@ -74,9 +77,7 @@ target_link_libraries(gbcxx_core PUBLIC SDL2::SDL2 fmt::fmt spdlog::spdlog)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(
     gbcxx_core
-    PUBLIC -U_FORTIFY_SOURCE
-           -D_FORTIFY_SOURCE=3
-           -D_GLIBCXX_ASSERTIONS=1
+    PUBLIC -D_GLIBCXX_ASSERTIONS=1
            -fstack-protector-strong
            -fcf-protection=full
            -fstack-clash-protection
@@ -125,7 +126,7 @@ cpmaddpackage(
   NAME
   simdjson
   VERSION
-  3.10.1
+  3.11.3
   GITHUB_REPOSITORY
   simdjson/simdjson
   GIT_SHALLOW)

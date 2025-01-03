@@ -2,39 +2,13 @@
 
 #include <fmt/base.h>
 
-#include <utility>
-
 #include "core/constants.hpp"
 #include "core/memory.hpp"
 #include "util.hpp"
 
 namespace gbcxx {
-auto Cpu::Flags::z() const -> bool
-{
-    return raw & (1 << 7);
-}
-auto Cpu::Flags::n() const -> bool
-{
-    return raw & (1 << 6);
-}
-auto Cpu::Flags::h() const -> bool
-{
-    return raw & (1 << 5);
-}
-auto Cpu::Flags::c() const -> bool
-{
-    return raw & (1 << 4);
-}
-
-auto Cpu::Flags::set(Cpu::Flag f, bool set) -> void
-{
-    const auto mask = static_cast<uint8_t>(1 << (7 - std::to_underlying(f)));
-    raw = set ? (raw | mask) : (raw & ~mask);
-}
-
-auto Cpu::Registers::get(Reg8 r) const -> uint8_t
-{
-    switch (r) {
+uint8_t Cpu::Registers::read(Reg8 r) const {
+  switch (r) {
     case Reg8::a: return m_a;
     case Reg8::b: return m_b;
     case Reg8::c: return m_c;
@@ -42,23 +16,21 @@ auto Cpu::Registers::get(Reg8 r) const -> uint8_t
     case Reg8::e: return m_e;
     case Reg8::h: return m_h;
     case Reg8::l: return m_l;
-    }
+  }
 }
 
-auto Cpu::Registers::get(Reg16 r) const -> uint16_t
-{
-    switch (r) {
-    case Reg16::af: return static_cast<uint16_t>(m_a << 8) | m_f.raw;
-    case Reg16::bc: return static_cast<uint16_t>(m_b << 8) | m_c;
-    case Reg16::de: return static_cast<uint16_t>(m_d << 8) | m_e;
-    case Reg16::hl: return static_cast<uint16_t>(m_h << 8) | m_l;
+uint16_t Cpu::Registers::read(Reg16 r) const {
+  switch (r) {
+    case Reg16::af: return uint16_t(m_a << 8) | m_f.raw;
+    case Reg16::bc: return uint16_t(m_b << 8) | m_c;
+    case Reg16::de: return uint16_t(m_d << 8) | m_e;
+    case Reg16::hl: return uint16_t(m_h << 8) | m_l;
     case Reg16::sp: return m_sp;
-    }
+  }
 }
 
-auto Cpu::Registers::set(Reg8 reg, uint8_t val) -> void
-{
-    switch (reg) {
+void Cpu::Registers::write(Reg8 reg, uint8_t val) {
+  switch (reg) {
     case Reg8::a: m_a = val; break;
     case Reg8::b: m_b = val; break;
     case Reg8::c: m_c = val; break;
@@ -66,190 +38,185 @@ auto Cpu::Registers::set(Reg8 reg, uint8_t val) -> void
     case Reg8::e: m_e = val; break;
     case Reg8::h: m_h = val; break;
     case Reg8::l: m_l = val; break;
-    }
+  }
 }
 
-auto Cpu::Registers::set(Reg16 reg, uint16_t val) -> void
-{
-    switch (reg) {
+void Cpu::Registers::write(Reg16 reg, uint16_t val) {
+  switch (reg) {
     case Reg16::af:
-        m_a = static_cast<uint8_t>(val >> 8);
-        m_f.raw = static_cast<uint8_t>(val & 0x00F0);
-        break;
+      m_a = uint8_t(val >> 8);
+      m_f.raw = uint8_t(val & 0x00F0);
+      break;
     case Reg16::bc:
-        m_b = static_cast<uint8_t>(val >> 8);
-        m_c = static_cast<uint8_t>(val & 0x00FF);
-        break;
+      m_b = uint8_t(val >> 8);
+      m_c = uint8_t(val & 0x00FF);
+      break;
     case Reg16::de:
-        m_d = static_cast<uint8_t>(val >> 8);
-        m_e = static_cast<uint8_t>(val & 0x00FF);
-        break;
+      m_d = uint8_t(val >> 8);
+      m_e = uint8_t(val & 0x00FF);
+      break;
     case Reg16::hl:
-        m_h = static_cast<uint8_t>(val >> 8);
-        m_l = static_cast<uint8_t>(val & 0x00FF);
-        break;
+      m_h = uint8_t(val >> 8);
+      m_l = uint8_t(val & 0x00FF);
+      break;
     case Reg16::sp: m_sp = val; break;
-    }
+  }
 }
 
-auto Cpu::log_for_gameboy_doctor() -> void
-{
-    m_log_file << fmt::format("A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
-                              "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
-                              "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-                              reg(Reg8::a), m_reg.flags().raw, reg(Reg8::b), reg(Reg8::c),
-                              reg(Reg8::d), reg(Reg8::e), reg(Reg8::h), reg(Reg8::l),
-                              reg(Reg16::sp), m_pc, m_mmu.read(m_pc), m_mmu.read(m_pc + 1),
-                              m_mmu.read(m_pc + 2), m_mmu.read(m_pc + 3));
+void Cpu::log_for_gameboy_doctor() {
+  m_log_file << fmt::format(
+      "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
+      "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
+      "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
+      read_reg(Reg8::a), m_reg.flags().raw, read_reg(Reg8::b),
+      read_reg(Reg8::c), read_reg(Reg8::d), read_reg(Reg8::e),
+      read_reg(Reg8::h), read_reg(Reg8::l), read_reg(Reg16::sp), m_pc,
+      m_mmu.read(m_pc), m_mmu.read(m_pc + 1), m_mmu.read(m_pc + 2),
+      m_mmu.read(m_pc + 3));
 }
 
-auto Cpu::step() -> void
-{
-    bool is_interrupted = false;
-    const auto have_interrupts
-        = [this] -> bool { return (m_mmu.read(Io_Reg::ie) & m_mmu.read(Io_Reg::if_) & 0x1F) != 0; };
-
-    switch (m_mode) {
+void Cpu::step() {
+  bool is_interrupted = false;
+  const auto have_interrupts = [this] -> bool {
+    return (m_mmu.read(reg_ie) & m_mmu.read(reg_if) & 0x1F) != 0;
+  };
+  switch (m_mode) {
     case Mode::default_: {
-        log_for_gameboy_doctor();
-        interpret_instruction(read_operand());
-        is_interrupted = have_interrupts() && m_ime;
-        break;
+      log_for_gameboy_doctor();
+      interpret_instruction(read_operand());
+      is_interrupted = have_interrupts() && m_ime;
+      break;
     }
     case Mode::halt:
     case Mode::stop: {
-        tick4();
-        is_interrupted = have_interrupts() && m_ime;
-        break;
+      tick4();
+      is_interrupted = have_interrupts();
+      break;
     }
     case Mode::halt_bug: {
-        // to-do
-        break;
+      const uint8_t op = read_operand();
+      m_pc--;
+      interpret_instruction(op);
+      m_mode = Mode::default_;
+      is_interrupted = have_interrupts() && m_ime;
+      break;
     }
     case Mode::halt_di: {
-        tick4();
-        if (have_interrupts()) {
-            m_mode = Mode::default_;
-        }
-        break;
+      tick4();
+      if (have_interrupts()) {
+        m_mode = Mode::default_;
+      }
+      break;
     }
     case Mode::ime_pending:
-        m_ime = true;
-        m_mode = Mode::default_;
-        log_for_gameboy_doctor();
-        interpret_instruction(read_operand());
-        break;
-    }
+      m_ime = true;
+      m_mode = Mode::default_;
+      log_for_gameboy_doctor();
+      interpret_instruction(read_operand());
+      is_interrupted = have_interrupts() && m_ime;
+      break;
+  }
 
-    if (is_interrupted) {
-        handle_interrupt();
-    }
+  if (is_interrupted) {
+    handle_interrupt();
+  }
 }
 
-auto Cpu::cycle_read(uint16_t addr) -> uint8_t
-{
-    tick4();
-    return m_mmu.read(addr);
+uint8_t Cpu::read_mem(uint16_t addr) {
+  tick4();
+  return m_mmu.read(addr);
 }
 
-auto Cpu::cycle_read16(uint16_t addr) -> uint16_t
-{
-    const auto lo = cycle_read(addr);
-    const auto hi = cycle_read(addr + 1);
-    return static_cast<uint16_t>((hi << 8) | lo);
+uint16_t Cpu::read_mem16(uint16_t addr) {
+  const uint8_t lo = read_mem(addr);
+  const uint8_t hi = read_mem(addr + 1);
+  return uint16_t((hi << 8) | lo);
 }
 
-auto Cpu::cycle_write(uint16_t addr, uint8_t data) -> void
-{
-    tick4();
-    m_mmu.write(addr, data);
+void Cpu::write_mem(uint16_t addr, uint8_t data) {
+  tick4();
+  m_mmu.write(addr, data);
 }
 
-auto Cpu::cycle_write16(uint16_t addr, uint16_t data) -> void
-{
-    cycle_write(addr, static_cast<uint8_t>(data));
-    cycle_write(addr + 1, static_cast<uint8_t>(data >> 8));
+void Cpu::write_mem16(uint16_t addr, uint16_t data) {
+  write_mem(addr, uint8_t(data));
+  write_mem(addr + 1, uint8_t(data >> 8));
 }
 
-auto Cpu::read_operand() -> uint8_t
-{
-    return cycle_read(m_pc++);
+uint8_t Cpu::read_operand() {
+  return read_mem(m_pc++);
 }
 
-auto Cpu::read_operands() -> uint16_t
-{
-    const uint8_t lo = read_operand();
-    const uint8_t hi = read_operand();
-    return static_cast<uint16_t>((hi << 8) | lo);
+uint16_t Cpu::read_operands() {
+  const uint8_t lo = read_operand();
+  const uint8_t hi = read_operand();
+  return uint16_t((hi << 8) | lo);
 }
 
-auto Cpu::push(uint8_t value) -> void
-{
-    set_reg(Reg16::sp, reg(Reg16::sp) - 1);
-    cycle_write(reg(Reg16::sp), value);
+void Cpu::push(uint8_t value) {
+  write_reg(Reg16::sp, read_reg(Reg16::sp) - 1);
+  write_mem(read_reg(Reg16::sp), value);
 }
 
-auto Cpu::push16(uint16_t value) -> void
-{
-    set_reg(Reg16::sp, reg(Reg16::sp) - 1);
-    cycle_write(reg(Reg16::sp), value >> 8);
-    set_reg(Reg16::sp, reg(Reg16::sp) - 1);
-    cycle_write(reg(Reg16::sp), static_cast<uint8_t>(value));
+void Cpu::push16(uint16_t value) {
+  write_reg(Reg16::sp, read_reg(Reg16::sp) - 1);
+  write_mem(read_reg(Reg16::sp), value >> 8);
+  write_reg(Reg16::sp, read_reg(Reg16::sp) - 1);
+  write_mem(read_reg(Reg16::sp), uint8_t(value));
 }
 
-auto Cpu::pop() -> uint16_t
-{
-    const uint8_t lo = cycle_read(reg(Reg16::sp));
-    set_reg(Reg16::sp, reg(Reg16::sp) + 1);
-    const uint8_t hi = cycle_read(reg(Reg16::sp));
-    set_reg(Reg16::sp, reg(Reg16::sp) + 1);
-    return static_cast<uint16_t>((hi << 8) | lo);
+uint16_t Cpu::pop() {
+  const uint8_t lo = read_mem(read_reg(Reg16::sp));
+  write_reg(Reg16::sp, read_reg(Reg16::sp) + 1);
+  const uint8_t hi = read_mem(read_reg(Reg16::sp));
+  write_reg(Reg16::sp, read_reg(Reg16::sp) + 1);
+  return uint16_t((hi << 8) | lo);
 }
 
-auto Cpu::tick() -> void
-{
-    m_mmu.tick();
-    m_cycles_elapsed += 1;
+void Cpu::tick() {
+  m_mmu.tick();
+  m_cycles += 1;
 }
 
-auto Cpu::tick4() -> void
-{
-    tick();
-    tick();
-    tick();
-    tick();
+void Cpu::tick4() {
+  tick();
+  tick();
+  tick();
+  tick();
 }
 
-auto Cpu::handle_interrupt() -> void
-{
-    if (!m_ime) {
-        m_mode = Mode::default_;
-        return;
-    };
+void Cpu::handle_interrupt() {
+  const uint8_t inte = read_mem(reg_ie);
+  const uint8_t intf = read_mem(reg_if);
+  const uint8_t interrupts = inte & intf & 0x1f;
 
-    push(m_pc >> 8);
-
-    const uint8_t enabled = cycle_read(Io_Reg::ie);
-    uint8_t flags = cycle_read(Io_Reg::if_);
-    const uint8_t interrupts = enabled & flags;
-    if (!interrupts) {
-        return;
-    }
-
-    const auto n = std::countr_zero(interrupts);
-    const auto interrupt = static_cast<uint8_t>(1 << n);
-    const auto vector = static_cast<uint16_t>(0x40 + n * 8);
-    cycle_write(Io_Reg::if_, flags & ~interrupt);
-
-    push(m_pc & 0xFF);
-    m_ime = false;
+  if (interrupts) {
     m_mode = Mode::default_;
-    m_pc = vector;
+
+    if (m_ime) {
+      m_ime = false;
+
+      const auto int_bit = size_t(std::countr_zero(interrupts));
+      if (int_bit < 5) {
+        push16(m_pc);
+        write_mem(reg_if, intf & ~(1 << int_bit));
+        static constexpr std::array<uint16_t, 5> loc = {
+            0x40, 0x48, 0x50, 0x58, 0x60,
+        };
+        static constexpr std::array<std::string_view, 5> name = {
+            "VBlank", "Stat", "Timer", "Serial", "Joypad",
+        };
+        LOG_DEBUG("CPU: Handling interrupt {:X} ({})", loc[int_bit],
+                  name[int_bit]);
+        m_pc = loc[int_bit];
+      }
+    }
+  }
 }
 
-auto Cpu::interpret_instruction(uint8_t opcode) -> void
-{
-    switch (opcode) {
+void Cpu::interpret_instruction(uint8_t opcode) {
+  // LOG_TRACE("Cpu::interpret_instruction({:X})", opcode);
+  switch (opcode) {
     // 8-bit loads
     case 0x7F: ld_r_r(Reg8::a, Reg8::a); break;
     case 0x78: ld_r_r(Reg8::a, Reg8::b); break;
@@ -523,9 +490,9 @@ auto Cpu::interpret_instruction(uint8_t opcode) -> void
 
     // CB prefixed
     case 0xCB: {
-        // Eat the prefix
-        opcode = read_operand();
-        switch (opcode) {
+      // Eat the prefix
+      opcode = read_operand();
+      switch (opcode) {
         // Rotate, shift, and bit operations
         case 0x07: rlc_r(Reg8::a); break;
         case 0x00: rlc_r(Reg8::b); break;
@@ -783,11 +750,13 @@ auto Cpu::interpret_instruction(uint8_t opcode) -> void
         case 0xEE: set_b_mem_hl(5); break;
         case 0xF6: set_b_mem_hl(6); break;
         case 0xFE: set_b_mem_hl(7); break;
-        }
-        break;
+        default: break;
+      }
+    } break;
+    default: {
+      LOG_ERROR("Unimplemented opcode {:X}", opcode);
     }
-    default: LOG_ERROR("Unimplemented opcode {:#04x}", opcode);
-    }
+  }
 }
 
-} // namespace gbcxx
+}  // namespace gbcxx

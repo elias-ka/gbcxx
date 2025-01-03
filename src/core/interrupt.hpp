@@ -3,11 +3,11 @@
 #include <cstdint>
 
 namespace gbcxx {
-enum class Interrupt : uint8_t {
-    vblank = 1 << 0,
-    stat = 1 << 1,
-    timer = 1 << 2,
-    serial = 1 << 3,
-    joypad = 1 << 4,
+enum Interrupt : uint8_t {
+  vblank = 0,
+  stat = 1,
+  timer = 2,
+  serial = 3,
+  joypad = 4
 };
-} // namespace gbcxx
+}  // namespace gbcxx

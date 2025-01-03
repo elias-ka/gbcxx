@@ -7,4 +7,4 @@ cmake-build-*/
 CMakeLists.txt.user
 CMakeUserPresets.json
 compile_commands.json
-log.txt
+gameboy_doctor.log

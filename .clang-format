@@ -1,20 +1,11 @@
-AlignAfterOpenBracket: Align
-AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
 AlwaysBreakTemplateDeclarations: Yes
-BasedOnStyle: WebKit
-BinPackParameters: false
-BraceWrapping:
-  AfterFunction: true
-  BeforeElse: true
-BreakBeforeBraces: Custom
-ColumnLimit: 100
+BasedOnStyle: Google
 DerivePointerAlignment: false
+ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
-IndentWidth: 4
 InsertBraces: true
-NamespaceIndentation: None
 PointerAlignment: Left

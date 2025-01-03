@@ -20,46 +20,42 @@
 #define LOG_WARN(...) spdlog::warn(__VA_ARGS__)
 #define LOG_ERROR(...) spdlog::error(__VA_ARGS__)
 
-#define DIE(...)                                                                                   \
-    do {                                                                                           \
-        LOG_ERROR(__VA_ARGS__);                                                                    \
-        std::exit(EXIT_FAILURE);                                                                   \
-    } while (0)
+#define DIE(...)             \
+  do {                       \
+    LOG_ERROR(__VA_ARGS__);  \
+    std::exit(EXIT_FAILURE); \
+  } while (0)
 
 namespace gbcxx {
 namespace fs {
-[[nodiscard]] auto read_file(const std::filesystem::path& file) -> std::vector<uint8_t>;
+[[nodiscard]] std::vector<uint8_t> read_file(const std::filesystem::path& file);
 }
 
 template <typename... Ts>
 struct Overloaded : Ts... {
-    using Ts::operator()...;
+  using Ts::operator()...;
 };
 
 template <typename V, typename... Ts>
-auto variant_match(V&& v, Ts&&... ts) -> decltype(auto)
-{
-    return std::visit(Overloaded { FWD(ts)... }, FWD(v));
+decltype(auto) variant_match(V&& v, Ts&&... ts) {
+  return std::visit(Overloaded{FWD(ts)...}, FWD(v));
 }
 
-constexpr auto operator""_KiB(unsigned long long int n) -> size_t
-{
-    return 1024ULL * n;
+constexpr size_t operator""_KiB(unsigned long long int n) {
+  return 1024ULL * n;
 }
 
-constexpr auto operator""_MiB(unsigned long long int n) -> size_t
-{
-    return 1024_KiB * n;
+constexpr size_t operator""_MiB(unsigned long long int n) {
+  return 1024_KiB * n;
 }
 
-} // namespace gbcxx
+}  // namespace gbcxx
 
 template <typename EnumT>
-    requires std::is_enum_v<EnumT>
+  requires std::is_enum_v<EnumT>
 struct fmt::formatter<EnumT> : fmt::formatter<std::underlying_type_t<EnumT>> {
-    auto format(const EnumT& enum_value, format_context& ctx) const
-    {
-        fmt::formatter<std::underlying_type_t<EnumT>> formatter;
-        return formatter.format(std::to_underlying(enum_value), ctx);
-    }
+  auto format(const EnumT& enum_value, format_context& ctx) const {
+    fmt::formatter<std::underlying_type_t<EnumT>> fmtr;
+    return fmtr.format(std::to_underlying(enum_value), ctx);
+  }
 };

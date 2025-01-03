@@ -1,0 +1,2 @@
+# SDL2 leaks memory internally
+leak:libSDL2

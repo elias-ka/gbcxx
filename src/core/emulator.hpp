@@ -5,12 +5,12 @@
 
 namespace gbcxx {
 class Emulator {
-public:
-    explicit Emulator(std::vector<uint8_t> cartrom);
+ public:
+  explicit Emulator(std::vector<uint8_t> cartrom);
 
-    auto run(Sdl_Window* win) -> void;
+  void run(Sdl_Window* win);
 
-private:
-    Cpu m_cpu;
+ private:
+  Cpu m_cpu;
 };
-} // namespace gbcxx
+}  // namespace gbcxx
