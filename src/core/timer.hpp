@@ -2,31 +2,31 @@
 
 #include <cstdint>
 
-namespace gbcxx {
-class Timer {
- public:
-  [[nodiscard]] uint8_t read(uint16_t address) const;
-  void write(uint16_t address, uint8_t value);
+namespace gb
+{
+class Core;
 
-  void tick();
+class Timer
+{
+public:
+    explicit Timer(Core& gb) : gb_(gb) {}
 
-  uint8_t get_and_clear_interrupts() {
-    const uint8_t ints = m_interrupts;
-    m_interrupts = 0;
-    return ints;
-  }
+    [[nodiscard]] uint8_t Read(uint16_t addr) const;
+    void Write(uint16_t addr, uint8_t val);
 
- private:
-  void sysclk_write(uint8_t new_value);
-  void detect_edge(uint8_t before, uint8_t after);
+    void Tick();
 
-  uint8_t m_tima{};
-  bool m_tima_reload_cycle{};
-  uint8_t m_tma{};
-  uint8_t m_tac{};
-  uint8_t m_last_bit{};
-  uint8_t m_sysclk{};
-  uint8_t m_cycles_til_tima_irq{};
-  uint8_t m_interrupts{};
+private:
+    void SysclkWrite(uint8_t new_val);
+    void DetectEdge(uint8_t before, uint8_t after);
+
+    Core& gb_;
+    uint8_t tima_{0x00};
+    bool tima_reload_cycle_{};
+    uint8_t tma_{0x00};
+    uint8_t tac_{0xf8};
+    uint8_t last_bit_{};
+    uint8_t sysclk_{};
+    uint8_t cycles_til_tima_irq_{};
 };
-}  // namespace gbcxx
+}  // namespace gb

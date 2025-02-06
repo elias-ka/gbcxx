@@ -4,19 +4,22 @@
 #include <memory>
 #include <vector>
 
-namespace gbcxx {
-class Mbc {
- public:
-  virtual ~Mbc() = default;
+namespace gb
+{
+class Mbc
+{
+public:
+    static std::unique_ptr<Mbc> MakeFromRom(std::vector<uint8_t> rom);
 
-  [[nodiscard]] virtual uint8_t read_rom(uint16_t address) const = 0;
-  [[nodiscard]] virtual uint8_t read_ram(uint16_t address) const = 0;
-  virtual void write_rom(uint16_t address, uint8_t value) = 0;
-  virtual void write_ram(uint16_t address, uint8_t value) = 0;
+    virtual ~Mbc() = default;
+
+    [[nodiscard]] virtual uint8_t ReadRom(uint16_t addr) const = 0;
+    [[nodiscard]] virtual uint8_t ReadRam(uint16_t addr) const = 0;
+    virtual void WriteRom(uint16_t addr, uint8_t val) = 0;
+    virtual void WriteRam(uint16_t addr, uint8_t val) = 0;
 };
 
-[[nodiscard]] std::unique_ptr<Mbc> make_mbc(std::vector<uint8_t> cartrom);
-[[nodiscard]] uint8_t count_ram_banks(uint8_t value);
-[[nodiscard]] uint8_t count_rom_banks(uint8_t value);
+[[nodiscard]] uint8_t CountRamBanks(uint8_t val);
+[[nodiscard]] uint8_t CountRomBanks(uint8_t val);
 
-}  // namespace gbcxx
+}  // namespace gb

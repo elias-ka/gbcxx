@@ -4,15 +4,18 @@ Checks: -*,
   clang-analyzer-*,
   clang-diagnostic-*,
   cppcoreguildelines-*,
+  google-*,
+  -google-build-using-namespace,
+  -google-readability-function-size,
+  -google-readability-todo,
   misc-*,
-  -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   modernize-*,
   -modernize-use-trailing-return-type,
   performance-*,
-  portability-*,
   readability-*,
   -readability-avoid-nested-conditional-operator,
+  -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
   -readability-function-size,
   -readability-identifier-length,
@@ -22,41 +25,47 @@ Checks: -*,
 
 WarningsAsErrors: "*"
 CheckOptions:
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: true
   - key: readability-identifier-naming.ClassCase
-    value: Camel_Snake_Case
+    value: CamelCase
+  - key: readability-identifier-naming.ClassConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ClassConstantPrefix
+    value: k
   - key: readability-identifier-naming.ClassMemberCase
     value: lower_case
   - key: readability-identifier-naming.ConstexprVariableCase
-    value: lower_case
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariablePrefix
+    value: k
   - key: readability-identifier-naming.EnumCase
-    value: Camel_Snake_Case
+    value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
-    value: lower_case
-  - key: readability-identifier-naming.EnumConstantIgnoredRegexp
-    value: '.*_$'
+    value: CamelCase
   - key: readability-identifier-naming.GlobalConstantCase
-    value: lower_case
-  - key: readability-identifier-naming.StaticConstantCase
-    value: lower_case
-  - key: readability-identifier-naming.StaticVariableCase
-    value: lower_case
-  - key: readability-identifier-naming.MacroDefinitionCase
-    value: UPPER_CASE
-  - key: readability-identifier-naming.MacroDefinitionIgnoredRegexp
-    value: "^[A-Z]+(_[A-Z]+)*_$"
-  - key: readability-identifier-naming.MemberCase
-    value: lower_case
-  - key: readability-identifier-naming.PrivateMemberPrefix
-    value: "m_"
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantPrefix
+    value: k
   - key: readability-identifier-naming.NamespaceCase
     value: lower_case
   - key: readability-identifier-naming.ParameterCase
     value: lower_case
+  - key: readability-identifier-naming.StaticConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticConstantPrefix
+    value: k
+  - key: readability-identifier-naming.StaticVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
   - key: readability-identifier-naming.TypeAliasCase
-    value: Camel_Snake_Case
+    value: CamelCase
   - key: readability-identifier-naming.TypedefCase
-    value: Camel_Snake_Case
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
   - key: readability-identifier-naming.VariableCase
     value: lower_case
-  - key: readability-identifier-naming.IgnoreMainLikeFunctions
-    value: 1

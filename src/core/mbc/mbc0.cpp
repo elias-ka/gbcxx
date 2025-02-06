@@ -1,14 +1,17 @@
 #include "core/mbc/mbc0.hpp"
 
-namespace gbcxx {
-Mbc0::Mbc0(std::vector<uint8_t> cartrom) : m_rom(std::move(cartrom)) {}
+namespace gb
+{
+Mbc0::Mbc0(std::vector<uint8_t> cartrom) : rom_(std::move(cartrom)) {}
 
-uint8_t Mbc0::read_rom(uint16_t address) const {
-  return m_rom.at(address);
+uint8_t Mbc0::ReadRom(uint16_t addr) const
+{
+    return rom_.at(addr);
 }
-uint8_t Mbc0::read_ram(uint16_t /*address*/) const {
-  return 0;
+uint8_t Mbc0::ReadRam(uint16_t /*address*/) const
+{
+    return 0;
 }
-void Mbc0::write_rom(uint16_t /*address*/, uint8_t /*value*/) {}
-void Mbc0::write_ram(uint16_t /*address*/, uint8_t /*value*/) {}
-}  // namespace gbcxx
+void Mbc0::WriteRom(uint16_t /*address*/, uint8_t /*value*/) {}
+void Mbc0::WriteRam(uint16_t /*address*/, uint8_t /*value*/) {}
+}  // namespace gb

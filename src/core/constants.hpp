@@ -1,93 +1,89 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
-namespace gbcxx {
-constexpr size_t lcd_width = 160;
-constexpr size_t lcd_height = 144;
+namespace gb
+{
+constexpr int kLcdWidth = 160;
+constexpr int kLcdHeight = 144;
 
-enum : uint16_t {
-  cartridge_start = 0x0000,
-  cartridge_end = 0x7fff,
-  vram_start = 0x8000,
-  vram_end = 0x9fff,
-  external_ram_start = 0xa000,
-  external_ram_end = 0xbfff,
-  work_ram_start = 0xc000,
-  work_ram_end = 0xdfff,
-  echo_ram_start = 0xe000,
-  echo_ram_end = 0xfdff,
-  oam_start = 0xfe00,
-  oam_end = 0xfe9f,
-  not_usable_start = 0xfea0,
-  not_usable_end = 0xfeff,
-  io_start = 0xff00,
-  io_end = 0xff7f,
-  high_ram_start = 0xff80,
-  high_ram_end = 0xfffe,
-};
+constexpr uint16_t kCartridgeStart = 0x0000;
+constexpr uint16_t kCartridgeEnd = 0x7fff;
+constexpr uint16_t kVramStart = 0x8000;
+constexpr uint16_t kVramEnd = 0x9fff;
+constexpr uint16_t kExternalRamStart = 0xa000;
+constexpr uint16_t kExternalRamEnd = 0xbfff;
+constexpr uint16_t kWorkRamStart = 0xc000;
+constexpr uint16_t kWorkRamEnd = 0xdfff;
+constexpr uint16_t kEchoRamStart = 0xe000;
+constexpr uint16_t kEchoRamEnd = 0xfdff;
+constexpr uint16_t kOamStart = 0xfe00;
+constexpr uint16_t kOamEnd = 0xfe9f;
+constexpr uint16_t kNotUsableStart = 0xfea0;
+constexpr uint16_t kNotUsableEnd = 0xfeff;
+constexpr uint16_t kIoStart = 0xff00;
+constexpr uint16_t kIoEnd = 0xff7f;
+constexpr uint16_t kHighRamStart = 0xff80;
+constexpr uint16_t kHighRamEnd = 0xfffe;
 
-enum : uint16_t {
-  reg_joyp = 0xff00,
-  reg_sb = 0xff01,
-  reg_sc = 0xff02,
-  reg_div = 0xff04,
-  reg_tima = 0xff05,
-  reg_tma = 0xff06,
-  reg_tac = 0xff07,
-  reg_if = 0xff0f,
-  reg_nr10 = 0xff10,
-  reg_nr11 = 0xff11,
-  reg_nr12 = 0xff12,
-  reg_nr13 = 0xff13,
-  reg_nr14 = 0xff14,
-  reg_nr21 = 0xff16,
-  reg_nr22 = 0xff17,
-  reg_nr23 = 0xff18,
-  reg_nr24 = 0xff19,
-  reg_nr30 = 0xff1a,
-  reg_nr31 = 0xff1b,
-  reg_nr32 = 0xff1c,
-  reg_nr33 = 0xff1d,
-  reg_nr34 = 0xff1e,
-  reg_nr41 = 0xff20,
-  reg_nr42 = 0xff21,
-  reg_nr43 = 0xff22,
-  reg_nr44 = 0xff23,
-  reg_nr50 = 0xff24,
-  reg_nr51 = 0xff25,
-  reg_nr52 = 0xff26,
-  wave_pattern_start = 0xff30,
-  wave_pattern_end = 0xff3f,
-  reg_lcdc = 0xff40,
-  reg_stat = 0xff41,
-  reg_scy = 0xff42,
-  reg_scx = 0xff43,
-  reg_ly = 0xff44,
-  reg_lyc = 0xff45,
-  reg_bgp = 0xff47,
-  reg_obp0 = 0xff48,
-  reg_obp1 = 0xff49,
-  reg_wy = 0xff4a,
-  reg_wx = 0xff4b,
-  reg_key1 = 0xff4d,
-  reg_vbk = 0xff4f,
-  reg_bootrom = 0xff50,
-  reg_hdma1 = 0xff51,
-  reg_hdma2 = 0xff52,
-  reg_hdma3 = 0xff53,
-  reg_hdma4 = 0xff54,
-  reg_hdma5 = 0xff55,
-  reg_rp = 0xff56,
-  reg_bcps = 0xff68,
-  reg_bcpd = 0xff69,
-  reg_ocps = 0xff6a,
-  reg_ocpd = 0xff6b,
-  reg_opri = 0xff6c,
-  reg_svbk = 0xff70,
-  reg_pcm12 = 0xff76,
-  reg_pcm34 = 0xff77,
-  reg_ie = 0xffff,
-};
-}  // namespace gbcxx
+constexpr uint16_t kRegJoyp = 0xff00;
+constexpr uint16_t kRegSb = 0xff01;
+constexpr uint16_t kRegSc = 0xff02;
+constexpr uint16_t kRegDiv = 0xff04;
+constexpr uint16_t kRegTima = 0xff05;
+constexpr uint16_t kRegTma = 0xff06;
+constexpr uint16_t kRegTac = 0xff07;
+constexpr uint16_t kRegIf = 0xff0f;
+constexpr uint16_t kRegNr10 = 0xff10;
+constexpr uint16_t kRegNr11 = 0xff11;
+constexpr uint16_t kRegNr12 = 0xff12;
+constexpr uint16_t kRegNr13 = 0xff13;
+constexpr uint16_t kRegNr14 = 0xff14;
+constexpr uint16_t kRegNr21 = 0xff16;
+constexpr uint16_t kRegNr22 = 0xff17;
+constexpr uint16_t kRegNr23 = 0xff18;
+constexpr uint16_t kRegNr24 = 0xff19;
+constexpr uint16_t kRegNr30 = 0xff1a;
+constexpr uint16_t kRegNr31 = 0xff1b;
+constexpr uint16_t kRegNr32 = 0xff1c;
+constexpr uint16_t kRegNr33 = 0xff1d;
+constexpr uint16_t kRegNr34 = 0xff1e;
+constexpr uint16_t kRegNr41 = 0xff20;
+constexpr uint16_t kRegNr42 = 0xff21;
+constexpr uint16_t kRegNr43 = 0xff22;
+constexpr uint16_t kRegNr44 = 0xff23;
+constexpr uint16_t kRegNr50 = 0xff24;
+constexpr uint16_t kRegNr51 = 0xff25;
+constexpr uint16_t kRegNr52 = 0xff26;
+constexpr uint16_t kWavePatternStart = 0xff30;
+constexpr uint16_t kWavePatternEnd = 0xff3f;
+constexpr uint16_t kRegLcdc = 0xff40;
+constexpr uint16_t kRegStat = 0xff41;
+constexpr uint16_t kRegScy = 0xff42;
+constexpr uint16_t kRegScx = 0xff43;
+constexpr uint16_t kRegLy = 0xff44;
+constexpr uint16_t kRegLyc = 0xff45;
+constexpr uint16_t kRegBgp = 0xff47;
+constexpr uint16_t kRegObp0 = 0xff48;
+constexpr uint16_t kRegObp1 = 0xff49;
+constexpr uint16_t kRegWy = 0xff4a;
+constexpr uint16_t kRegWx = 0xff4b;
+constexpr uint16_t kRegKey1 = 0xff4d;
+constexpr uint16_t kRegVbk = 0xff4f;
+constexpr uint16_t kRegBootrom = 0xff50;
+constexpr uint16_t kRegHdma1 = 0xff51;
+constexpr uint16_t kRegHdma2 = 0xff52;
+constexpr uint16_t kRegHdma3 = 0xff53;
+constexpr uint16_t kRegHdma4 = 0xff54;
+constexpr uint16_t kRegHdma5 = 0xff55;
+constexpr uint16_t kRegRp = 0xff56;
+constexpr uint16_t kRegBcps = 0xff68;
+constexpr uint16_t kRegBcpd = 0xff69;
+constexpr uint16_t kRegOcps = 0xff6a;
+constexpr uint16_t kRegOcpd = 0xff6b;
+constexpr uint16_t kRegOpri = 0xff6c;
+constexpr uint16_t kRegSvbk = 0xff70;
+constexpr uint16_t kRegPcm12 = 0xff76;
+constexpr uint16_t kRegPcm34 = 0xff77;
+constexpr uint16_t kRegIe = 0xffff;
+}  // namespace gb

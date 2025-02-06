@@ -13,7 +13,17 @@
       "binaryDir": "${sourceDir}/build/gbcxx",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "BUILD_TESTING": "OFF"
+        "BUILD_TESTS": "OFF"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "default",
+      "displayName": "release",
+      "description": "Release build using Ninja generator",
+      "binaryDir": "${sourceDir}/build/gbcxx-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -33,7 +43,7 @@
       "description": "Test build using Ninja generator",
       "binaryDir": "${sourceDir}/build/gbcxx-tests",
       "cacheVariables": {
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTS": "ON"
       }
     }
   ],

@@ -1,2 +1,2 @@
-# SDL2 leaks memory internally
-leak:libSDL2
+# SDL3 leaks memory internally
+leak:/sdl-src/

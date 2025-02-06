@@ -2,24 +2,26 @@
 
 #include "core/mbc.hpp"
 
-namespace gbcxx {
-class Mbc1 final : public Mbc {
- public:
-  explicit Mbc1(std::vector<uint8_t> cartrom);
+namespace gb
+{
+class Mbc1 final : public Mbc
+{
+public:
+    explicit Mbc1(std::vector<uint8_t> cartrom);
 
-  [[nodiscard]] uint8_t read_rom(uint16_t address) const override;
-  [[nodiscard]] uint8_t read_ram(uint16_t address) const override;
-  void write_rom(uint16_t address, uint8_t value) override;
-  void write_ram(uint16_t address, uint8_t value) override;
+    [[nodiscard]] uint8_t ReadRom(uint16_t addr) const override;
+    [[nodiscard]] uint8_t ReadRam(uint16_t addr) const override;
+    void WriteRom(uint16_t addr, uint8_t val) override;
+    void WriteRam(uint16_t addr, uint8_t val) override;
 
- private:
-  std::vector<uint8_t> m_rom;
-  uint8_t m_banking_mode{0};
-  uint8_t m_rom_bank{1};
-  uint8_t m_ram_bank{0};
-  uint8_t m_rom_banks_count{0};
-  uint8_t m_ram_banks_count{0};
-  std::vector<uint8_t> m_ram;
-  bool m_ram_enabled{false};
+private:
+    std::vector<uint8_t> rom_;
+    uint8_t banking_mode_{0};
+    uint8_t rom_bank_{1};
+    uint8_t ram_bank_{0};
+    uint8_t nr_rom_banks_{0};
+    uint8_t nr_ram_banks_{0};
+    std::vector<uint8_t> ram_;
+    bool ram_enabled_{false};
 };
-}  // namespace gbcxx
+}  // namespace gb
