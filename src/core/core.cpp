@@ -121,7 +121,7 @@ uint8_t Core::BusRead8(uint16_t addr) const
         default: break;
     }
 
-    LOG_ERROR("MMU: Unmapped read {:X}", addr);
+    LOG_ERROR("Core: Unmapped read {:X}", addr);
     return 0xff;
 }
 
@@ -138,7 +138,7 @@ void Core::BusWrite8(uint16_t addr, uint8_t val)
     {
         if (bootrom_enabled_ && addr < kDmgBootrom.size())
         {
-            LOG_ERROR("MMU: Tried writing to boot ROM address {:X}", addr);
+            LOG_ERROR("Core: Tried writing to boot ROM address {:X}", addr);
             return;
         }
         mbc_->WriteRom(addr, val);
@@ -215,7 +215,7 @@ void Core::BusWrite8(uint16_t addr, uint8_t val)
             case kRegNr52:
             case kWavePatternStart:
             case kWavePatternEnd: return;
-            default: LOG_ERROR("MMU: Unmapped write {:X} <- {:X}", addr, val);
+            default: LOG_ERROR("Core: Unmapped write {:X} <- {:X}", addr, val);
         }
     }
 }

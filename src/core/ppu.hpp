@@ -19,12 +19,6 @@ struct __attribute__((packed)) Color
 
     constexpr Color() = default;
     constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff) : r(r), g(g), b(b), a(a) {}
-
-    constexpr explicit operator uint32_t() const
-    {
-        return (static_cast<uint32_t>(r) << 24) | (static_cast<uint32_t>(g) << 16) |
-               (static_cast<uint32_t>(b) << 8) | static_cast<uint32_t>(a);
-    }
 };
 
 class Ppu
@@ -42,12 +36,12 @@ public:
 
     [[nodiscard]] uint16_t GetTileMapBase() const
     {
-        return (lcdc_ & ControlBit::BgTileMap) ? 0x9c00 : 0x9800;
+        return (lcdc_ & ControlBit::BgTileMap) ? 0x1c00 : 0x1800;
     }
 
     [[nodiscard]] uint16_t GetTileDataBase() const
     {
-        return (lcdc_ & ControlBit::BgAndWinTileData) ? 0x8000 : 0x8800;
+        return (lcdc_ & ControlBit::BgAndWinTileData) ? 0x0000 : 0x0800;
     }
 
     void Tick();
@@ -59,6 +53,11 @@ public:
 
     [[nodiscard]] bool IsFrameReady() const { return frame_ready_; }
     void SetFrameReady(bool ready) { frame_ready_ = ready; }
+
+    void DrawBackgroundtileMap(std::vector<gb::Color>& buf) const
+    {
+        DrawTileMap(buf, GetTileMapBase());
+    }
 
 private:
     static const int kDotsOamScan = 80;
@@ -116,6 +115,8 @@ private:
 
     void RenderScanline();
     void RenderBackgroundScanline(Scanline& scanline) const;
+
+    void DrawTileMap(std::vector<gb::Color>& buf, uint16_t tile_address) const;
 
     std::array<uint8_t, 8_KiB> vram_;
     std::array<uint8_t, 0xa0> oam_;

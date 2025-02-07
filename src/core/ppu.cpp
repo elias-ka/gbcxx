@@ -191,7 +191,7 @@ void Ppu::RenderBackgroundScanline(Scanline& scanline) const
 {
     if (!(lcdc_ & ControlBit::BgAndWinDisplay))
     {
-        std::ranges::fill(scanline, Color{0xff, 0xff, 0xff});
+        std::ranges::fill(scanline, Color{0xff, 0xff, 0xff, 0xff});
         return;
     }
 
@@ -200,25 +200,60 @@ void Ppu::RenderBackgroundScanline(Scanline& scanline) const
         const uint8_t x = lx + scx_;
         const uint8_t y = ly_ + scy_;
 
-        uint16_t address = ((lcdc_ & ControlBit::BgTileMap) ? 0x1C00 : 0x1800) +
-                           (((y / 8) % 32) * 32) + ((x / 8) % 32);
-        const uint8_t tile_id = vram_.at(address);
+        auto address =
+            static_cast<uint16_t>(GetTileMapBase() | (((y >> 3) & 31) << 5) | ((x >> 3) & 31));
+        const uint8_t tile_id = vram_[address];
         if (lcdc_ & ControlBit::BgAndWinTileData)
         {
-            address = static_cast<uint16_t>((tile_id * 16) + ((y % 8) * 2));
+            address = static_cast<uint16_t>((tile_id << 4) + ((y & 7) << 1));
         }
         else
         {
-            address =
-                static_cast<uint16_t>((static_cast<int8_t>(tile_id) * 16) + ((y % 8) * 2) + 0x1000);
+            address = static_cast<uint16_t>((static_cast<int8_t>(tile_id) << 4) | ((y & 7) << 1) |
+                                            0x1000);
         }
         const auto mask = static_cast<uint8_t>(1 << (7 - (x & 7)));
-        const uint8_t byte1 = vram_.at(address);
-        const uint8_t byte2 = vram_.at(address + 1);
+        const uint8_t byte1 = vram_[address];
+        const uint8_t byte2 = vram_[address + 1];
         const auto color =
-            static_cast<uint8_t>(((byte1 & mask) ? 1 : 0) + ((byte2 & mask) ? 2 : 0));
-        scanline[x] = bg_palette_.at(color);
+            static_cast<uint8_t>(((byte1 & mask) ? 1 : 0) | ((byte2 & mask) ? 2 : 0));
+        scanline[x] = bg_palette_[color];
     }
 }
 
+void Ppu::DrawTileMap(std::vector<gb::Color>& buf, uint16_t tile_address) const
+{
+    constexpr uint8_t kMapSize = 32;
+    constexpr uint8_t kTileSize = 8;
+    constexpr int kMapWidth = kMapSize * kTileSize;
+
+    for (uint16_t tile_y = 0; tile_y < kMapSize; tile_y++)
+    {
+        for (uint16_t tile_x = 0; tile_x < kMapSize; tile_x++)
+        {
+            const uint8_t tile_id = vram_[tile_address + (tile_y * kMapSize) + tile_x];
+            const size_t tile_base = static_cast<size_t>(tile_id) * 16;
+
+            const uint16_t screen_base_x = tile_x * kTileSize;
+            const uint16_t screen_base_y = tile_y * kTileSize;
+
+            for (uint8_t row = 0; row < kTileSize; row++)
+            {
+                const uint8_t byte1 = vram_[tile_base + (static_cast<size_t>(row) * 2)];
+                const uint8_t byte2 = vram_[tile_base + (static_cast<size_t>(row) * 2) + 1];
+
+                const size_t y_pos = screen_base_y + row;
+
+                for (uint8_t col = 0; col < kTileSize; col++)
+                {
+                    const auto mask = static_cast<uint8_t>(1 << (7 - col));
+                    const uint8_t color = ((byte1 & mask) ? 1 : 0) | ((byte2 & mask) ? 2 : 0);
+
+                    const size_t x_pos = screen_base_x + col;
+                    buf[(y_pos * kMapWidth) + x_pos] = bg_palette_[color];
+                }
+            }
+        }
+    }
+}
 }  // namespace gb

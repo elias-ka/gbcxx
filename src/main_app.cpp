@@ -24,7 +24,7 @@ MainApp::MainApp(const std::filesystem::path& rom_path)
         {
             for (size_t x = 0; x < gb::kLcdWidth; x++)
             {
-                fb_[(static_cast<size_t>(line * gb::kLcdWidth)) + x] = scanline[x];
+                lcd_fb_[(static_cast<size_t>(line * gb::kLcdWidth)) + x] = scanline[x];
             }
         });
 
@@ -47,9 +47,18 @@ MainApp::MainApp(const std::filesystem::path& rom_path)
         DIE("Error: SDL_CreateTexture(): {}", SDL_GetError());
     }
     SDL_SetTextureScaleMode(lcd_texture_, SDL_SCALEMODE_NEAREST);
+
+    vram_bg_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
+                                         SDL_TEXTUREACCESS_STREAMING, 256, 256);
+    if (!vram_bg_texture_)
+    {
+        DIE("Error: SDL_CreateTexture(): {}", SDL_GetError());
+    }
+    SDL_SetTextureScaleMode(vram_bg_texture_, SDL_SCALEMODE_NEAREST);
+
     SDL_SetRenderVSync(renderer_, 1);
     SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowMinimumSize(window_, gb::kLcdWidth, gb::kLcdHeight);
+    SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * 4, gb::kLcdHeight * 4);
     SDL_ShowWindow(window_);
 
     IMGUI_CHECKVERSION();
@@ -112,7 +121,7 @@ void MainApp::LoadRom(const std::string& rom_path)
 
 namespace
 {
-SDL_FRect CalculateIntegerLcdScale(SDL_Window* window)
+SDL_FRect CalculateIntegerLcdScale(SDL_Window* window, float menu_bar_height)
 {
     int window_width;
     int window_height;
@@ -129,9 +138,9 @@ SDL_FRect CalculateIntegerLcdScale(SDL_Window* window)
     const int offset_y = (window_height - target_height) / 2;
 
     return {.x = static_cast<float>(offset_x),
-            .y = static_cast<float>(offset_y),
+            .y = static_cast<float>(offset_y) + menu_bar_height,
             .w = static_cast<float>(target_width),
-            .h = static_cast<float>(target_height)};
+            .h = static_cast<float>(target_height) - menu_bar_height};
 }
 }  // namespace
 
@@ -168,6 +177,11 @@ void MainApp::StartApplicationLoop()
                 ImGui::BeginTabBar("##vram_tabs");
                 if (ImGui::BeginTabItem("Background"))
                 {
+                    core_.GetPpu().DrawBackgroundtileMap(vram_bg_fb_);
+                    SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
+                                      256 * sizeof(gb::Color));
+                    ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_),
+                                 {256 * 2, 256 * 2});
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -182,8 +196,8 @@ void MainApp::StartApplicationLoop()
         SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
         SDL_RenderClear(renderer_);
 
-        SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_);
-        SDL_UpdateTexture(lcd_texture_, nullptr, fb_.data(), gb::kLcdWidth * sizeof(gb::Color));
+        const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
+        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(), gb::kLcdWidth * sizeof(gb::Color));
         SDL_RenderClear(renderer_);
         SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
 
@@ -229,6 +243,7 @@ void MainApp::MainMenu()
 {
     if (ImGui::BeginMainMenuBar())
     {
+        menu_bar_height_ = ImGui::GetWindowHeight();
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Open ROM..."))

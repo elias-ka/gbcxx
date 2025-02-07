@@ -41,6 +41,12 @@ public:
         Carry
     };
 
+    struct DisassembledInstruction
+    {
+        uint16_t addr;
+        std::string mnemonic;
+    };
+
     explicit Cpu(Core& gb);
 
     [[nodiscard]] uint8_t GetReg(R8 r) const;

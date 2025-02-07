@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
     }
 
 #ifndef NDEBUG
-    if (args.size() > 1 && std::string_view(args[1]) == "--trace"sv)
+    if (args.size() > 2 && std::string_view(args[2]) == "--trace"sv)
     {
         spdlog::set_level(spdlog::level::trace);
     }
