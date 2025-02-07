@@ -8,3 +8,4 @@ CMakeLists.txt.user
 CMakeUserPresets.json
 compile_commands.json
 gameboy_doctor.log
+imgui.ini
