@@ -16,12 +16,12 @@ public:
 
 private:
     std::vector<uint8_t> rom_;
-    uint8_t banking_mode_{0};
-    uint8_t rom_bank_{1};
-    uint8_t ram_bank_{0};
-    uint8_t nr_rom_banks_{0};
-    uint8_t nr_ram_banks_{0};
+    size_t nr_rom_banks_{0};
+    size_t nr_ram_banks_{0};
     std::vector<uint8_t> ram_;
+    size_t rom_bank_{1};
+    size_t ram_bank_{0};
+    uint8_t banking_mode_{0};
     bool ram_enabled_{false};
 };
 }  // namespace gb

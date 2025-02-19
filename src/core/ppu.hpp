@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 
 #include "core/constants.hpp"
 #include "util.hpp"
@@ -12,20 +13,61 @@ class Core;
 
 struct __attribute__((packed)) Color
 {
-    uint8_t r{};
-    uint8_t g{};
-    uint8_t b{};
     uint8_t a{0xff};
+    uint8_t b{0xff};
+    uint8_t g{0xff};
+    uint8_t r{0xff};
+
+    static Color FromIndex(uint8_t index)
+    {
+        switch (index)
+        {
+        case 0: return Color{0xff, 0xff, 0xff, 0xff};
+        case 1: return Color{0xaa, 0xaa, 0xaa, 0xff};
+        case 2: return Color{0x55, 0x55, 0x55, 0xff};
+        case 3: return Color{0x00, 0x00, 0x00, 0xff};
+        default: return Color{0xff, 0x00, 0x00, 0xff};
+        }
+    }
 
     constexpr Color() = default;
-    constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff) : r(r), g(g), b(b), a(a) {}
+    constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff)
+        : a(a), b(b), g(g), r(r)
+    {
+    }
+};
+
+class FrameBuffer
+{
+public:
+    [[nodiscard]] constexpr Color GetPixelColor(size_t x, size_t y) const
+    {
+        return buf_[(y * kLcdWidth) + x];
+    }
+    constexpr void SetPixelColor(size_t x, size_t y, Color color)
+    {
+        buf_[(y * kLcdWidth) + x] = color;
+    }
+    constexpr void FillScanline(size_t scanline, Color color)
+    {
+        const auto scanline_start = scanline * kLcdWidth;
+        for (auto& v :
+             std::ranges::subrange(buf_.begin() + scanline_start,
+                                   buf_.begin() + scanline_start + kLcdWidth))
+        {
+            v = color;
+        }
+    }
+    [[nodiscard]] const Color* data() const { return buf_.data(); }
+
+private:
+    std::array<Color, static_cast<size_t>(kLcdWidth* kLcdHeight)> buf_;
 };
 
 class Ppu
 {
 public:
-    using Scanline = std::array<Color, kLcdWidth>;
-    using ScanlineDrawCallback = std::function<void(const Scanline&, uint8_t line)>;
+    using VBlankCallback = std::function<void(const FrameBuffer&)>;
 
     explicit Ppu(Core& gb) : gb_(gb) {}
 
@@ -44,17 +86,14 @@ public:
         return (lcdc_ & ControlBit::BgAndWinTileData) ? 0x0000 : 0x0800;
     }
 
-    void Tick();
+    void Step(int cycles);
 
-    void SetScanlineDrawCallback(ScanlineDrawCallback cb)
+    void SetVBlankCallback(VBlankCallback cb)
     {
-        scanline_draw_callback_ = std::move(cb);
+        vblank_callback_ = std::move(cb);
     }
 
-    [[nodiscard]] bool IsFrameReady() const { return frame_ready_; }
-    void SetFrameReady(bool ready) { frame_ready_ = ready; }
-
-    void DrawBackgroundtileMap(std::vector<gb::Color>& buf) const
+    void DrawBackgroundtileMap(std::span<gb::Color> buf) const
     {
         DrawTileMap(buf, GetTileMapBase());
     }
@@ -77,11 +116,16 @@ private:
     {
         switch (mode)
         {
-            case Mode::HBlank: return "HBlank";
-            case Mode::VBlank: return "VBlank";
-            case Mode::OamScan: return "OAM Scan";
-            case Mode::Transfer: return "Transfer";
+        case Mode::HBlank: return "HBlank";
+        case Mode::VBlank: return "VBlank";
+        case Mode::OamScan: return "OAM Scan";
+        case Mode::Transfer: return "Transfer";
         }
+    }
+
+    [[nodiscard]] bool CanAccessVramAndOam() const
+    {
+        return mode_ != Mode::Transfer;
     }
 
     enum ControlBit : uint8_t
@@ -106,7 +150,8 @@ private:
     };
 
     void SwitchMode(Mode new_mode);
-    void IncrementLy();
+    void CheckLycInterrupt();
+    void CheckStatInterrupt(bool on_vblank = false);
 
     void OnHBlank();
     void OnVBlank();
@@ -114,26 +159,21 @@ private:
     void OnTransfer();
 
     void RenderScanline();
-    void RenderBackgroundScanline(Scanline& scanline) const;
+    void RenderBackgroundScanline();
 
-    void DrawTileMap(std::vector<gb::Color>& buf, uint16_t tile_address) const;
+    void DrawTileMap(std::span<gb::Color> buf, uint16_t tile_address) const;
 
     std::array<uint8_t, 8_KiB> vram_;
     std::array<uint8_t, 0xa0> oam_;
-    bool frame_ready_{false};
+    FrameBuffer fb_;
     Mode mode_{Mode::OamScan};
     Core& gb_;
     uint16_t dots_{};
-    std::array<Color, 4> bg_palette_{{{0xff, 0xff, 0xff, 0xff},
-                                      {0xcc, 0xcc, 0xcc, 0xff},
-                                      {0x77, 0x77, 0x77, 0xff},
-                                      {0x00, 0x00, 0x00, 0xff}}};
-    ScanlineDrawCallback scanline_draw_callback_;
+    VBlankCallback vblank_callback_;
 
     uint8_t lcdc_{0x91};
     uint8_t stat_{0x85};
     uint8_t bgp_{0xfc};
-    uint8_t lx_{0x00};
     uint8_t ly_{0x00};
     uint8_t lyc_{0x00};
     uint8_t scx_{0x00};

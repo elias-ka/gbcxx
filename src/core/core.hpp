@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "core/cpu.hpp"
-#include "core/interrupt.hpp"
 #include "core/mbc.hpp"
 #include "core/ppu.hpp"
 #include "core/timer.hpp"
@@ -24,10 +23,9 @@ public:
     void BusWrite16(uint16_t addr, uint16_t val);
 
     void RunFrame();
-    void Irq(Interrupt interrupt);
+    void Irq(Interrupt interrupt) { cpu_.Irq(interrupt); }
     void LoadRom(const std::filesystem::path& path);
     void ResizeMemory(size_t new_size) { wram_.resize(new_size); }
-    void TickComponents();
 
 private:
     Cpu cpu_;
@@ -36,8 +34,10 @@ private:
     std::vector<uint8_t> wram_;
     std::array<uint8_t, 0x7f> hram_;
     std::unique_ptr<Mbc> mbc_;
-    std::vector<uint8_t> serial_buffer_;
-    bool bootrom_enabled_{false};
     std::string cart_title_;
+
+    uint8_t joyp_{};
+    uint8_t sb_{};
+    uint8_t sc_{};
 };
 }  // namespace gb

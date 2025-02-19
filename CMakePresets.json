@@ -38,7 +38,7 @@
     },
     {
       "name": "test",
-      "inherits": "debug",
+      "inherits": "release",
       "displayName": "test",
       "description": "Test build using Ninja generator",
       "binaryDir": "${sourceDir}/build/gbcxx-tests",

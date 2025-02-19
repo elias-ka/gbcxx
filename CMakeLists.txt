@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BUILD_TESTS "" OFF)
+
 include(cmake/CPM.cmake)
 
 CPMAddPackage(
@@ -42,11 +44,6 @@ CPMAddPackage(
   SYSTEM ON
 )
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  add_compile_options(-fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer)
-  add_link_options(-fsanitize=undefined -fsanitize=address)
-endif()
-
 add_subdirectory(3rdparty)
 
 add_library(
@@ -73,31 +70,35 @@ target_compile_features(gbcxx_core PUBLIC cxx_std_23)
 target_include_directories(gbcxx_core PUBLIC src)
 target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog)
 
+if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT BUILD_TESTS)
+  target_compile_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer)
+  target_link_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(
-    gbcxx_core
-    PUBLIC -D_GLIBCXX_ASSERTIONS=1
-           -fstack-protector-strong
-           -fcf-protection=full
-           -fstack-clash-protection
-           -Wall
-           -Wextra
-           -Wpedantic
-           -Wconversion
-           -Wsign-conversion
-           -Wcast-qual
-           -Wformat=2
-           -Wundef
-           -Werror=float-equal
-           -Wshadow
-           -Wcast-align
-           -Wnull-dereference
-           -Wdouble-promotion
-           -Wimplicit-fallthrough
-           -Wextra-semi
-           -Woverloaded-virtual
-           -Wnon-virtual-dtor
-           -Wold-style-cast
+  target_compile_options(gbcxx_core INTERFACE
+    -D_GLIBCXX_ASSERTIONS=1
+    -fstack-protector-strong
+    -fcf-protection=full
+    -fstack-clash-protection
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wconversion
+    -Wsign-conversion
+    -Wcast-qual
+    -Wformat=2
+    -Wundef
+    -Werror=float-equal
+    -Wshadow
+    -Wcast-align
+    -Wnull-dereference
+    -Wdouble-promotion
+    -Wimplicit-fallthrough
+    -Wextra-semi
+    -Woverloaded-virtual
+    -Wnon-virtual-dtor
+    -Wold-style-cast
   )
 endif()
 
@@ -122,8 +123,6 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/assets
 )
 
 if(BUILD_TESTS)
-  include(CTest)
-  enable_testing()
   target_compile_definitions(gbcxx_core PRIVATE GBCXX_TESTS)
 
   CPMAddPackage(

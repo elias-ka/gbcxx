@@ -19,7 +19,7 @@ public:
     virtual void WriteRam(uint16_t addr, uint8_t val) = 0;
 };
 
-[[nodiscard]] uint8_t CountRamBanks(uint8_t val);
-[[nodiscard]] uint8_t CountRomBanks(uint8_t val);
+[[nodiscard]] size_t CountRamBanks(uint8_t val);
+[[nodiscard]] size_t CountRomBanks(uint8_t val);
 
 }  // namespace gb

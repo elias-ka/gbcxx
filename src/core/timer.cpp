@@ -9,64 +9,64 @@ namespace gb
 {
 uint8_t Timer::Read(uint16_t addr) const
 {
-    LOG_TRACE("Timer::read({:X})", addr);
+    // LOG_TRACE("Timer::read({:X})", addr);
     switch (addr)
     {
-        case kRegDiv: return (sysclk_ >> 6) & 0xff;
-        case kRegTima: return tima_;
-        case kRegTma: return tma_;
-        case kRegTac: return tac_;
-        default:
-        {
-            DIE("Timer: read from unhandled address {:X}", addr);
-        }
+    case kRegDiv: return (sysclk_ >> 6) & 0xff;
+    case kRegTima: return tima_;
+    case kRegTma: return tma_;
+    case kRegTac: return tac_;
+    default:
+    {
+        DIE("Timer: read from unhandled address {:X}", addr);
+    }
     }
 }
 
 void Timer::Write(uint16_t addr, uint8_t val)
 {
-    LOG_TRACE("Timer::write({:X}, {:#b})", addr, val);
+    // LOG_TRACE("Timer::write({:X}, {:#b})", addr, val);
     switch (addr)
     {
-        case kRegDiv:
+    case kRegDiv:
+    {
+        SysclkWrite(0);
+        break;
+    }
+    case kRegTima:
+    {
+        if (!tima_reload_cycle_)
         {
-            SysclkWrite(0);
-            break;
+            tima_ = val;
         }
-        case kRegTima:
+        if (cycles_til_tima_irq_ == 1)
         {
-            if (!tima_reload_cycle_)
-            {
-                tima_ = val;
-            }
-            if (cycles_til_tima_irq_ == 1)
-            {
-                cycles_til_tima_irq_ = 0;
-            }
-            break;
+            cycles_til_tima_irq_ = 0;
         }
-        case kRegTma:
+        break;
+    }
+    case kRegTma:
+    {
+        if (tima_reload_cycle_)
         {
-            if (tima_reload_cycle_)
-            {
-                tima_ = val;
-            }
+            tima_ = val;
+        }
 
-            tma_ = val;
-            break;
-        }
-        case kRegTac:
-        {
-            const uint8_t prev_bit = last_bit_;
-            last_bit_ &= ((val & 0x4) >> 2);
-            DetectEdge(prev_bit, last_bit_);
-            tac_ = val;
-            break;
-        }
-        default:
-        {
-            DIE("Timer: Unmapped write {:X} <- {:X}", addr, val);
-        }
+        tma_ = val;
+        break;
+    }
+    case kRegTac:
+    {
+        const uint8_t prev_bit = last_bit_;
+        last_bit_ &= ((val & 0x4) >> 2);
+        DetectEdge(prev_bit, last_bit_);
+        tac_ = val;
+        break;
+    }
+    default:
+    {
+        DIE("Timer: Unmapped write {:X} <- {:X}", addr, val);
+    }
     }
 }
 
@@ -76,10 +76,9 @@ void Timer::Tick()
 
     if (cycles_til_tima_irq_ > 0)
     {
-        LOG_TRACE("cycles_til_tima_irq: {}", cycles_til_tima_irq_);
+        // LOG_TRACE("cycles_til_tima_irq: {}", cycles_til_tima_irq_);
         if (--cycles_til_tima_irq_ == 0)
         {
-            LOG_TRACE("timer IRQ");
             gb_.Irq(Interrupt::Timer);
             tima_ = tma_;
             tima_reload_cycle_ = true;
@@ -96,11 +95,11 @@ void Timer::SysclkWrite(uint8_t new_val)
     {
         switch (tac_ & 0x3)
         {
-            case 3: return (sysclk_ >> 5) & 1;
-            case 2: return (sysclk_ >> 3) & 1;
-            case 1: return (sysclk_ >> 1) & 1;
-            case 0: return (sysclk_ >> 7) & 1;
-            default: std::unreachable();
+        case 3: return (sysclk_ >> 5) & 1;
+        case 2: return (sysclk_ >> 3) & 1;
+        case 1: return (sysclk_ >> 1) & 1;
+        case 0: return (sysclk_ >> 7) & 1;
+        default: std::unreachable();
         }
     }();
 

@@ -6,6 +6,7 @@ Checks: -*,
   cppcoreguildelines-*,
   google-*,
   -google-build-using-namespace,
+  -google-readability-braces-around-statements,
   -google-readability-function-size,
   -google-readability-todo,
   modernize-*,
@@ -19,6 +20,7 @@ Checks: -*,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-redundant-access-specifiers,
+  -readability-braces-around-statements
 
 WarningsAsErrors: "*"
 CheckOptions:

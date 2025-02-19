@@ -6,95 +6,179 @@ namespace gb
 {
 using namespace literals;
 
-// Extracted from SameBoy's DMG boot ROM:
-// https://github.com/LIJI32/SameBoy/tree/master/BootROMs/dmg_boot.asm
-static constexpr std::array<uint8_t, 0x100> kDmgBootrom = {
-    0x31, 0xfe, 0xff, 0x21, 0x00, 0x80, 0xaf, 0x22, 0xcb, 0x6c, 0x28, 0xfb, 0x3e, 0x80, 0xe0, 0x26,
-    0xe0, 0x11, 0x3e, 0xf3, 0xe0, 0x12, 0xe0, 0x25, 0x3e, 0x77, 0xe0, 0x24, 0x3e, 0x54, 0xe0, 0x47,
-    0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1a, 0x47, 0xcd, 0xa3, 0x00, 0xcd, 0xa3, 0x00, 0x13, 0x7b,
-    0xee, 0x34, 0x20, 0xf2, 0x11, 0xd2, 0x00, 0x0e, 0x08, 0x1a, 0x13, 0x22, 0x23, 0x0d, 0x20, 0xf9,
-    0x3e, 0x19, 0xea, 0x10, 0x99, 0x21, 0x2f, 0x99, 0x0e, 0x0c, 0x3d, 0x28, 0x08, 0x32, 0x0d, 0x20,
-    0xf9, 0x2e, 0x0f, 0x18, 0xf5, 0x3e, 0x1e, 0xe0, 0x42, 0x3e, 0x91, 0xe0, 0x40, 0x16, 0x89, 0x0e,
-    0x0f, 0xcd, 0xb8, 0x00, 0x7a, 0xcb, 0x2f, 0xcb, 0x2f, 0xe0, 0x42, 0x7a, 0x81, 0x57, 0x79, 0xfe,
-    0x08, 0x20, 0x04, 0x3e, 0xa8, 0xe0, 0x47, 0x0d, 0x20, 0xe7, 0x3e, 0xfc, 0xe0, 0x47, 0x3e, 0x83,
-    0xcd, 0xcb, 0x00, 0x06, 0x05, 0xcd, 0xc4, 0x00, 0x3e, 0xc1, 0xcd, 0xcb, 0x00, 0x06, 0x3c, 0xcd,
-    0xc4, 0x00, 0x21, 0xb0, 0x01, 0xe5, 0xf1, 0x21, 0x4d, 0x01, 0x01, 0x13, 0x00, 0x11, 0xd8, 0x00,
-    0xc3, 0xfe, 0x00, 0x3e, 0x04, 0x0e, 0x00, 0xcb, 0x20, 0xf5, 0xcb, 0x11, 0xf1, 0xcb, 0x11, 0x3d,
-    0x20, 0xf5, 0x79, 0x22, 0x23, 0x22, 0x23, 0xc9, 0xe5, 0x21, 0x0f, 0xff, 0xcb, 0x86, 0xcb, 0x46,
-    0x28, 0xfc, 0xe1, 0xc9, 0xcd, 0xb8, 0x00, 0x05, 0x20, 0xfa, 0xc9, 0xe0, 0x13, 0x3e, 0x87, 0xe0,
-    0x14, 0xc9, 0x3c, 0x42, 0xb9, 0xa5, 0xb9, 0xa5, 0x42, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x50,
-};
-
 void Core::RunFrame()
 {
-    ppu_.SetFrameReady(false);
+    constexpr int kCyclesPerFrame = 70224;
 
-    while (!ppu_.IsFrameReady())
+    int this_frame_cycles{};
+    while (this_frame_cycles < kCyclesPerFrame)
     {
-        cpu_.Run();
+        const int cycles_executed = cpu_.Step();
+        ppu_.Step(cycles_executed);
+        this_frame_cycles += cycles_executed;
     }
-}
-
-void Core::TickComponents()
-{
-    ppu_.Tick();
-    timer_.Tick();
 }
 
 uint8_t Core::BusRead8(uint16_t addr) const
 {
 #ifdef GBCXX_TESTS
-    return wram_.at(addr);
+    return wram_[addr];
+#endif
+
+    if (kCartridgeStart <= addr && addr <= kCartridgeEnd)
+        return mbc_->ReadRom(addr);
+
+    if ((kVramStart <= addr && addr <= kVramEnd) ||
+        (kOamStart <= addr && addr <= kOamEnd))
+        return ppu_.Read(addr);
+
+    if (kExternalRamStart <= addr && addr <= kExternalRamEnd)
+        return mbc_->ReadRam(addr);
+
+    if (kWorkRamStart <= addr && addr <= kWorkRamEnd)
+        return wram_[addr - kWorkRamStart];
+
+    if (kEchoRamStart <= addr && addr <= kEchoRamEnd)
+        return wram_[addr - 0x2000];
+
+    if (kNotUsableStart <= addr && addr <= kNotUsableEnd)
+        return 0xff;
+
+    if (kHighRamStart <= addr && addr <= kHighRamEnd)
+        return hram_[addr & 0x7f];
+
+    switch (addr)
+    {
+    case kRegJoyp: return joyp_ | 0xcf;  // todo
+
+    case kRegSb: return sb_;  // todo
+
+    case kRegSc: return sc_;  // todo
+
+    case kRegDiv:
+    case kRegTima:
+    case kRegTma:
+    case kRegTac: return timer_.Read(addr);
+
+    case kRegIe:
+    case kRegIf: return cpu_.Read(addr);
+
+    case kRegNr10:
+    case kRegNr11:
+    case kRegNr12:
+    case kRegNr13:
+    case kRegNr14:
+    case kRegNr21:
+    case kRegNr22:
+    case kRegNr23:
+    case kRegNr24:
+    case kRegNr30:
+    case kRegNr31:
+    case kRegNr32:
+    case kRegNr33:
+    case kRegNr34:
+    case kRegNr41:
+    case kRegNr42:
+    case kRegNr43:
+    case kRegNr44:
+    case kRegNr50:
+    case kRegNr51:
+    case kRegNr52:
+    case 0xff30:
+    case 0xff31:
+    case 0xff32:
+    case 0xff33:
+    case 0xff34:
+    case 0xff35:
+    case 0xff36:
+    case 0xff37:
+    case 0xff38:
+    case 0xff39:
+    case 0xff3a:
+    case 0xff3b:
+    case 0xff3c:
+    case 0xff3d:
+    case 0xff3e:
+    case 0xff3f: return 0xff;
+
+    case kRegLcdc:
+    case kRegStat:
+    case kRegLy:
+    case kRegLyc:
+    case kRegScy:
+    case kRegScx:
+    case kRegWy:
+    case kRegWx:
+    case kRegBgp:
+    case kRegObp0:
+    case kRegObp1: return ppu_.Read(addr);
+
+    default: break;
+    }
+
+    DIE("Core: Unmapped read from {:X}", addr);
+}
+
+void Core::BusWrite8(uint16_t addr, uint8_t val)
+{
+#ifdef GBCXX_TESTS
+    wram_[addr] = val;
+    return;
 #endif
 
     if (kCartridgeStart <= addr && addr <= kCartridgeEnd)
     {
-        if (bootrom_enabled_ && addr < kDmgBootrom.size())
+        mbc_->WriteRom(addr, val);
+    }
+    else if ((kVramStart <= addr && addr <= kVramEnd) ||
+             (kOamStart <= addr && addr <= kOamEnd))
+    {
+        ppu_.Write(addr, val);
+    }
+    else if (kExternalRamStart <= addr && addr <= kExternalRamEnd)
+    {
+        mbc_->WriteRam(addr, val);
+    }
+    else if (kWorkRamStart <= addr && addr <= kWorkRamEnd)
+    {
+        wram_[addr - kWorkRamStart] = val;
+    }
+    else if (kEchoRamStart <= addr && addr <= kEchoRamEnd)
+    {
+        wram_[addr - 0x2000] = val;
+    }
+    else if (kNotUsableStart <= addr && addr <= kNotUsableEnd)
+    {
+        return;
+    }
+    else if (kHighRamStart <= addr && addr <= kHighRamEnd)
+    {
+        hram_[addr & 0x7f] = val;
+    }
+    else
+    {
+        switch (addr)
         {
-            return kDmgBootrom[addr];
-        }
-        return mbc_->ReadRom(addr);
-    }
-    if ((kVramStart <= addr && addr <= kVramEnd) || (kOamStart <= addr && addr <= kOamEnd) ||
-        (kRegLcdc <= addr && addr <= kRegVbk))
-    {
-        return ppu_.Read(addr);
-    }
-    if (kExternalRamStart <= addr && addr <= kExternalRamEnd)
-    {
-        return mbc_->ReadRam(addr);
-    }
-    if (kWorkRamStart <= addr && addr <= kWorkRamEnd)
-    {
-        return wram_.at(addr - kWorkRamStart);
-    }
-    if (kEchoRamStart <= addr && addr <= kEchoRamEnd)
-    {
-        return wram_.at(addr - 0x1fff);
-    }
-    if (kNotUsableStart <= addr && addr <= kNotUsableEnd)
-    {
-        return 0x00;
-    }
-    if (kHighRamStart <= addr && addr <= kHighRamEnd)
-    {
-        return hram_.at(addr & 0x7f);
-    }
-
-    switch (addr)
-    {
-        case kRegIe:
-        case kRegIf: return cpu_.Read(addr);
-        case kRegBootrom: return bootrom_enabled_;
         case kRegJoyp:
+            joyp_ = val;  // todo
+            return;
+
         case kRegSb:
-        case kRegSc: return 0xff;
+            sb_ = val;  // todo
+            return;
+
+        case kRegSc:
+            sc_ = val;  // todo
+            return;
+
         case kRegDiv:
         case kRegTima:
         case kRegTma:
-        case kRegTac: return timer_.Read(addr);
+        case kRegTac: timer_.Write(addr, val); return;
+
+        case kRegIe:
+        case kRegIf: cpu_.Write(addr, val); return;
+
         case kRegNr10:
         case kRegNr11:
         case kRegNr12:
@@ -116,107 +200,42 @@ uint8_t Core::BusRead8(uint16_t addr) const
         case kRegNr50:
         case kRegNr51:
         case kRegNr52:
-        case kWavePatternStart:
-        case kWavePatternEnd: return 0xff;
-        default: break;
-    }
+        case 0xff30:
+        case 0xff31:
+        case 0xff32:
+        case 0xff33:
+        case 0xff34:
+        case 0xff35:
+        case 0xff36:
+        case 0xff37:
+        case 0xff38:
+        case 0xff39:
+        case 0xff3a:
+        case 0xff3b:
+        case 0xff3c:
+        case 0xff3d:
+        case 0xff3e:
+        case 0xff3f: return;  // todo
 
-    LOG_ERROR("Core: Unmapped read {:X}", addr);
-    return 0xff;
-}
-
-void Core::BusWrite8(uint16_t addr, uint8_t val)
-{
-#ifdef GBCXX_TESTS
-    wram_.at(addr) = val;
-    return;
-#endif
-
-    LOG_TRACE("core::write8({:X}, {:X})", addr, val);
-
-    if (kCartridgeStart <= addr && addr <= kCartridgeEnd)
-    {
-        if (bootrom_enabled_ && addr < kDmgBootrom.size())
-        {
-            LOG_ERROR("Core: Tried writing to boot ROM address {:X}", addr);
+        case 0xff46:  // todo oam dma
             return;
+
+        case kRegLcdc:
+        case kRegStat:
+        case kRegLy:
+        case kRegLyc:
+        case kRegScy:
+        case kRegScx:
+        case kRegWy:
+        case kRegWx:
+        case kRegBgp:
+        case kRegObp0:
+        case kRegObp1: ppu_.Write(addr, val); return;
+
+        default: break;
         }
-        mbc_->WriteRom(addr, val);
-    }
-    else if ((kVramStart <= addr && addr <= kVramEnd) || (kOamStart <= addr && addr <= kOamEnd) ||
-             (kRegLcdc <= addr && addr <= kRegVbk))
-    {
-        ppu_.Write(addr, val);
-    }
-    else if (kExternalRamStart <= addr && addr <= kExternalRamEnd)
-    {
-        mbc_->WriteRam(addr, val);
-    }
-    else if (kWorkRamStart <= addr && addr <= kWorkRamEnd)
-    {
-        wram_.at(addr - kWorkRamStart) = val;
-    }
-    else if (kEchoRamStart <= addr && addr <= kEchoRamEnd)
-    {
-        wram_.at(addr & 0x1fff) = val;
-    }
-    else if (kNotUsableStart <= addr && addr <= kNotUsableEnd)
-    {
-        return;
-    }
-    else if (kHighRamStart <= addr && addr <= kHighRamEnd)
-    {
-        hram_.at(addr & 0x7f) = val;
-    }
-    else
-    {
-        switch (addr)
-        {
-            case kRegBootrom: bootrom_enabled_ = val; return;
-            case kRegIe:
-            case kRegIf: cpu_.Write(addr, val); return;
-            case kRegJoyp: return;
-            case kRegSb:
-            {
-                serial_buffer_.push_back(val);
-                if (val == '\n')
-                {
-                    LOG_DEBUG("Serial: {}",
-                              std::string{serial_buffer_.begin(), serial_buffer_.end()});
-                    serial_buffer_.clear();
-                }
-                break;
-            }
-            case kRegSc: return;
-            case kRegDiv:
-            case kRegTima:
-            case kRegTma:
-            case kRegTac: timer_.Write(addr, val); return;
-            case kRegNr10:
-            case kRegNr11:
-            case kRegNr12:
-            case kRegNr13:
-            case kRegNr14:
-            case kRegNr21:
-            case kRegNr22:
-            case kRegNr23:
-            case kRegNr24:
-            case kRegNr30:
-            case kRegNr31:
-            case kRegNr32:
-            case kRegNr33:
-            case kRegNr34:
-            case kRegNr41:
-            case kRegNr42:
-            case kRegNr43:
-            case kRegNr44:
-            case kRegNr50:
-            case kRegNr51:
-            case kRegNr52:
-            case kWavePatternStart:
-            case kWavePatternEnd: return;
-            default: LOG_ERROR("Core: Unmapped write {:X} <- {:X}", addr, val);
-        }
+
+        LOG_ERROR("Core: Unmapped write {:X} <- {:X}", addr, val);
     }
 }
 
@@ -231,11 +250,6 @@ void Core::BusWrite16(uint16_t addr, uint16_t val)
 {
     BusWrite8(addr, val & 0xff);
     BusWrite8(addr + 1, val >> 8);
-}
-
-void Core::Irq(Interrupt interrupt)
-{
-    cpu_.Irq(interrupt);
 }
 
 void Core::LoadRom(const std::filesystem::path& path)

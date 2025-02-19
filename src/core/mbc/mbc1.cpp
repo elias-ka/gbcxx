@@ -6,35 +6,35 @@ namespace gb
 {
 Mbc1::Mbc1(std::vector<uint8_t> cartrom)
     : rom_(std::move(cartrom)),
-      nr_rom_banks_(CountRomBanks(rom_.at(0x148))),
-      nr_ram_banks_(CountRamBanks(rom_.at(0x149))),
-      ram_(static_cast<size_t>(nr_rom_banks_ * 0x2000))
+      nr_rom_banks_(CountRomBanks(rom_[0x148])),
+      nr_ram_banks_(CountRamBanks(rom_[0x149])),
+      ram_(nr_rom_banks_ * 0x2000)
 {
 }
 
 uint8_t Mbc1::ReadRom(uint16_t addr) const
 {
-    const uint8_t bank =
-        (addr < 0x4000) ? ((banking_mode_ == 0) ? 0 : rom_bank_ & 0b0001'1111) : rom_bank_;
-    const uint16_t offset = (bank * 0x4000) | (addr & 0x3fff);
-
-    if (offset >= rom_.size())
+    const auto bank = [&] -> uint8_t
     {
-        DIE("MBC1: Invalid read {:X} (bank {:X})", addr, bank);
-    }
+        if (addr < 0x4000)
+        {
+            if (banking_mode_ == 0)
+                return 0;
+            return rom_bank_ & 0xe0;
+        }
+        return rom_bank_;
+    }();
 
-    return rom_[offset];
+    return rom_[(bank * 0x4000) | (addr & 0x3fff)];
 }
 
 uint8_t Mbc1::ReadRam(uint16_t addr) const
 {
     if (!ram_enabled_)
-    {
         return 0xff;
-    }
 
     const uint8_t ram_bank = banking_mode_ == 1 ? ram_bank_ : 0;
-    return ram_.at((ram_bank * 0x2000) | (addr & 0x1fff));
+    return ram_[(ram_bank * 0x2000) | (addr & 0x1fff)];
 }
 
 void Mbc1::WriteRom(uint16_t addr, uint8_t val)
@@ -53,12 +53,12 @@ void Mbc1::WriteRom(uint16_t addr, uint8_t val)
         if (nr_rom_banks_ > 32)
         {
             const uint8_t upper_bits = (val & 0x03) % (nr_rom_banks_ >> 5);
-            rom_bank_ = static_cast<uint8_t>((rom_bank_ & 0x1f) | (upper_bits << 5));
+            rom_bank_ =
+                static_cast<uint8_t>((rom_bank_ & 0x1f) | (upper_bits << 5));
         }
+
         if (nr_ram_banks_ > 1)
-        {
             ram_bank_ = val & 0x03;
-        }
     }
     else if (0x6000 <= addr && addr <= 0x7fff)
     {
@@ -73,12 +73,9 @@ void Mbc1::WriteRom(uint16_t addr, uint8_t val)
 void Mbc1::WriteRam(uint16_t addr, uint8_t val)
 {
     if (!ram_enabled_)
-    {
-        LOG_WARN("MBC1: RAM is disabled, ignoring write {:X} <- {:X}", addr, val);
         return;
-    }
 
     const uint8_t ram_bank = banking_mode_ == 1 ? ram_bank_ : 0;
-    ram_.at((ram_bank * 0x2000) + (addr & 0x1fff)) = val;
+    ram_[(ram_bank * 0x2000) + (addr & 0x1fff)] = val;
 }
 }  // namespace gb

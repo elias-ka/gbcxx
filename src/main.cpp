@@ -18,6 +18,11 @@
 
 int main(int argc, char* argv[])
 {
+    if constexpr (std::endian::native == std::endian::big)
+    {
+        DIE("Big-endian isn't supported.");
+    }
+
     using namespace std::string_view_literals;
     spdlog::set_pattern("[%^%l%$] %v");
 
@@ -32,7 +37,8 @@ int main(int argc, char* argv[])
     if (!std::filesystem::exists(rom_file))
     {
         LOG_ERROR(
-            "Failed to open ROM file \"{}\".\nPlease check if the file exists and the path is "
+            "Failed to open ROM file \"{}\".\nPlease check if the file exists "
+            "and the path is "
             "correct.",
             rom_file.string());
         return 1;

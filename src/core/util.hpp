@@ -21,7 +21,8 @@
 #define LOG_ERROR(...) spdlog::error(__VA_ARGS__)
 
 #define DIE(...)                 \
-    do {                         \
+    do                           \
+    {                            \
         LOG_ERROR(__VA_ARGS__);  \
         std::exit(EXIT_FAILURE); \
     } while (0)

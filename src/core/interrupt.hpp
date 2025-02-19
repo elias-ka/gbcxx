@@ -6,10 +6,10 @@ namespace gb
 {
 enum class Interrupt : uint8_t
 {
-    VBlank = 0,
-    Stat = 1,
-    Timer = 2,
-    Serial = 3,
-    Joypad = 4
+    VBlank = 1 << 0,
+    Lcd = 1 << 1,
+    Timer = 1 << 2,
+    Serial = 1 << 3,
+    Joypad = 1 << 4
 };
 }  // namespace gb
