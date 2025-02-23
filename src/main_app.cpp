@@ -9,33 +9,28 @@
 #include <SDL3/SDL_opengles2.h>
 #else
 #include <SDL3/SDL_opengl.h>
+
+#include <utility>
 #endif
 
 #include "core/util.hpp"
 
-MainApp::MainApp(const std::filesystem::path& rom_path)
+MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
 {
-    core_.LoadRom(rom_path);
-
-    core_.GetPpu().SetVBlankCallback([this](const gb::FrameBuffer& fb)
-                                     { lcd_fb_ = fb; });
-
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         DIE("Error: SDL_Init(): {}", SDL_GetError());
     }
-    SDL_CreateWindowAndRenderer(
-        "gbcxx", gb::kLcdWidth, gb::kLcdHeight,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE, &window_,
-        &renderer_);
+    SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth, gb::kLcdHeight,
+                                SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE,
+                                &window_, &renderer_);
     if (!window_ || !renderer_)
     {
         DIE("Error: SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
     }
 
     lcd_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
-                                     SDL_TEXTUREACCESS_STREAMING, gb::kLcdWidth,
-                                     gb::kLcdHeight);
+                                     SDL_TEXTUREACCESS_STREAMING, gb::kLcdWidth, gb::kLcdHeight);
     if (!lcd_texture_)
     {
         DIE("Error: SDL_CreateTexture(): {}", SDL_GetError());
@@ -51,8 +46,7 @@ MainApp::MainApp(const std::filesystem::path& rom_path)
     SDL_SetTextureScaleMode(vram_bg_texture_, SDL_SCALEMODE_NEAREST);
 
     SDL_SetRenderVSync(renderer_, 1);
-    SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED,
-                          SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * 4, gb::kLcdHeight * 4);
     SDL_ShowWindow(window_);
 
@@ -74,10 +68,8 @@ MainApp::MainApp(const std::filesystem::path& rom_path)
     style.GrabRounding = 0.0F;
     style.TabRounding = 0.0F;
 
-    font_monospace_ =
-        io.Fonts->AddFontFromFileTTF("assets/RobotoMono-Regular.ttf", 20.0F);
-    font_body_ =
-        io.Fonts->AddFontFromFileTTF("assets/Roboto-Regular.ttf", 18.0F);
+    font_monospace_ = io.Fonts->AddFontFromFileTTF("assets/RobotoMono-Regular.ttf", 20.0F);
+    font_body_ = io.Fonts->AddFontFromFileTTF("assets/Roboto-Regular.ttf", 18.0F);
 
     io.FontDefault = font_body_;
 
@@ -103,18 +95,12 @@ void MainApp::PollEvents()
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_QUIT ||
-            (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-             event.window.windowID == SDL_GetWindowID(window_)))
+        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+                                             event.window.windowID == SDL_GetWindowID(window_)))
         {
             quit_ = true;
         }
     }
-}
-
-void MainApp::LoadRom(const std::string& rom_path)
-{
-    core_.LoadRom(rom_path);
 }
 
 namespace
@@ -147,7 +133,11 @@ void MainApp::StartApplicationLoop()
     while (!quit_)
     {
         PollEvents();
-        core_.RunFrame();
+        core_.RunFrame(
+            [this](const std::array<gb::Color, gb::kLcdSize>& lcd_buf)
+            {
+                lcd_fb_ = lcd_buf;
+            });
 
         if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
         {
@@ -175,13 +165,10 @@ void MainApp::StartApplicationLoop()
                 ImGui::BeginTabBar("##vram_tabs");
                 if (ImGui::BeginTabItem("Background"))
                 {
-                    core_.GetPpu().DrawBackgroundtileMap(vram_bg_fb_);
-                    SDL_UpdateTexture(vram_bg_texture_, nullptr,
-                                      vram_bg_fb_.data(),
-                                      256 * sizeof(gb::Color));
-                    ImGui::Image(
-                        reinterpret_cast<ImTextureID>(vram_bg_texture_),
-                        {256, 256});
+                    // core_.GetBus().ppu.DrawBackgroundtileMap(vram_bg_fb_);
+                    // SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
+                    //                   256 * sizeof(gb::Color));
+                    // ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -196,10 +183,8 @@ void MainApp::StartApplicationLoop()
         SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
         SDL_RenderClear(renderer_);
 
-        const SDL_FRect lcd_dst_rect =
-            CalculateIntegerLcdScale(window_, menu_bar_height_);
-        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(),
-                          gb::kLcdWidth * sizeof(gb::Color));
+        const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
+        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(), gb::kLcdWidth * sizeof(gb::Color));
         SDL_RenderClear(renderer_);
         SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
 
@@ -210,26 +195,21 @@ void MainApp::StartApplicationLoop()
 
 namespace
 {
-void OpenRomDialogCallback(void* userdata, const char* const* filelist,
-                           int /*filter*/)
+void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*filter*/)
 {
     auto* app = static_cast<MainApp*>(userdata);
 
-    // Some SDL error occurred.
     if (!filelist)
     {
         LOG_ERROR("An SDL error occurred: {}", SDL_GetError());
         return;
     }
 
-    // The user either didn't choose a file or canceled the dialog.
     if (!*filelist)
     {
         return;
     }
 
-    // Depending on the platform, the user may be allowed to input paths that
-    // don't yet exist. Guard against that.
     if (!std::filesystem::exists(*filelist))
     {
         app->ShowErrorMessageBox("The selected ROM file does not exist.");
@@ -251,15 +231,15 @@ void MainApp::MainMenu()
         {
             if (ImGui::MenuItem("Open ROM..."))
             {
-                static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
-                    {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
-                }};
-                SDL_ShowOpenFileDialog(&OpenRomDialogCallback,
-                                       /*userdata=*/this, window_,
-                                       /*filters=*/kFilters.data(),
-                                       /*nfilters=*/kFilters.size(),
-                                       /*default_location=*/nullptr,
-                                       /*allow_many=*/false);
+                // static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
+                //     {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
+                // }};
+                // SDL_ShowOpenFileDialog(&OpenRomDialogCallback,
+                //                        /*userdata=*/this, window_,
+                //                        /*filters=*/kFilters.data(),
+                //                        /*nfilters=*/kFilters.size(),
+                //                        /*default_location=*/nullptr,
+                //                        /*allow_many=*/false);
             }
 
             if (ImGui::MenuItem("Show ImGui Demo", nullptr, show_imgui_demo_))
@@ -292,6 +272,5 @@ void MainApp::MainMenu()
 
 void MainApp::ShowErrorMessageBox(const std::string& message)
 {
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", message.c_str(),
-                             window_);
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", message.c_str(), window_);
 }

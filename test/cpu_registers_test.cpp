@@ -10,8 +10,7 @@ using enum Cpu::R16;
 class CpuRegistersTest : public ::testing::Test
 {
 protected:
-    Core gb;
-    Cpu cpu{gb};
+    Cpu cpu{std::vector<uint8_t>(328)};
 };
 
 TEST_F(CpuRegistersTest, HandlesAFRegister)

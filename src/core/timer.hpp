@@ -1,32 +1,30 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
 namespace gb
 {
-class Core;
-
 class Timer
 {
 public:
-    explicit Timer(Core& gb) : gb_(gb) {}
+    [[nodiscard]] uint8_t ReadByte(uint16_t addr) const;
+    void WriteByte(uint16_t addr, uint8_t val);
 
-    [[nodiscard]] uint8_t Read(uint16_t addr) const;
-    void Write(uint16_t addr, uint8_t val);
-
-    void Tick();
+    void Tick(uint8_t tcycles);
+    uint8_t GetAndClearInterrupts() { return std::exchange(interrupts_, 0); }
 
 private:
-    void SysclkWrite(uint8_t new_val);
-    void DetectEdge(uint8_t before, uint8_t after);
+    uint16_t div_counter_{};
+    uint16_t tima_counter_{};
+    uint16_t tac_cycles_{1024};
+    uint8_t interrupts_{};
+    bool enabled_{};
+    bool tima_overflow_{};
 
-    Core& gb_;
-    uint8_t tima_{0x00};
-    bool tima_reload_cycle_{};
-    uint8_t tma_{0x00};
+    uint8_t div_{0xab};
+    uint8_t tima_{0};
+    uint8_t tma_{0};
     uint8_t tac_{0xf8};
-    uint8_t last_bit_{};
-    uint8_t sysclk_{};
-    uint8_t cycles_til_tima_irq_{};
 };
 }  // namespace gb

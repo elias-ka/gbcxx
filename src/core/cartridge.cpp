@@ -1,4 +1,4 @@
-#include "core/mbc.hpp"
+#include "core/cartridge.hpp"
 
 #include "core/mbc/mbc0.hpp"
 #include "core/mbc/mbc1.hpp"
@@ -6,21 +6,21 @@
 
 namespace gb
 {
-std::unique_ptr<Mbc> Mbc::MakeFromRom(std::vector<uint8_t> rom)
+Cartridge Cartridge::MakeFromRom(std::vector<uint8_t> rom)
 {
     switch (rom.at(0x147))
     {
     case 0x00:
     {
-        LOG_INFO("MBC: Cartridge type MBC0");
-        return std::make_unique<Mbc0>(std::move(rom));
+        LOG_INFO("Cartridge: Type MBC0");
+        return {.mbc = std::make_unique<Mbc0>(std::move(rom))};
     }
     case 0x01:
     case 0x02:
     case 0x03:
     {
-        LOG_INFO("MBC: Cartridge type MBC1");
-        return std::make_unique<Mbc1>(std::move(rom));
+        LOG_INFO("Cartridge: Type MBC1");
+        return {.mbc = std::make_unique<Mbc1>(std::move(rom))};
     }
     default: DIE("MBC: Unimplemented cartridge type {:X}", rom[0x147]);
     }
@@ -42,9 +42,7 @@ size_t CountRamBanks(uint8_t val)
 size_t CountRomBanks(uint8_t val)
 {
     if (val <= 8)
-    {
-        return 2 << val;
-    }
+        return static_cast<size_t>(2) << val;
     return 0;
 }
 

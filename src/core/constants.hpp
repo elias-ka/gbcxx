@@ -1,11 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace gb
 {
 constexpr int kLcdWidth = 160;
 constexpr int kLcdHeight = 144;
+constexpr auto kLcdSize = static_cast<size_t>(kLcdWidth) * kLcdHeight;
 
 constexpr uint16_t kCartridgeStart = 0x0000;
 constexpr uint16_t kCartridgeEnd = 0x7fff;
@@ -86,27 +88,4 @@ constexpr uint16_t kRegSvbk = 0xff70;
 constexpr uint16_t kRegPcm12 = 0xff76;
 constexpr uint16_t kRegPcm34 = 0xff77;
 constexpr uint16_t kRegIe = 0xffff;
-
-constexpr uint8_t kIoJoyp = 0x00;
-constexpr uint8_t kIoSb = 0x01;
-constexpr uint8_t kIoSc = 0x02;
-constexpr uint8_t kIoDiv = 0x04;
-constexpr uint8_t kIoTima = 0x05;
-constexpr uint8_t kIoTma = 0x06;
-constexpr uint8_t kIoTac = 0x07;
-constexpr uint8_t kIoIf = 0x0f;
-constexpr uint8_t kIoLcdc = 0x40;
-constexpr uint8_t kIoStat = 0x41;
-constexpr uint8_t kIoScy = 0x42;
-constexpr uint8_t kIoScx = 0x43;
-constexpr uint8_t kIoLy = 0x44;
-constexpr uint8_t kIoLyc = 0x45;
-constexpr uint8_t kIoDma = 0x46;
-constexpr uint8_t kIoBgp = 0x47;
-constexpr uint8_t kIoObp0 = 0x48;
-constexpr uint8_t kIoObp1 = 0x49;
-constexpr uint8_t kIoWy = 0x4a;
-constexpr uint8_t kIoWx = 0x4b;
-constexpr uint8_t kIoBoot = 0x50;
-constexpr uint8_t kIoIe = 0xff;
 }  // namespace gb

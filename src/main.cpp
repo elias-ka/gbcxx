@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    MainApp app{rom_file};
+    const auto rom_data = gb::fs::ReadFile(rom_file);
+    MainApp app{rom_data};
     app.StartApplicationLoop();
 }

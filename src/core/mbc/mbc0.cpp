@@ -14,4 +14,6 @@ uint8_t Mbc0::ReadRam(uint16_t /*address*/) const
 }
 void Mbc0::WriteRom(uint16_t /*address*/, uint8_t /*value*/) {}
 void Mbc0::WriteRam(uint16_t /*address*/, uint8_t /*value*/) {}
+void Mbc0::LoadRam(std::vector<uint8_t> /*ram*/) {}
+
 }  // namespace gb

@@ -1,45 +1,17 @@
 #include "core/cpu.hpp"
 
-#include "core/constants.hpp"
-#include "core/core.hpp"
-
 namespace gb
 {
-Cpu::Cpu(Core& gb) : gb_(gb)
-{
-    log_file_ << "";
-}
-
-uint8_t Cpu::Read(uint16_t addr) const
-{
-    switch (addr)
-    {
-    case kRegIe: return ie_;
-    case kRegIf: return if_ | 0b1110'0000;
-    default: DIE("CPU: Unmapped read {:X}", addr);
-    }
-}
-
-void Cpu::Write(uint16_t addr, uint8_t val)
-{
-    switch (addr)
-    {
-    case kRegIe: ie_ = val; break;
-    case kRegIf: if_ = val; break;
-    default: DIE("CPU: Unmapped write {:X} <- {:X}", addr, val);
-    }
-}
-
-int Cpu::Step()
+uint8_t Cpu::Step()
 {
     cycles_ = 0;
 
     HandleInterrupts();
 
-    if (ime_delay_)
+    if (ime_next_)
     {
         ime_ = true;
-        ime_delay_ = false;
+        ime_next_ = false;
     }
 
     if (halt_)
@@ -55,12 +27,7 @@ int Cpu::Step()
     return cycles_;
 }
 
-void Cpu::Irq(Interrupt interrupt)
-{
-    if_ |= std::to_underlying(interrupt);
-}
-
-void Cpu::Tick4x()
+void Cpu::Tick4()
 {
     cycles_ += 4;
 }
@@ -71,8 +38,8 @@ void Cpu::LogForGameBoyDoctor()
         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
         "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
         "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-        a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, gb_.BusRead8(pc_),
-        gb_.BusRead8(pc_ + 1), gb_.BusRead8(pc_ + 2), gb_.BusRead8(pc_ + 3));
+        a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
+        bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
 }
 
 // void Cpu::LogForGameBoyDoctor()
@@ -81,9 +48,8 @@ void Cpu::LogForGameBoyDoctor()
 //         "A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} "
 //         "H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} "
 //         "{:02X})\n",
-//         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_,
-//         gb_.BusRead8(pc_), gb_.BusRead8(pc_ + 1), gb_.BusRead8(pc_ + 2),
-//         gb_.BusRead8(pc_ + 3));
+//         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
+//         bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
 // }
 
 uint8_t Cpu::GetReg(R8 r) const
@@ -97,9 +63,7 @@ uint8_t Cpu::GetReg(R8 r) const
     case R8::H: return h_;
     case R8::L: return l_;
     case R8::A: return a_;
-    case R8::F:
-        return static_cast<uint8_t>((zf_ << 7) | (nf_ << 6) | (hf_ << 5) |
-                                    (cf_ << 4));
+    case R8::F: return static_cast<uint8_t>((zf_ << 7) | (nf_ << 6) | (hf_ << 5) | (cf_ << 4));
     }
 }
 
@@ -107,14 +71,10 @@ uint16_t Cpu::GetReg(R16 r) const
 {
     switch (r)
     {
-    case R16::Af:
-        return static_cast<uint16_t>(GetReg(R8::A) << 8) | GetReg(R8::F);
-    case R16::Bc:
-        return static_cast<uint16_t>(GetReg(R8::B) << 8) | GetReg(R8::C);
-    case R16::De:
-        return static_cast<uint16_t>(GetReg(R8::D) << 8) | GetReg(R8::E);
-    case R16::Hl:
-        return static_cast<uint16_t>(GetReg(R8::H) << 8) | GetReg(R8::L);
+    case R16::Af: return static_cast<uint16_t>(GetReg(R8::A) << 8) | GetReg(R8::F);
+    case R16::Bc: return static_cast<uint16_t>(GetReg(R8::B) << 8) | GetReg(R8::C);
+    case R16::De: return static_cast<uint16_t>(GetReg(R8::D) << 8) | GetReg(R8::E);
+    case R16::Hl: return static_cast<uint16_t>(GetReg(R8::H) << 8) | GetReg(R8::L);
     case R16::Sp: return sp_;
     case R16::Pc: return pc_;
     }
@@ -167,52 +127,58 @@ void Cpu::SetReg(R16 r, uint16_t v)
 
 uint8_t Cpu::ReadOperand()
 {
-    return BusRead8(pc_++);
+    Tick4();
+    return ReadByte(pc_++);
 }
 
 uint16_t Cpu::ReadOperands()
 {
-    const uint16_t ret = BusRead16(pc_);
-    pc_ += 2;
-    return ret;
+    const auto lo = ReadOperand();
+    const auto hi = ReadOperand();
+    return static_cast<uint16_t>((hi << 8) | lo);
 }
 
-uint8_t Cpu::BusRead8(uint16_t addr)
+uint8_t Cpu::ReadByte(uint16_t addr)
 {
-    Tick4x();
-    return gb_.BusRead8(addr);
+    Tick4();
+    return bus_.ReadByte(addr);
 }
 
-uint16_t Cpu::BusRead16(uint16_t addr)
+uint16_t Cpu::ReadWord(uint16_t addr)
 {
-    const uint8_t lo = BusRead8(addr);
-    const uint8_t hi = BusRead8(addr + 1);
-    return static_cast<uint16_t>(hi << 8 | lo);
+    const uint8_t lo = ReadByte(addr);
+    const uint8_t hi = ReadByte(addr + 1);
+    return static_cast<uint16_t>((hi << 8) | lo);
 }
 
-void Cpu::BusWrite8(uint16_t addr, uint8_t val)
+void Cpu::WriteByte(uint16_t addr, uint8_t val)
 {
-    Tick4x();
-    gb_.BusWrite8(addr, val);
+    Tick4();
+    bus_.WriteByte(addr, val);
 }
 
-void Cpu::BusWrite16(uint16_t addr, uint16_t val)
+void Cpu::WriteWord(uint16_t addr, uint16_t val)
 {
-    BusWrite8(addr, val & 0xff);
-    BusWrite8(addr + 1, val >> 8);
+    WriteByte(addr, val & 0xff);
+    WriteByte(addr + 1, val >> 8);
 }
 
 void Cpu::StackPush(uint16_t val)
 {
     sp_ -= 2;
-    BusWrite16(sp_, val);
+    WriteWord(sp_, val);
 }
 
 uint16_t Cpu::StackPop()
 {
-    const uint16_t ret = BusRead16(sp_);
+    const uint16_t ret = ReadWord(sp_);
     sp_ += 2;
     return ret;
+}
+
+bool Cpu::HavePendingInterrupts() const
+{
+    return (bus_.interrupt_enable & bus_.interrupt_flag & 0x1f) != 0;
 }
 
 void Cpu::HandleInterrupts()
@@ -220,54 +186,49 @@ void Cpu::HandleInterrupts()
     if (!ime_ && !halt_)
         return;
 
-    const uint8_t interrupts = ie_ & if_ & 0x1f;
+    const uint8_t interrupts = bus_.interrupt_enable & bus_.interrupt_flag & 0x1f;
     if (!interrupts)
         return;
 
     if (halt_)
     {
-        halt_ = false;
         cycles_ += 4;
+        halt_ = false;
     }
 
     if (!ime_)
         return;
 
     ime_ = false;
-
     if (interrupts & std::to_underlying(Interrupt::VBlank))
     {
         LOG_TRACE("CPU: Handling vblank interrupt");
         Instr_RST_N(0x40);
-        if_ &= ~std::to_underlying(Interrupt::VBlank);
+        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::VBlank);
     }
     else if (interrupts & std::to_underlying(Interrupt::Lcd))
     {
         LOG_TRACE("CPU: Handling lcd interrupt");
         Instr_RST_N(0x48);
-        if_ &= ~std::to_underlying(Interrupt::Lcd);
+        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Lcd);
     }
     else if (interrupts & std::to_underlying(Interrupt::Timer))
     {
         LOG_TRACE("CPU: Handling timer interrupt");
         Instr_RST_N(0x50);
-        if_ &= ~std::to_underlying(Interrupt::Timer);
+        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Timer);
     }
     else if (interrupts & std::to_underlying(Interrupt::Serial))
     {
         LOG_TRACE("CPU: Handling serial interrupt");
         Instr_RST_N(0x58);
-        if_ &= ~std::to_underlying(Interrupt::Serial);
+        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Serial);
     }
     else if (interrupts & std::to_underlying(Interrupt::Joypad))
     {
         LOG_TRACE("CPU: Handling joypad interrupt");
         Instr_RST_N(0x60);
-        if_ &= ~std::to_underlying(Interrupt::Joypad);
-    }
-    else
-    {
-        LOG_ERROR("CPU: Unknown interrupts {:X}", interrupts);
+        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Joypad);
     }
 
     cycles_ += 20;

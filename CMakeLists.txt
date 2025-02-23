@@ -13,7 +13,7 @@ include(cmake/CPM.cmake)
 
 CPMAddPackage(
   NAME fmt
-  GIT_TAG 11.0.2
+  GIT_TAG 11.1.3
   GITHUB_REPOSITORY fmtlib/fmt
   OPTIONS "FMT_INSTALL OFF"
   GIT_SHALLOW
@@ -22,7 +22,7 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME spdlog
-  GIT_TAG v1.15.0
+  GIT_TAG v1.15.1
   GITHUB_REPOSITORY gabime/spdlog
   GIT_SHALLOW
   OPTIONS "SPDLOG_INSTALL OFF"
@@ -34,8 +34,8 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME SDL
-  VERSION 3.2.0
-  GIT_TAG release-3.2.0
+  VERSION 3.2.4
+  GIT_TAG release-3.2.4
   GITHUB_REPOSITORY libsdl-org/SDL
   GIT_SHALLOW
   OPTIONS "BUILD_SHARED_LIBS OFF"
@@ -52,15 +52,18 @@ add_library(
   src/core/mbc/mbc0.hpp
   src/core/mbc/mbc1.cpp
   src/core/mbc/mbc1.hpp
+  src/core/bus.cpp
+  src/core/bus.hpp
+  src/core/cartridge.cpp
+  src/core/cartridge.hpp
   src/core/constants.hpp
   src/core/core.cpp
   src/core/core.hpp
-  src/core/mbc.cpp
-  src/core/mbc.hpp
-  src/core/ppu.cpp
-  src/core/ppu.hpp
   src/core/cpu.cpp
   src/core/cpu.hpp
+  src/core/interrupt.hpp
+  src/core/video/ppu.cpp
+  src/core/video/ppu.hpp
   src/core/timer.cpp
   src/core/timer.hpp
   src/core/util.cpp
@@ -70,13 +73,13 @@ target_compile_features(gbcxx_core PUBLIC cxx_std_23)
 target_include_directories(gbcxx_core PUBLIC src)
 target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog)
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT BUILD_TESTS)
-  target_compile_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer)
-  target_link_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address)
-endif()
+# if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND NOT BUILD_TESTS)
+#   target_compile_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer)
+#   target_link_options(gbcxx_core INTERFACE -fsanitize=undefined -fsanitize=address)
+# endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(gbcxx_core INTERFACE
+  target_compile_options(gbcxx_core PRIVATE
     -D_GLIBCXX_ASSERTIONS=1
     -fstack-protector-strong
     -fcf-protection=full
@@ -128,7 +131,7 @@ if(BUILD_TESTS)
   CPMAddPackage(
     NAME googletest
     GITHUB_REPOSITORY google/googletest
-    GIT_TAG v1.15.2
+    GIT_TAG v1.16.0
     OPTIONS "BUILD_GMOCK OFF"
             "INSTALL_GTEST OFF"
             "gtest_force_shared_crt"
@@ -137,7 +140,7 @@ if(BUILD_TESTS)
 
   CPMAddPackage(
     NAME simdjson
-    VERSION 3.11.3
+    VERSION 3.12.2
     GITHUB_REPOSITORY simdjson/simdjson
     GIT_SHALLOW
     SYSTEM ON

@@ -10,7 +10,7 @@
 class MainApp
 {
 public:
-    explicit MainApp(const std::filesystem::path& rom_path);
+    explicit MainApp(std::vector<uint8_t> rom_data);
     ~MainApp();
 
     void StartApplicationLoop();
@@ -18,6 +18,7 @@ public:
     void ShowErrorMessageBox(const std::string& message);
 
 private:
+    void LcdDrawCallback(const std::array<gb::Color, gb::kLcdSize>& lcd_buf);
     void PollEvents();
     void MainMenu();
 
@@ -28,11 +29,10 @@ private:
     SDL_Renderer* renderer_{};
 
     SDL_Texture* lcd_texture_{};
-    gb::FrameBuffer lcd_fb_{};
+    std::array<gb::Color, gb::kLcdSize> lcd_fb_{};
 
     SDL_Texture* vram_bg_texture_{};
-    std::vector<gb::Color> vram_bg_fb_ =
-        std::vector<gb::Color>(0x10000, {0xff, 0xff, 0xff});
+    std::vector<gb::Color> vram_bg_fb_ = std::vector<gb::Color>(0x10000, {0xff, 0xff, 0xff});
 
     bool show_imgui_demo_{};
     bool show_vram_debug_window_{};
