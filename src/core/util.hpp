@@ -54,6 +54,12 @@ decltype(auto) VariantMatch(V&& v, Ts&&... ts)
     return std::visit(Overloaded{FWD(ts)...}, FWD(v));
 }
 
+template <size_t Offset, typename T>
+constexpr T GetBit(T value)
+{
+    return (value >> Offset) & T{1};
+}
+
 namespace literals
 {
 constexpr size_t operator""_KiB(unsigned long long int n)

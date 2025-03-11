@@ -1,10 +1,10 @@
-#include "core/timer.hpp"
+#include "core/sm83/timer.hpp"
 
 #include "core/constants.hpp"
-#include "core/interrupt.hpp"
-#include "util.hpp"
+#include "core/sm83/interrupts.hpp"
+#include "core/util.hpp"
 
-namespace gb
+namespace gb::sm83
 {
 uint8_t Timer::ReadByte(uint16_t addr) const
 {
@@ -59,7 +59,7 @@ void Timer::Tick(uint8_t tcycles)
     {
         tima_overflow_ = false;
         tima_ = tma_;
-        interrupts_ |= std::to_underlying(Interrupt::Timer);
+        interrupts_.SetTimer();
     }
 
     tima_counter_ += tcycles;
@@ -75,4 +75,4 @@ void Timer::Tick(uint8_t tcycles)
     }
 }
 
-}  // namespace gb
+}  // namespace gb::sm83

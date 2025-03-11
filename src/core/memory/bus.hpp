@@ -2,24 +2,24 @@
 
 #include <utility>
 
-#include "core/cartridge.hpp"
-#include "core/timer.hpp"
+#include "core/memory/cartridge.hpp"
+#include "core/sm83/timer.hpp"
 #include "core/video/ppu.hpp"
 
-namespace gb
+namespace gb::memory
 {
 struct Bus
 {
     Cartridge cartridge{};
-    Ppu ppu;
-    Timer timer_;
+    video::Ppu ppu;
+    sm83::Timer timer;
     std::vector<uint8_t> wram;
     std::array<uint8_t, 128> hram;
     uint8_t interrupt_enable{0x00};
     uint8_t interrupt_flag{0xe1};
 
 #ifdef GBCXX_TESTS
-    // NOLINTNEXTLINE
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     explicit Bus(std::vector<uint8_t> /*rom_data*/) : wram(64_KiB) {}
 #else
     explicit Bus(std::vector<uint8_t> rom_data)
@@ -34,4 +34,4 @@ struct Bus
     void WriteByte(uint16_t addr, uint8_t val);
 };
 
-}  // namespace gb
+}  // namespace gb::memory

@@ -1,12 +1,19 @@
 #include "core/video/ppu.hpp"
 
 #include <cstddef>
+#include <ranges>
 
 #include "core/constants.hpp"
-#include "core/interrupt.hpp"
+#include "core/sm83/interrupts.hpp"
 #include "core/util.hpp"
 
-namespace gb
+namespace
+{
+constexpr size_t kTileSize = 8;
+constexpr size_t kTilesPerLine = 32;
+}  // namespace
+
+namespace gb::video
 {
 uint8_t Ppu::ReadByte(uint16_t addr) const
 {
@@ -14,48 +21,75 @@ uint8_t Ppu::ReadByte(uint16_t addr) const
         return vram_[addr - kVramStart];
 
     if (addr >= kOamStart && addr <= kOamEnd)
-        return oam_[addr - kOamStart];
+    {
+        addr -= kOamStart;
+        const Sprite& sprite = oam_[addr / 4];
+        switch (addr % 4)
+        {
+        case 0: return sprite.y;
+        case 1: return sprite.x;
+        case 2: return sprite.tile_index;
+        case 3: return static_cast<uint8_t>(sprite.flags);
+        default: std::unreachable();
+        }
+    }
 
     switch (addr)
     {
     case kRegLcdc: return static_cast<uint8_t>(lcd_control_);
     case kRegStat: return static_cast<uint8_t>(lcd_status_);
-    case kRegScy: return background_.scroll_y;
-    case kRegScx: return background_.scroll_x;
-    // case kRegLy: return ly_;
-    case kRegLy: return 0x90;
-    case kRegLyc: return lyc_;
+    case kRegScy: return scroll_y_;
+    case kRegScx: return scroll_x_;
+    case kRegLy: return scan_y_;
+    // case kRegLy: return 0x90;
+    case kRegLyc: return scan_y_compare_;
     case kRegBgp: return bgp_;
     case kRegObp0: return obp0_;
     case kRegObp1: return obp1_;
-    case kRegWy: return window_.GetY();
-    case kRegWx: return window_.GetX();
-    default: LOG_ERROR("PPU: Unmapped read {:X}", addr); return 0;
+    case kRegWy: return window_y_;
+    case kRegWx: return window_x_;
+    default: LOG_ERROR("PPU: Unmapped read {:X}", addr); return {};
     }
 }
 
 void Ppu::WriteByte(uint16_t addr, uint8_t val)
 {
     if (addr >= kVramStart && addr <= kVramEnd)
+    {
         vram_[addr - kVramStart] = val;
+    }
     else if (addr >= kOamStart && addr <= kOamEnd)
-        oam_[addr - kOamStart] = val;
+    {
+        addr -= kOamStart;
+        Sprite& sprite = oam_[addr / 4];
+
+        switch (addr % 4)
+        {
+        case 0: sprite.y = val; break;
+        case 1: sprite.x = val; break;
+        case 2: sprite.tile_index = val; break;
+        case 3: sprite.flags = SpriteFlags{val}; break;
+        default: std::unreachable();
+        }
+    }
     else
+    {
         switch (addr)
         {
         case kRegLcdc: SetLcdc(val); break;
         case kRegStat: lcd_status_ = LcdStatus{val}; break;
-        case kRegScy: background_.scroll_y = val; break;
-        case kRegScx: background_.scroll_x = val; break;
+        case kRegScy: scroll_y_ = val; break;
+        case kRegScx: scroll_x_ = val; break;
         case kRegLy: break;
-        case kRegLyc: SetLyc(val); break;
+        case kRegLyc: SetScanYCompare(val); break;
         case kRegBgp: bgp_ = val; break;
         case kRegObp0: obp0_ = val; break;
         case kRegObp1: obp1_ = val; break;
-        case kRegWy: window_.SetY(val); break;
-        case kRegWx: window_.SetX(val); break;
+        case kRegWy: window_y_ = val; break;
+        case kRegWx: window_x_ = val; break;
         default: LOG_ERROR("PPU: Unmapped write {:X} <- {:X}", addr, val);
         }
+    }
 }
 
 void Ppu::Tick(uint8_t tcycles)
@@ -74,18 +108,21 @@ void Ppu::Tick(uint8_t tcycles)
 
         cycles_ -= kCyclesHBlank;
 
-        if (ly_ >= 143)
+        if (scan_y_ >= 143) [[unlikely]]
         {
-            interrupts_ |= std::to_underlying(Interrupt::VBlank);
+            interrupts_.SetVBlank();
             lcd_status_.SetMode(Mode::VBlank, interrupts_);
             should_draw_frame_ = true;
         }
         else
         {
-            if (lcd_control_.WindowEnabled())
-                window_.IncrementLine(ly_);
+            if (lcd_control_.WindowEnabled() && (window_x_ - 7 < kLcdWidth) &&
+                (window_y_ < kLcdHeight) && (scan_y_ >= window_y_))
+            {
+                ++window_line_counter_;
+            }
 
-            SetLy(ly_ + 1);
+            SetScanY(scan_y_ + 1);
             lcd_status_.SetMode(Mode::Oam, interrupts_);
         }
         break;
@@ -96,15 +133,14 @@ void Ppu::Tick(uint8_t tcycles)
             return;
 
         cycles_ -= kCyclesVBlank;
-        SetLy(ly_ + 1);
+        SetScanY(scan_y_ + 1);
 
-        if (ly_ >= 154)
+        if (scan_y_ > 153) [[unlikely]]
         {
             lcd_status_.SetMode(Mode::Oam, interrupts_);
-            SetLy(0);
-            window_.ResetLine();
+            SetScanY(0);
+            window_line_counter_ = 0;
         }
-
         break;
     }
     case Mode::Oam:
@@ -113,6 +149,27 @@ void Ppu::Tick(uint8_t tcycles)
             return;
 
         cycles_ -= kCyclesOam;
+
+        scanline_sprite_buffer_.clear();
+
+        for (const auto& [oam_index, sprite] : std::views::enumerate(oam_))
+        {
+            constexpr int kSpriteYOffset = 16;
+            if ((sprite.x > 0) && (scan_y_ + kSpriteYOffset >= sprite.y) &&
+                (scan_y_ + kSpriteYOffset < sprite.y + lcd_control_.GetSpriteHeight()))
+            {
+                scanline_sprite_buffer_.emplace_back(oam_index, sprite);
+            }
+        }
+
+        constexpr int kMaxSpritesPerScanline = 10;
+        if (scanline_sprite_buffer_.size() > kMaxSpritesPerScanline)
+            scanline_sprite_buffer_.resize(kMaxSpritesPerScanline);
+
+        std::ranges::sort(
+            scanline_sprite_buffer_, [](const auto& a, const auto& b)
+            { return std::tie(a.second.x, a.first) > std::tie(b.second.x, b.first); });
+
         lcd_status_.SetMode(Mode::Transfer, interrupts_);
         break;
     }
@@ -127,40 +184,41 @@ void Ppu::Tick(uint8_t tcycles)
         break;
     }
     }
-}
+}  // namespace gb
 
-void Ppu::SetLcdc(uint8_t val)
+void Ppu::SetLcdc(uint8_t lcdc)
 {
-    lcd_control_ = LcdControl{val};
-    if (!lcd_control_.LcdEnabled())
+    const bool was_enabled = lcd_control_.LcdEnabled();
+    lcd_control_ = LcdControl{lcdc};
+    if (!lcd_control_.LcdEnabled() && was_enabled) [[unlikely]]
     {
         cycles_ = 0;
-        ly_ = 0;
-        window_.ResetLine();
+        scan_y_ = 0;
+        window_line_counter_ = 0;
         lcd_status_.SetMode(Mode::HBlank);
     }
 }
 
-void Ppu::SetLy(uint8_t val)
+void Ppu::SetScanY(uint8_t scan_y)
 {
-    ly_ = val;
+    scan_y_ = scan_y;
     CompareLine();
 }
 
-void Ppu::SetLyc(uint8_t val)
+void Ppu::SetScanYCompare(uint8_t scan_y_compare)
 {
-    lyc_ = val;
+    scan_y_compare_ = scan_y_compare;
     CompareLine();
 }
 
 void Ppu::CompareLine()
 {
-    if (lyc_ == ly_)
+    if (scan_y_compare_ == scan_y_) [[unlikely]]
     {
-        lcd_status_.SetCompareFlag(true);
+        lcd_status_.SetCompareFlag();
 
         if (lcd_status_.LycEqLyEnable())
-            interrupts_ |= std::to_underlying(Interrupt::Lcd);
+            interrupts_.SetLcd();
     }
     else
     {
@@ -168,36 +226,12 @@ void Ppu::CompareLine()
     }
 }
 
-std::tuple<uint16_t, uint8_t, uint8_t> Ppu::GetBgOrWinTileData(uint8_t lx) const
-{
-    if (lcd_control_.WindowEnabled() && window_.ContainsPixel(lx, ly_))
-    {
-        const auto base = lcd_control_.GetWindowBase();
-        const auto [x, y] = window_.GetTileMapCoords(lx);
-        const auto tile_idx_addr = base + ((y / 8) * (256 / 8)) + (x / 8);
-        const auto [x_off, y_off] = window_.GetPixelOffsets(lx, ly_);
-        return {tile_idx_addr, x_off, y_off};
-    }
-
-    const auto base = lcd_control_.GetBackgroundBase();
-    const auto [x, y] = background_.GetTileMapCoords(lx, ly_);
-    const auto tile_idx_addr = base + ((y / 8) * (256 / 8)) + (x / 8);
-    const auto [x_off, y_off] = Background::GetPixelOffsets(x, y);
-    return {tile_idx_addr, x_off, y_off};
-}
-
-void Ppu::RenderScanline()
-{
-    if (lcd_control_.BgWinEnabled())
-        RenderBgWinScanline();
-}
-
 namespace
 {
-uint8_t GetPixelColorIndex(uint8_t lo_byte, uint8_t hi_byte, uint8_t pixel)
+uint8_t GetPixelColorIndex(uint8_t lo_byte, uint8_t hi_byte, uint8_t bit_pos)
 {
-    const auto bit0 = (lo_byte >> pixel) & 1;
-    const auto bit1 = ((hi_byte >> pixel) & 1) << 1;
+    const auto bit0 = (lo_byte >> bit_pos) & 1;
+    const auto bit1 = ((hi_byte >> bit_pos) & 1) << 1;
     return static_cast<uint8_t>(bit1 | bit0);
 }
 
@@ -207,52 +241,156 @@ Color GetPixelColor(uint8_t palette, uint8_t color_idx)
 }
 }  // namespace
 
-void Ppu::RenderBgWinScanline()
+void Ppu::RenderScanline()
 {
-    const auto base = static_cast<size_t>(ly_) * kLcdWidth;
-    for (uint8_t lx = 0; lx < kLcdWidth; ++lx)
+    const auto scanline_start = static_cast<size_t>(scan_y_) * kLcdWidth;
+
+    for (uint8_t scan_x = 0; scan_x < kLcdWidth; ++scan_x)
     {
-        const auto [tile_idx_addr, x_off, y_off] = GetBgOrWinTileData(lx);
-        const uint8_t tile_idx = ReadByte(tile_idx_addr);
-        const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
-        const uint8_t lo_byte = ReadByte(tile_addr + y_off);
-        const uint8_t hi_byte = ReadByte(tile_addr + y_off + 1);
-        const uint8_t color_idx = GetPixelColorIndex(lo_byte, hi_byte, x_off);
-        const Color pixel = GetPixelColor(bgp_, color_idx);
-        lcd_buf_[base + lx] = pixel;
+        const Color background_color = FetchBackgroundPixel(scan_x, scan_y_);
+        lcd_buf_[scanline_start + scan_x] = background_color;
+        bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
+            (background_color == Color::FromIndex(0));
+
+        const Color window_color = FetchWindowPixel(scan_x, scan_y_);
+        if (!window_color.IsTransparent())
+        {
+            lcd_buf_[scanline_start + scan_x] = window_color;
+            bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
+                (window_color == Color::FromIndex(0));
+        }
+    }
+
+    if (!lcd_control_.ObjEnabled())
+    {
+        return;
+    }
+
+    for (const auto& [_, sprite] : scanline_sprite_buffer_)
+    {
+        const uint8_t tile_index =
+            lcd_control_.ObjTallSize() ? sprite.tile_index & ~1 : sprite.tile_index;
+
+        uint8_t row = scan_y_ - (sprite.y - 16);
+        if (sprite.flags.YFlip())
+        {
+            row = lcd_control_.GetSpriteHeight() - 1 - row;
+        }
+
+        const uint16_t tile_addr = kVramStart + ((static_cast<uint16_t>(tile_index * 8) + row) * 2);
+        const uint8_t byte1 = ReadByte(tile_addr);
+        const uint8_t byte2 = ReadByte(tile_addr + 1);
+
+        for (uint8_t px = 0; px < kTileSize; ++px)
+        {
+            const uint8_t x_off = (sprite.x - 8) + px;
+            if (x_off >= kLcdWidth)
+            {
+                continue;
+            }
+
+            if (sprite.flags.BgWinPriority() && !bg_transparency_[(scan_y_ * kLcdWidth) + x_off])
+            {
+                continue;
+            }
+
+            const uint8_t flipped_px = sprite.flags.XFlip() ? px : 7 - px;
+
+            const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, flipped_px);
+            if (color_idx == 0)
+            {
+                continue;
+            }
+
+            const uint8_t palette = sprite.flags.DmgPalette() ? obp1_ : obp0_;
+            const Color color = GetPixelColor(palette, color_idx);
+            lcd_buf_[scanline_start + x_off] = color;
+        }
     }
 }
 
-void Ppu::DrawTileMap(std::span<gb::Color> buf, uint16_t tile_address) const
+Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y)
 {
-    constexpr size_t kMapSize = 32;
-    constexpr size_t kTileSize = 8;
-    constexpr size_t kMapWidth = kMapSize * kTileSize;
+    if (!lcd_control_.BgWinEnabled())
+    {
+        return Color::FromIndex(0);
+    }
+
+    const uint16_t bg_map_base = lcd_control_.GetBackgroundTileMapAddress();
+    const uint8_t bg_map_x = scan_x + scroll_x_;
+    const uint8_t bg_map_y = scan_y + scroll_y_;
+
+    const uint16_t tile_idx_addr =
+        bg_map_base + ((bg_map_y / kTileSize) * kTilesPerLine) + (bg_map_x / kTileSize);
+    const uint8_t tile_idx = ReadByte(tile_idx_addr);
+
+    const uint8_t x_off = 7 - (bg_map_x % kTileSize);
+    const uint8_t y_off = 2 * (bg_map_y % kTileSize);
+
+    const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
+    const uint8_t byte1 = ReadByte(tile_addr + y_off);
+    const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
+
+    const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, x_off);
+
+    return GetPixelColor(bgp_, color_idx);
+}
+
+Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
+{
+    if (!lcd_control_.WindowEnabled() || !lcd_control_.BgWinEnabled() || (scan_y_ < window_y_) ||
+        (scan_x < window_x_ - 7))
+    {
+        return Color::Transparent();
+    }
+
+    const uint16_t win_map_base = lcd_control_.GetWindowTileMapAddress();
+    const uint8_t win_map_x = scan_x - (window_x_ - 7);
+    const uint8_t win_map_y = window_line_counter_;
+
+    const uint16_t tile_idx_addr =
+        win_map_base + ((win_map_y / kTileSize) * kTilesPerLine) + (win_map_x / kTileSize);
+    const uint8_t tile_idx = ReadByte(tile_idx_addr);
+
+    const uint8_t x_off = (window_x_ - scan_x) % kTileSize;
+    const uint8_t y_off = 2 * ((scan_y - window_y_) % kTileSize);
+
+    const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
+    const uint8_t byte1 = ReadByte(tile_addr + y_off);
+    const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
+
+    const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, x_off);
+
+    return GetPixelColor(bgp_, color_idx);
+}
+
+void Ppu::DrawTileMap(std::span<Color> buf, uint16_t tile_address) const
+{
+    constexpr size_t kMapWidth = kTilesPerLine * kTileSize;
 
     assert(buf.size() == (kMapWidth * kMapWidth));
 
     for (size_t px = 0; px < (kMapWidth * kMapWidth); ++px)
     {
-        const size_t x_pos = px % kMapWidth;
-        const size_t y_pos = px / kMapWidth;
+        const size_t x = px % kMapWidth;
+        const size_t y = px / kMapWidth;
 
-        const size_t tile_x = x_pos / kTileSize;
-        const size_t tile_y = y_pos / kTileSize;
+        const size_t tile_x = x / kTileSize;
+        const size_t tile_y = y / kTileSize;
 
-        const uint8_t tile_id = vram_[tile_address + (tile_y * kMapSize) + tile_x];
+        const uint8_t tile_id = vram_[tile_address + (tile_y * kTilesPerLine) + tile_x];
         const auto tile_base = static_cast<size_t>(tile_id) * 16;
 
-        const size_t tile_row = y_pos % kTileSize;
-        const size_t tile_col = x_pos % kTileSize;
+        const uint8_t tile_row = y % kTileSize;
+        const uint8_t tile_col = x % kTileSize;
 
-        const uint8_t byte1 = vram_[tile_base + (tile_row * 2)];
-        const uint8_t byte2 = vram_[tile_base + (tile_row * 2) + 1];
+        const uint8_t lo_byte = vram_[tile_base + (static_cast<size_t>(tile_row) * 2)];
+        const uint8_t hi_byte = vram_[tile_base + (static_cast<size_t>(tile_row) * 2) + 1];
 
-        const auto mask = static_cast<uint8_t>(1 << (7 - tile_col));
-        uint8_t color_idx = ((byte1 & mask) ? 1 : 0) | ((byte2 & mask) ? 2 : 0);
-        color_idx = (bgp_ >> (color_idx << 1)) & 3;
+        const uint8_t bit_pos = 7 - tile_col;
+        const uint8_t color_index = GetPixelColorIndex(lo_byte, hi_byte, bit_pos);
 
-        buf[px] = Color::FromIndex(color_idx);
+        buf[px] = Color::FromIndex(color_index);
     }
 }
-}  // namespace gb
+}  // namespace gb::video

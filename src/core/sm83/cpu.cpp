@@ -1,6 +1,6 @@
-#include "core/cpu.hpp"
+#include "core/sm83/cpu.hpp"
 
-namespace gb
+namespace gb::sm83
 {
 uint8_t Cpu::Step()
 {
@@ -32,25 +32,25 @@ void Cpu::Tick4()
     cycles_ += 4;
 }
 
-void Cpu::LogForGameBoyDoctor()
-{
-    log_file_ << fmt::format(
-        "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
-        "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
-        "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-        a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
-        bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
-}
-
 // void Cpu::LogForGameBoyDoctor()
 // {
 //     log_file_ << fmt::format(
-//         "A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} "
-//         "H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} "
-//         "{:02X})\n",
+//         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
+//         "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
+//         "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
 //         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
 //         bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
 // }
+
+void Cpu::LogForGameBoyDoctor()
+{
+    log_file_ << fmt::format(
+        "A: {:02X} F: {:02X} B: {:02X} C: {:02X} D: {:02X} E: {:02X} "
+        "H: {:02X} L: {:02X} SP: {:04X} PC: 00:{:04X} ({:02X} {:02X} {:02X} "
+        "{:02X})\n",
+        a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
+        bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
+}
 
 uint8_t Cpu::GetReg(R8 r) const
 {
@@ -92,10 +92,10 @@ void Cpu::SetReg(R8 r, uint8_t v)
     case R8::L: l_ = v; break;
     case R8::A: a_ = v; break;
     case R8::F:
-        zf_ = (v >> 7) & 1;
-        nf_ = (v >> 6) & 1;
-        hf_ = (v >> 5) & 1;
-        cf_ = (v >> 4) & 1;
+        zf_ = GetBit<7>(v);
+        nf_ = GetBit<6>(v);
+        hf_ = GetBit<5>(v);
+        cf_ = GetBit<4>(v);
         break;
     }
 }
@@ -127,7 +127,6 @@ void Cpu::SetReg(R16 r, uint16_t v)
 
 uint8_t Cpu::ReadOperand()
 {
-    Tick4();
     return ReadByte(pc_++);
 }
 
@@ -176,18 +175,14 @@ uint16_t Cpu::StackPop()
     return ret;
 }
 
-bool Cpu::HavePendingInterrupts() const
-{
-    return (bus_.interrupt_enable & bus_.interrupt_flag & 0x1f) != 0;
-}
-
 void Cpu::HandleInterrupts()
 {
     if (!ime_ && !halt_)
         return;
 
-    const uint8_t interrupts = bus_.interrupt_enable & bus_.interrupt_flag & 0x1f;
-    if (!interrupts)
+    const auto interrupts = Interrupts(bus_.interrupt_enable & bus_.interrupt_flag & 0x1f);
+
+    if (interrupts.IsNone())
         return;
 
     if (halt_)
@@ -200,37 +195,11 @@ void Cpu::HandleInterrupts()
         return;
 
     ime_ = false;
-    if (interrupts & std::to_underlying(Interrupt::VBlank))
-    {
-        LOG_TRACE("CPU: Handling vblank interrupt");
-        Instr_RST_N(0x40);
-        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::VBlank);
-    }
-    else if (interrupts & std::to_underlying(Interrupt::Lcd))
-    {
-        LOG_TRACE("CPU: Handling lcd interrupt");
-        Instr_RST_N(0x48);
-        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Lcd);
-    }
-    else if (interrupts & std::to_underlying(Interrupt::Timer))
-    {
-        LOG_TRACE("CPU: Handling timer interrupt");
-        Instr_RST_N(0x50);
-        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Timer);
-    }
-    else if (interrupts & std::to_underlying(Interrupt::Serial))
-    {
-        LOG_TRACE("CPU: Handling serial interrupt");
-        Instr_RST_N(0x58);
-        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Serial);
-    }
-    else if (interrupts & std::to_underlying(Interrupt::Joypad))
-    {
-        LOG_TRACE("CPU: Handling joypad interrupt");
-        Instr_RST_N(0x60);
-        bus_.interrupt_flag &= ~std::to_underlying(Interrupt::Joypad);
-    }
 
+    const uint8_t prio = interrupts.GetPriorityInterrupt();
+    const uint8_t vec = 0x40 + (prio * 8);
+    Instr_RST_N(vec);
+    bus_.interrupt_flag &= ~(1 << prio);
     cycles_ += 20;
 }
 
@@ -528,7 +497,7 @@ void Cpu::InterpretInstruction()
     case 0xcb:
     {
         opcode = ReadOperand();
-        LOG_TRACE("CPU: opcode 0xCB{:X}", opcode);
+        LOG_TRACE("CPU: opcode CB{:X}", opcode);
         switch (opcode)
         {
         case 0x07: Instr_RLC_R(R8::A); break;
@@ -805,4 +774,4 @@ void Cpu::InterpretInstruction()
     }
 }
 
-}  // namespace gb
+}  // namespace gb::sm83

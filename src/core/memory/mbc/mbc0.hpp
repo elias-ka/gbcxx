@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/cartridge.hpp"
+#include "core/memory/cartridge.hpp"
 
-namespace gb
+namespace gb::memory
 {
 class Mbc0 final : public Mbc
 {
@@ -20,4 +20,4 @@ private:
     std::vector<uint8_t> rom_;
 };
 
-}  // namespace gb
+}  // namespace gb::memory

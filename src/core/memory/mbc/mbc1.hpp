@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/cartridge.hpp"
+#include "core/memory/cartridge.hpp"
 
-namespace gb
+namespace gb::memory
 {
 class Mbc1 final : public Mbc
 {
@@ -26,4 +26,4 @@ private:
     uint8_t banking_mode_{0};
     bool ram_enabled_{false};
 };
-}  // namespace gb
+}  // namespace gb::memory

@@ -1,6 +1,6 @@
-#include "core/mbc/mbc0.hpp"
+#include "core/memory/mbc/mbc0.hpp"
 
-namespace gb
+namespace gb::memory
 {
 Mbc0::Mbc0(std::vector<uint8_t> cartrom) : rom_(std::move(cartrom)) {}
 
@@ -16,4 +16,4 @@ void Mbc0::WriteRom(uint16_t /*address*/, uint8_t /*value*/) {}
 void Mbc0::WriteRam(uint16_t /*address*/, uint8_t /*value*/) {}
 void Mbc0::LoadRam(std::vector<uint8_t> /*ram*/) {}
 
-}  // namespace gb
+}  // namespace gb::memory

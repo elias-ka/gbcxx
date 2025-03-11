@@ -3,13 +3,13 @@
 #include <array>
 #include <cassert>
 #include <span>
+#include <vector>
 
 #include "core/constants.hpp"
 #include "core/video/lcd_control.hpp"
 #include "core/video/lcd_status.hpp"
-#include "core/video/window.hpp"
 
-namespace gb
+namespace gb::video
 {
 struct __attribute__((packed)) Color
 {
@@ -30,8 +30,40 @@ struct __attribute__((packed)) Color
         }
     }
 
+    static Color Transparent() { return {0, 0, 0, 0}; }
+
     constexpr Color() = default;
     constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff) : a(a), b(b), g(g), r(r) {}
+
+    constexpr auto operator<=>(const Color&) const = default;
+
+    [[nodiscard]] bool IsTransparent() const { return a == 0; }
+};
+
+class SpriteFlags
+{
+public:
+    SpriteFlags() = default;
+    explicit SpriteFlags(uint8_t byte) : bits_(byte) {}
+
+    explicit operator uint8_t() const { return static_cast<uint8_t>(bits_.to_ulong()); }
+
+    [[nodiscard]] constexpr bool DmgPalette() const { return bits_.test(4); }
+    [[nodiscard]] constexpr bool XFlip() const { return bits_.test(5); }
+    [[nodiscard]] constexpr bool YFlip() const { return bits_.test(6); }
+    [[nodiscard]] constexpr bool BgWinPriority() const { return bits_.test(7); }
+
+private:
+    std::bitset<8> bits_;
+};
+
+struct Sprite
+{
+    uint8_t y;
+    uint8_t x;
+    uint8_t tile_index;
+    SpriteFlags flags;
+    size_t oam_index;
 };
 
 class Ppu
@@ -42,12 +74,17 @@ public:
 
     void Tick(uint8_t tcycles);
 
-    uint8_t GetAndClearInterrupts() { return std::exchange(interrupts_, 0); }
+    uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
 
     [[nodiscard]] const std::array<Color, kLcdSize>& GetLcdBuffer() const { return lcd_buf_; }
 
     [[nodiscard]] bool ShouldDrawFrame() const { return should_draw_frame_; }
     void SetShouldDrawFrame(bool v) { should_draw_frame_ = v; }
+
+    void DrawBackgroundTileMap(std::span<Color> buf) const
+    {
+        DrawTileMap(buf, lcd_control_.GetBackgroundTileMapAddress());
+    }
 
 private:
     static const int kCyclesOam = 80;
@@ -55,52 +92,38 @@ private:
     static const int kCyclesVBlank = 456;
     static const int kCyclesHBlank = 204;
 
-    struct Background
-    {
-        uint8_t scroll_x{};
-        uint8_t scroll_y{};
-
-        [[nodiscard]] std::tuple<uint8_t, uint8_t> GetTileMapCoords(uint8_t lx, uint8_t ly) const
-        {
-            return {lx + scroll_x, ly + scroll_y};
-        }
-
-        [[nodiscard]] static std::tuple<uint8_t, uint8_t> GetPixelOffsets(uint8_t x, uint8_t y)
-        {
-            const uint8_t x_off = 7 - (x % 8);
-            const uint8_t y_off = 2 * (y % 8);
-            return {x_off, y_off};
-        }
-    };
-
-    void SetLcdc(uint8_t val);
-    void SetLy(uint8_t val);
-    void SetLyc(uint8_t val);
+    void SetLcdc(uint8_t lcdc);
+    void SetScanY(uint8_t scan_y);
+    void SetScanYCompare(uint8_t scan_y_compare);
     void CompareLine();
 
-    [[nodiscard]] std::tuple<uint16_t, uint8_t, uint8_t> GetBgOrWinTileData(uint8_t lx) const;
-
     void RenderScanline();
-    void RenderBgWinScanline();
+    Color FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y);
+    Color FetchWindowPixel(uint8_t scan_x, uint8_t scan_y);
 
-    void DrawTileMap(std::span<gb::Color> buf, uint16_t tile_address) const;
+    void DrawTileMap(std::span<Color> buf, uint16_t tile_address) const;
 
-    std::array<uint8_t, 8192> vram_;
-    std::array<uint8_t, 160> oam_;
     std::array<Color, kLcdSize> lcd_buf_;
+    std::array<uint8_t, 8192> vram_;
+    std::array<Sprite, 40> oam_;
+    std::vector<std::pair<size_t, Sprite>> scanline_sprite_buffer_;
+    std::bitset<kLcdSize> bg_transparency_;
+    sm83::Interrupts interrupts_;
     uint16_t cycles_;
-    uint8_t interrupts_;
     bool should_draw_frame_{};
 
     LcdControl lcd_control_;
     LcdStatus lcd_status_;
-    Background background_;
-    Window window_;
 
+    uint8_t scroll_x_{0};
+    uint8_t scroll_y_{0};
     uint8_t bgp_{0xfc};
-    uint8_t ly_{0x00};
-    uint8_t lyc_{0x00};
-    uint8_t obp0_{0x00};
-    uint8_t obp1_{0x00};
+    uint8_t scan_y_{0};
+    uint8_t scan_y_compare_{0};
+    uint8_t obp0_{0};
+    uint8_t obp1_{0};
+    uint8_t window_x_{0};
+    uint8_t window_y_{0};
+    uint8_t window_line_counter_{0};
 };
-}  // namespace gb
+}  // namespace gb::video

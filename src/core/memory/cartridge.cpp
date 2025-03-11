@@ -1,10 +1,10 @@
-#include "core/cartridge.hpp"
+#include "core/memory/cartridge.hpp"
 
-#include "core/mbc/mbc0.hpp"
-#include "core/mbc/mbc1.hpp"
-#include "util.hpp"
+#include "core/memory/mbc/mbc0.hpp"
+#include "core/memory/mbc/mbc1.hpp"
+#include "core/util.hpp"
 
-namespace gb
+namespace gb::memory
 {
 Cartridge Cartridge::MakeFromRom(std::vector<uint8_t> rom)
 {
@@ -46,4 +46,4 @@ size_t CountRomBanks(uint8_t val)
     return 0;
 }
 
-}  // namespace gb
+}  // namespace gb::memory

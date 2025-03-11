@@ -95,8 +95,9 @@ void MainApp::PollEvents()
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                                             event.window.windowID == SDL_GetWindowID(window_)))
+        if (event.type == SDL_EVENT_QUIT
+            || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED
+                && event.window.windowID == SDL_GetWindowID(window_)))
         {
             quit_ = true;
         }
@@ -133,11 +134,8 @@ void MainApp::StartApplicationLoop()
     while (!quit_)
     {
         PollEvents();
-        core_.RunFrame(
-            [this](const std::array<gb::Color, gb::kLcdSize>& lcd_buf)
-            {
-                lcd_fb_ = lcd_buf;
-            });
+        core_.RunFrame([this](const std::array<gb::video::Color, gb::kLcdSize>& lcd_buf)
+                       { lcd_fb_ = lcd_buf; });
 
         if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
         {
@@ -165,10 +163,10 @@ void MainApp::StartApplicationLoop()
                 ImGui::BeginTabBar("##vram_tabs");
                 if (ImGui::BeginTabItem("Background"))
                 {
-                    // core_.GetBus().ppu.DrawBackgroundtileMap(vram_bg_fb_);
-                    // SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
-                    //                   256 * sizeof(gb::Color));
-                    // ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
+                    core_.GetBus().ppu.DrawBackgroundTileMap(vram_bg_fb_);
+                    SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
+                                      256 * sizeof(gb::video::Color));
+                    ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -184,7 +182,8 @@ void MainApp::StartApplicationLoop()
         SDL_RenderClear(renderer_);
 
         const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
-        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(), gb::kLcdWidth * sizeof(gb::Color));
+        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(),
+                          gb::kLcdWidth * sizeof(gb::video::Color));
         SDL_RenderClear(renderer_);
         SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
 
@@ -234,12 +233,9 @@ void MainApp::MainMenu()
                 // static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
                 //     {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
                 // }};
-                // SDL_ShowOpenFileDialog(&OpenRomDialogCallback,
-                //                        /*userdata=*/this, window_,
-                //                        /*filters=*/kFilters.data(),
-                //                        /*nfilters=*/kFilters.size(),
-                //                        /*default_location=*/nullptr,
-                //                        /*allow_many=*/false);
+                // SDL_ShowOpenFileDialog(&OpenRomDialogCallback, /*userdata=*/this, window_,
+                //                        kFilters.data(), kFilters.size(),
+                //                        /*default_location=*/nullptr, /*allow_many=*/false);
             }
 
             if (ImGui::MenuItem("Show ImGui Demo", nullptr, show_imgui_demo_))

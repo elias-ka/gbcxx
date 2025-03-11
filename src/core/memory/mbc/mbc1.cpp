@@ -1,8 +1,8 @@
-#include "core/mbc/mbc1.hpp"
+#include "core/memory/mbc/mbc1.hpp"
 
 #include "core/util.hpp"
 
-namespace gb
+namespace gb::memory
 {
 Mbc1::Mbc1(std::vector<uint8_t> cartrom)
     : rom_(std::move(cartrom)),
@@ -83,4 +83,4 @@ void Mbc1::LoadRam(std::vector<uint8_t> ram)
     ram_ = std::move(ram);
 }
 
-}  // namespace gb
+}  // namespace gb::memory

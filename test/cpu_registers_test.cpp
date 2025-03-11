@@ -1,16 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "core/core.hpp"
-#include "core/cpu.hpp"
+#include "core/sm83/cpu.hpp"
 
 using namespace gb;
-using enum Cpu::R8;
-using enum Cpu::R16;
+using enum sm83::Cpu::R8;
+using enum sm83::Cpu::R16;
 
 class CpuRegistersTest : public ::testing::Test
 {
 protected:
-    Cpu cpu{std::vector<uint8_t>(328)};
+    sm83::Cpu cpu{{}};
 };
 
 TEST_F(CpuRegistersTest, HandlesAFRegister)

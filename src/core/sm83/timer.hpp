@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <utility>
 
-namespace gb
+#include "core/sm83/interrupts.hpp"
+
+namespace gb::sm83
 {
 class Timer
 {
@@ -12,13 +13,13 @@ public:
     void WriteByte(uint16_t addr, uint8_t val);
 
     void Tick(uint8_t tcycles);
-    uint8_t GetAndClearInterrupts() { return std::exchange(interrupts_, 0); }
+    uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
 
 private:
     uint16_t div_counter_{};
     uint16_t tima_counter_{};
     uint16_t tac_cycles_{1024};
-    uint8_t interrupts_{};
+    Interrupts interrupts_;
     bool enabled_{};
     bool tima_overflow_{};
 
@@ -27,4 +28,4 @@ private:
     uint8_t tma_{0};
     uint8_t tac_{0xf8};
 };
-}  // namespace gb
+}  // namespace gb::sm83

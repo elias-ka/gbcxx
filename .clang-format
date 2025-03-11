@@ -1,11 +1,14 @@
 AccessModifierOffset: -4
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortLambdasOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: false
 BasedOnStyle: Google
+BreakBeforeTernaryOperators: true
 BreakBeforeBraces: Allman
+BreakStringLiterals: false
 ColumnLimit: 100
 DerivePointerAlignment: false
 IndentCaseLabels: false

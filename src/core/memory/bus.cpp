@@ -1,16 +1,16 @@
-#include "core/bus.hpp"
+#include "core/memory/bus.hpp"
 
 #include "core/constants.hpp"
 
-namespace gb
+namespace gb::memory
 {
 void Bus::Tick(uint8_t tcycles)
 {
-    timer_.Tick(tcycles);
-    interrupt_flag |= timer_.GetAndClearInterrupts();
+    timer.Tick(tcycles);
+    interrupt_flag |= timer.ConsumeInterrupts();
 
     ppu.Tick(tcycles);
-    interrupt_flag |= ppu.GetAndClearInterrupts();
+    interrupt_flag |= ppu.ConsumeInterrupts();
 }
 
 uint8_t Bus::ReadByte(uint16_t addr) const
@@ -38,7 +38,7 @@ uint8_t Bus::ReadByte(uint16_t addr) const
         return ppu.ReadByte(addr);
 
     if (addr >= kRegDiv && addr <= kRegTac)
-        return timer_.ReadByte(addr);
+        return timer.ReadByte(addr);
 
     if (addr >= kNotUsableStart && addr <= kNotUsableEnd)
         return 0;
@@ -92,7 +92,7 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
         ppu.WriteByte(addr, val);
 
     else if (addr >= kRegDiv && addr <= kRegTac)
-        timer_.WriteByte(addr, val);
+        timer.WriteByte(addr, val);
 
     else if (addr >= kNotUsableStart && addr <= kNotUsableEnd)
         return;
@@ -115,10 +115,10 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr == kRegIe)
         interrupt_enable = val;
 
-    // else
-    //     LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
+    else
+        LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
 
     // NOLINTEND(bugprone-branch-clone)
 }
 
-}  // namespace gb
+}  // namespace gb::memory

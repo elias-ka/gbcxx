@@ -8,7 +8,7 @@
 #include "core/constants.hpp"
 #include "core/util.hpp"
 
-namespace gb
+namespace gb::memory
 {
 class Mbc
 {
@@ -59,4 +59,4 @@ struct Cartridge
     }
 };
 
-}  // namespace gb
+}  // namespace gb::memory

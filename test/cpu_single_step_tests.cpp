@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-#include "core/cpu.hpp"
+#include "core/sm83/cpu.hpp"
 #include "core/util.hpp"
 
 using namespace gb;
@@ -21,17 +21,17 @@ public:
         {
             spdlog::set_level(spdlog::level::trace);
         }
-        if (!parser)
+        if (!parser_)
         {
-            parser = dom::parser{};
+            parser_ = dom::parser{};
         }
     }
 
 protected:
-    static std::optional<dom::parser> parser;
+    static std::optional<dom::parser> parser_;
 };
 
-std::optional<dom::parser> SingleStepParameterizedTest::parser = std::nullopt;
+std::optional<dom::parser> SingleStepParameterizedTest::parser_ = std::nullopt;
 
 namespace
 {
@@ -49,26 +49,26 @@ struct CpuRegistersState
     uint16_t pc, sp;
     uint8_t a, f, b, c, d, e, h, l;
 
-    static CpuRegistersState MakeFromTestObj(simdjson_result<dom::object> obj)
+    static CpuRegistersState FromTestBody(simdjson_result<dom::object> body)
     {
         return {
-            .pc = GetAs<uint16_t>(obj["pc"]),
-            .sp = GetAs<uint16_t>(obj["sp"]),
-            .a = GetAs<uint8_t>(obj["a"]),
-            .f = GetAs<uint8_t>(obj["f"]),
-            .b = GetAs<uint8_t>(obj["b"]),
-            .c = GetAs<uint8_t>(obj["c"]),
-            .d = GetAs<uint8_t>(obj["d"]),
-            .e = GetAs<uint8_t>(obj["e"]),
-            .h = GetAs<uint8_t>(obj["h"]),
-            .l = GetAs<uint8_t>(obj["l"]),
+            .pc = GetAs<uint16_t>(body["pc"]),
+            .sp = GetAs<uint16_t>(body["sp"]),
+            .a = GetAs<uint8_t>(body["a"]),
+            .f = GetAs<uint8_t>(body["f"]),
+            .b = GetAs<uint8_t>(body["b"]),
+            .c = GetAs<uint8_t>(body["c"]),
+            .d = GetAs<uint8_t>(body["d"]),
+            .e = GetAs<uint8_t>(body["e"]),
+            .h = GetAs<uint8_t>(body["h"]),
+            .l = GetAs<uint8_t>(body["l"]),
         };
     }
 
-    static CpuRegistersState MakeFromCpu(const Cpu& cpu)
+    static CpuRegistersState FromCpu(const sm83::Cpu& cpu)
     {
-        using enum Cpu::R8;
-        using enum Cpu::R16;
+        using enum sm83::Cpu::R8;
+        using enum sm83::Cpu::R16;
 
         return {
             .pc = cpu.GetReg(Pc),
@@ -128,22 +128,21 @@ testing::AssertionResult AssertCpuStateEquality(
 
 TEST_P(SingleStepParameterizedTest, All)
 {
-    using namespace gb::literals;
-    using enum Cpu::R8;
-    using enum Cpu::R16;
-    dom::array root_array = parser->load(SINGLESTEP_TESTS_DIR / GetParam());
+    dom::array root_array = parser_->load(SINGLESTEP_TESTS_DIR / GetParam());
 
     for (auto test_case : root_array)
     {
         // Parse the test case.
         const auto initial_obj = test_case["initial"].get_object();
-        const auto initial_state = CpuRegistersState::MakeFromTestObj(initial_obj);
+        const auto initial_state = CpuRegistersState::FromTestBody(initial_obj);
 
         const auto final_obj = test_case["final"].get_object();
-        const auto final_state = CpuRegistersState::MakeFromTestObj(final_obj);
+        const auto final_state = CpuRegistersState::FromTestBody(final_obj);
 
-        Cpu cpu{{}};
         // Set initial CPU state.
+        sm83::Cpu cpu{{}};
+        using enum sm83::Cpu::R8;
+        using enum sm83::Cpu::R16;
         cpu.SetReg(Pc, initial_state.pc);
         cpu.SetReg(Sp, initial_state.sp);
         cpu.SetReg(A, initial_state.a);
@@ -175,7 +174,7 @@ TEST_P(SingleStepParameterizedTest, All)
         }
 
         // Assert final CPU state.
-        const auto current_cpu_state = CpuRegistersState::MakeFromCpu(cpu);
+        const auto current_cpu_state = CpuRegistersState::FromCpu(cpu);
         EXPECT_PRED_FORMAT3(AssertCpuStateEquality, current_cpu_state, final_state, initial_state);
     }
 }

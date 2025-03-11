@@ -4,11 +4,10 @@
 #include <fstream>
 #include <utility>
 
-#include "core/bus.hpp"
-#include "core/interrupt.hpp"
+#include "core/memory/bus.hpp"
 #include "core/util.hpp"
 
-namespace gb
+namespace gb::sm83
 {
 class Cpu
 {
@@ -45,13 +44,12 @@ public:
 
     [[nodiscard]] uint8_t GetReg(R8 r) const;
     [[nodiscard]] uint16_t GetReg(R16 r) const;
-    Bus& GetBus() { return bus_; }
+    memory::Bus& GetBus() { return bus_; }
 
     void SetReg(R8 r, uint8_t v);
     void SetReg(R16 r, uint16_t v);
 
     uint8_t Step();
-    void Irq(Interrupt interrupt);
 
 private:
     void Tick4();
@@ -68,14 +66,13 @@ private:
     void StackPush(uint16_t val);
     uint16_t StackPop();
 
-    bool HavePendingInterrupts() const;
     void HandleInterrupts();
 
     [[nodiscard]] bool EvaluateCondition(Condition cond) const;
 
     void InterpretInstruction();
 
-    Bus bus_;
+    memory::Bus bus_;
     std::fstream log_file_{"gameboy_doctor.log", std::ios::out};
     uint8_t cycles_{};
 
@@ -99,7 +96,6 @@ private:
     bool halt_{};
     bool halt_bug_{};
 
-private:
     // 8-bit loads
     void Instr_LD_R_R(R8 dst, R8 src);
     void Instr_LD_R_N(R8 dst);
@@ -311,13 +307,12 @@ ALWAYS_INLINE void Cpu::Instr_LD_MEM_HL_INC_A()
 
 ALWAYS_INLINE void Cpu::Instr_ADD_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint16_t result = a + val;
+    const uint16_t result = a_ + val;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (val & 0xf)) > 0xf;
+    hf_ = ((a_ & 0xf) + (val & 0xf)) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -325,13 +320,12 @@ ALWAYS_INLINE void Cpu::Instr_ADD_R(R8 r)
 
 ALWAYS_INLINE void Cpu::Instr_ADD_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint16_t result = a + val;
+    const uint16_t result = a_ + val;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (val & 0xf)) > 0xf;
+    hf_ = ((a_ & 0xf) + (val & 0xf)) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -339,13 +333,12 @@ ALWAYS_INLINE void Cpu::Instr_ADD_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_ADD_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint16_t result = a + n;
+    const uint16_t result = a_ + n;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (n & 0xf)) > 0xf;
+    hf_ = ((a_ & 0xf) + (n & 0xf)) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -353,13 +346,12 @@ ALWAYS_INLINE void Cpu::Instr_ADD_N()
 
 ALWAYS_INLINE void Cpu::Instr_ADC_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint16_t result = a + val + cf_;
+    const uint16_t result = a_ + val + cf_;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (val & 0xf) + cf_) > 0xf;
+    hf_ = ((a_ & 0xf) + (val & 0xf) + cf_) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -367,13 +359,12 @@ ALWAYS_INLINE void Cpu::Instr_ADC_R(R8 r)
 
 ALWAYS_INLINE void Cpu::Instr_ADC_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint16_t result = a + val + cf_;
+    const uint16_t result = a_ + val + cf_;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (val & 0xf) + cf_) > 0xf;
+    hf_ = ((a_ & 0xf) + (val & 0xf) + cf_) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -381,13 +372,12 @@ ALWAYS_INLINE void Cpu::Instr_ADC_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_ADC_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint16_t result = a + n + cf_;
+    const uint16_t result = a_ + n + cf_;
 
     zf_ = !(result & 0xff);
     nf_ = false;
-    hf_ = ((a & 0xf) + (n & 0xf) + cf_) > 0xf;
+    hf_ = ((a_ & 0xf) + (n & 0xf) + cf_) > 0xf;
     cf_ = result > 0xff;
 
     a_ = result & 0xff;
@@ -395,70 +385,65 @@ ALWAYS_INLINE void Cpu::Instr_ADC_N()
 
 ALWAYS_INLINE void Cpu::Instr_SUB_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint8_t result = a - val;
+    const uint8_t result = a_ - val;
 
     zf_ = !result;
     nf_ = true;
-    hf_ = ((a & 0xf) - (val & 0xf)) < 0;
-    cf_ = a < val;
+    hf_ = ((a_ & 0xf) - (val & 0xf)) < 0;
+    cf_ = a_ < val;
 
     a_ = result;
 }
 
 ALWAYS_INLINE void Cpu::Instr_SUB_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint16_t result = a - val;
+    const uint16_t result = a_ - val;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = ((a & 0xf) - (val & 0xf)) < 0;
-    cf_ = a < val;
+    hf_ = ((a_ & 0xf) - (val & 0xf)) < 0;
+    cf_ = a_ < val;
 
     a_ = result & 0xff;
 }
 
 ALWAYS_INLINE void Cpu::Instr_SUB_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint16_t result = a - n;
+    const uint16_t result = a_ - n;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = ((a & 0xf) - (n & 0xf)) < 0;
-    cf_ = a < n;
+    hf_ = ((a_ & 0xf) - (n & 0xf)) < 0;
+    cf_ = a_ < n;
 
     a_ = result & 0xff;
 }
 
 ALWAYS_INLINE void Cpu::Instr_SBC_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const int result = a - val - cf_;
+    const int result = a_ - val - cf_;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = (a & 0xf) < ((val & 0xf) + cf_);
-    cf_ = a < (val + cf_);
+    hf_ = (a_ & 0xf) < ((val & 0xf) + cf_);
+    cf_ = a_ < (val + cf_);
 
     a_ = result & 0xff;
 }
 
 ALWAYS_INLINE void Cpu::Instr_SBC_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const int result = a - val - cf_;
+    const int result = a_ - val - cf_;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = (a & 0xf) < ((val & 0xf) + cf_);
-    cf_ = a < (val + cf_);
+    hf_ = (a_ & 0xf) < ((val & 0xf) + cf_);
+    cf_ = a_ < (val + cf_);
 
     a_ = result & 0xff;
 }
@@ -479,38 +464,35 @@ ALWAYS_INLINE void Cpu::Instr_SBC_N()
 
 ALWAYS_INLINE void Cpu::Instr_CP_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint8_t result = a - val;
+    const uint8_t result = a_ - val;
 
     zf_ = !result;
     nf_ = true;
-    hf_ = (a & 0xf) - (val & 0xf) < 0;
-    cf_ = a < val;
+    hf_ = (a_ & 0xf) - (val & 0xf) < 0;
+    cf_ = a_ < val;
 }
 
 ALWAYS_INLINE void Cpu::Instr_CP_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint16_t result = a - val;
+    const uint16_t result = a_ - val;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = ((a & 0xf) - (val & 0xf)) < 0;
-    cf_ = a < val;
+    hf_ = ((a_ & 0xf) - (val & 0xf)) < 0;
+    cf_ = a_ < val;
 }
 
 ALWAYS_INLINE void Cpu::Instr_CP_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint16_t result = a - n;
+    const uint16_t result = a_ - n;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = ((a & 0xf) - (n & 0xf)) < 0;
-    cf_ = a < n;
+    hf_ = ((a_ & 0xf) - (n & 0xf)) < 0;
+    cf_ = a_ < n;
 }
 
 ALWAYS_INLINE void Cpu::Instr_INC_R(R8 r)
@@ -565,9 +547,8 @@ ALWAYS_INLINE void Cpu::Instr_DEC_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_AND_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint8_t result = a & val;
+    const uint8_t result = a_ & val;
 
     zf_ = !result;
     nf_ = false;
@@ -579,9 +560,8 @@ ALWAYS_INLINE void Cpu::Instr_AND_R(R8 r)
 
 ALWAYS_INLINE void Cpu::Instr_AND_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint8_t result = a & val;
+    const uint8_t result = a_ & val;
 
     zf_ = !result;
     nf_ = false;
@@ -593,9 +573,8 @@ ALWAYS_INLINE void Cpu::Instr_AND_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_AND_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint8_t result = a & n;
+    const uint8_t result = a_ & n;
 
     zf_ = !result;
     nf_ = false;
@@ -607,9 +586,8 @@ ALWAYS_INLINE void Cpu::Instr_AND_N()
 
 ALWAYS_INLINE void Cpu::Instr_OR_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint8_t result = a | val;
+    const uint8_t result = a_ | val;
 
     zf_ = !result;
     nf_ = false;
@@ -621,9 +599,8 @@ ALWAYS_INLINE void Cpu::Instr_OR_R(R8 r)
 
 ALWAYS_INLINE void Cpu::Instr_OR_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint8_t result = a | val;
+    const uint8_t result = a_ | val;
 
     zf_ = !result;
     nf_ = false;
@@ -635,9 +612,8 @@ ALWAYS_INLINE void Cpu::Instr_OR_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_OR_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint8_t result = a | n;
+    const uint8_t result = a_ | n;
 
     zf_ = !result;
     nf_ = false;
@@ -649,9 +625,8 @@ ALWAYS_INLINE void Cpu::Instr_OR_N()
 
 ALWAYS_INLINE void Cpu::Instr_XOR_R(R8 r)
 {
-    const uint8_t a = a_;
     const uint8_t val = GetReg(r);
-    const uint8_t result = a ^ val;
+    const uint8_t result = a_ ^ val;
 
     zf_ = !result;
     nf_ = false;
@@ -663,9 +638,8 @@ ALWAYS_INLINE void Cpu::Instr_XOR_R(R8 r)
 
 ALWAYS_INLINE void Cpu::Instr_XOR_MEM_HL()
 {
-    const uint8_t a = a_;
     const uint8_t val = ReadByte(GetReg(R16::Hl));
-    const uint8_t result = a ^ val;
+    const uint8_t result = a_ ^ val;
 
     zf_ = !result;
     nf_ = false;
@@ -677,9 +651,8 @@ ALWAYS_INLINE void Cpu::Instr_XOR_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_XOR_N()
 {
-    const uint8_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint8_t result = a ^ n;
+    const uint8_t result = a_ ^ n;
 
     zf_ = !result;
     nf_ = false;
@@ -705,19 +678,18 @@ ALWAYS_INLINE void Cpu::Instr_SCF()
 
 ALWAYS_INLINE void Cpu::Instr_DAA()
 {
-    const uint8_t a = a_;
-    uint8_t result = a;
+    uint8_t result = a_;
 
     // ref:
     // https://forums.nesdev.org/viewtopic.php?p=196282&sid=38a75719934a07d0ae8ac78a3e1448ad#p196282
     if (!nf_)
     {
-        if (cf_ || a > 0x99)
+        if (cf_ || a_ > 0x99)
         {
             result += 0x60;
             cf_ = true;
         }
-        if (hf_ || (a & 0x0f) > 0x09)
+        if (hf_ || (a_ & 0x0f) > 0x09)
             result += 0x6;
     }
     else
@@ -900,7 +872,7 @@ ALWAYS_INLINE void Cpu::Instr_RST_N(uint8_t vec)
 
 ALWAYS_INLINE void Cpu::Instr_HALT()
 {
-    if (ime_ || !HavePendingInterrupts())
+    if (ime_ || !(bus_.interrupt_enable & bus_.interrupt_flag & 0x1f))
         halt_ = true;
     else
         halt_bug_ = true;
@@ -1053,7 +1025,7 @@ ALWAYS_INLINE void Cpu::Instr_RL_MEM_HL()
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = (val >> 7) & 1;
+    cf_ = GetBit<7>(val);
 
     WriteByte(addr, result);
 }
@@ -1240,4 +1212,4 @@ ALWAYS_INLINE void Cpu::Instr_SET_B_MEM_HL(uint8_t b)
 
     WriteByte(addr, static_cast<uint8_t>(val | (1 << b)));
 }
-}  // namespace gb
+}  // namespace gb::sm83
