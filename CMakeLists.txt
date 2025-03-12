@@ -128,7 +128,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/assets
 )
 
 if(BUILD_TESTS)
-  target_compile_definitions(gbcxx_core PRIVATE GBCXX_TESTS)
+  target_compile_definitions(gbcxx_core PUBLIC -DGBCXX_TESTS)
 
   CPMAddPackage(
     NAME googletest
