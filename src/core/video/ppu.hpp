@@ -86,6 +86,11 @@ public:
         DrawTileMap(buf, lcd_control_.GetBackgroundTileMapAddress());
     }
 
+    void DrawWindowTileMap(std::span<Color> buf) const
+    {
+        DrawTileMap(buf, lcd_control_.GetWindowTileMapAddress());
+    }
+
 private:
     static const int kCyclesOam = 80;
     static const int kCyclesTransfer = 172;

@@ -68,6 +68,7 @@ add_library(
   src/core/constants.hpp
   src/core/core.cpp
   src/core/core.hpp
+  src/core/joypad.hpp
   src/core/util.cpp
   src/core/util.hpp)
 

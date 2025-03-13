@@ -1,7 +1,6 @@
 #pragma once
 
-#include <utility>
-
+#include "core/joypad.hpp"
 #include "core/memory/cartridge.hpp"
 #include "core/sm83/timer.hpp"
 #include "core/video/ppu.hpp"
@@ -13,6 +12,7 @@ struct Bus
     Cartridge cartridge{};
     video::Ppu ppu;
     sm83::Timer timer;
+    Joypad joypad;
     std::vector<uint8_t> wram;
     std::array<uint8_t, 128> hram;
     uint8_t interrupt_enable{0x00};

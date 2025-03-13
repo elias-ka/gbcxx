@@ -32,8 +32,12 @@ private:
     std::array<gb::video::Color, gb::kLcdSize> lcd_fb_{};
 
     SDL_Texture* vram_bg_texture_{};
-    std::vector<gb::video::Color> vram_bg_fb_
-        = std::vector<gb::video::Color>(0x10000, {0xff, 0xff, 0xff});
+    std::vector<gb::video::Color> vram_bg_fb_ =
+        std::vector<gb::video::Color>(0x10000, {0xff, 0xff, 0xff});
+
+    SDL_Texture* vram_window_texture_{};
+    std::vector<gb::video::Color> vram_window_fb_ =
+        std::vector<gb::video::Color>(0x10000, {0xff, 0xff, 0xff});
 
     bool show_imgui_demo_{};
     bool show_vram_debug_window_{};

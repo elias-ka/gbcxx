@@ -14,7 +14,7 @@ uint8_t Timer::ReadByte(uint16_t addr) const
     case kRegTima: return tima_;
     case kRegTma: return tma_;
     case kRegTac: return tac_;
-    default: DIE("Timer: Unmapped read from {:X}", addr);
+    default: DIE("Timer: Unmapped read {:X}", addr);
     }
 }
 

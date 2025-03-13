@@ -89,17 +89,50 @@ MainApp::~MainApp()
     SDL_Quit();
 }
 
+static gb::Button ScancodeToGBButton(SDL_Scancode scancode)
+{
+    switch (scancode)
+    {
+    case SDL_SCANCODE_RIGHT: return gb::Button::Right;
+    case SDL_SCANCODE_LEFT: return gb::Button::Left;
+    case SDL_SCANCODE_UP: return gb::Button::Up;
+    case SDL_SCANCODE_DOWN: return gb::Button::Down;
+    case SDL_SCANCODE_X: return gb::Button::A;
+    case SDL_SCANCODE_Z: return gb::Button::B;
+    case SDL_SCANCODE_BACKSPACE: return gb::Button::Select;
+    case SDL_SCANCODE_RETURN: return gb::Button::Start;
+    default: DIE("Unknown scancode to GB button mapping: {}", scancode);
+    }
+}
+
 void MainApp::PollEvents()
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_QUIT
-            || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED
-                && event.window.windowID == SDL_GetWindowID(window_)))
+        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+                                             event.window.windowID == SDL_GetWindowID(window_)))
         {
             quit_ = true;
+        }
+
+        if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+        {
+            switch (event.key.scancode)
+            {
+            case SDL_SCANCODE_RIGHT:
+            case SDL_SCANCODE_LEFT:
+            case SDL_SCANCODE_UP:
+            case SDL_SCANCODE_DOWN:
+            case SDL_SCANCODE_X:
+            case SDL_SCANCODE_Z:
+            case SDL_SCANCODE_BACKSPACE:
+            case SDL_SCANCODE_RETURN:
+                core_.SetKeyState(ScancodeToGBButton(event.key.scancode),
+                                  event.type == SDL_EVENT_KEY_DOWN);
+            default: break;
+            }
         }
     }
 }
@@ -167,6 +200,14 @@ void MainApp::StartApplicationLoop()
                     SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
                                       256 * sizeof(gb::video::Color));
                     ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Window"))
+                {
+                    core_.GetBus().ppu.DrawWindowTileMap(vram_bg_fb_);
+                    SDL_UpdateTexture(vram_window_texture_, nullptr, vram_window_fb_.data(),
+                                      256 * sizeof(gb::video::Color));
+                    ImGui::Image(reinterpret_cast<ImTextureID>(vram_window_texture_), {256, 256});
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();

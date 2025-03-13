@@ -381,7 +381,8 @@ void Ppu::DrawTileMap(std::span<Color> buf, uint16_t tile_address) const
         const size_t tile_x = x / kTileSize;
         const size_t tile_y = y / kTileSize;
 
-        const uint8_t tile_id = vram_[tile_address + (tile_y * kTilesPerLine) + tile_x];
+        const uint8_t tile_id =
+            vram_[(tile_address - kVramStart) + (tile_y * kTilesPerLine) + tile_x];
         const auto tile_base = static_cast<size_t>(tile_id) * 16;
 
         const uint8_t tile_row = y % kTileSize;

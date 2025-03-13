@@ -6,18 +6,19 @@ void Core::RunFrame(const DrawCallback& draw_callback)
 {
     constexpr int kCyclesPerFrame = 70224;
     auto& bus = cpu_.GetBus();
+    auto& ppu = bus.ppu;
 
     int this_frame_cycles{};
     while (this_frame_cycles < kCyclesPerFrame)
     {
-        bus.ppu.SetShouldDrawFrame(false);
+        ppu.SetShouldDrawFrame(false);
 
         const uint8_t tcycles = cpu_.Step();
         bus.Tick(tcycles);
 
-        if (bus.ppu.ShouldDrawFrame())
+        if (ppu.ShouldDrawFrame())
         {
-            draw_callback(bus.ppu.GetLcdBuffer());
+            draw_callback(ppu.GetLcdBuffer());
         }
 
         this_frame_cycles += tcycles;

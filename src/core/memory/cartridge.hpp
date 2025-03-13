@@ -44,7 +44,7 @@ struct Cartridge
         if (addr >= kExternalRamStart && addr <= kExternalRamEnd)
             return mbc->ReadRam(addr);
 
-        LOG_ERROR("Cartrdige: Unmapped read from {:X}", addr);
+        LOG_ERROR("Cartrdige: Unmapped read {:X}", addr);
         return 0x00;
     }
 

@@ -44,7 +44,7 @@ uint8_t Bus::ReadByte(uint16_t addr) const
         return 0;
 
     if (addr == kRegJoyp)
-        return 0;  // todo
+        return joypad.ReadButtons();
 
     if (addr == kRegIf)
         return interrupt_flag;
@@ -61,7 +61,7 @@ uint8_t Bus::ReadByte(uint16_t addr) const
     if (addr == kRegIe)
         return interrupt_enable;
 
-    LOG_ERROR("Bus: Unmapped read from {:X}", addr);
+    LOG_ERROR("Bus: Unmapped read {:X}", addr);
     return 0xff;
 }
 
@@ -98,7 +98,7 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
         return;
 
     else if (addr == kRegJoyp)
-        return;  // todo
+        joypad.Write(val);
 
     else if (addr == kRegIf)
         interrupt_flag = val;
@@ -115,8 +115,8 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr == kRegIe)
         interrupt_enable = val;
 
-    else
-        LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
+    // else
+    //     LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
 
     // NOLINTEND(bugprone-branch-clone)
 }
