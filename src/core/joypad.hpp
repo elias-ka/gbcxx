@@ -9,15 +9,15 @@ namespace gb
 {
 enum class Button : uint8_t
 {
-    A = 0,
-    B,
+    Start = 0,
     Select,
-    Start,
+    B,
+    A,
 
-    Right,
-    Left,
-    Up,
     Down,
+    Up,
+    Left,
+    Right,
 
     Count
 };
