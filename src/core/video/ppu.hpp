@@ -63,7 +63,6 @@ struct Sprite
     uint8_t x;
     uint8_t tile_index;
     SpriteFlags flags;
-    size_t oam_index;
 };
 
 class Ppu

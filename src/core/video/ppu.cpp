@@ -102,14 +102,29 @@ void Ppu::Tick(uint8_t tcycles)
 
     cycles_ += tcycles;
 
+    const uint8_t scroll_adjust = [&]() -> uint8_t
+    {
+        switch (scroll_x_ & 7)
+        {
+        case 1:
+        case 2:
+        case 3:
+        case 4: return 1;
+        case 5:
+        case 6:
+        case 7: return 2;
+        default: return 0;
+        }
+    }();
+
     switch (lcd_status_.GetMode())
     {
     case Mode::HBlank:
     {
-        if (cycles_ < kCyclesHBlank)
+        if (cycles_ < kCyclesHBlank - scroll_adjust)
             return;
 
-        cycles_ -= kCyclesHBlank;
+        cycles_ -= kCyclesHBlank - scroll_adjust;
 
         if (scan_y_ >= 143) [[unlikely]]
         {
@@ -178,10 +193,10 @@ void Ppu::Tick(uint8_t tcycles)
     }
     case Mode::Transfer:
     {
-        if (cycles_ < kCyclesTransfer)
+        if (cycles_ < kCyclesTransfer + scroll_adjust)
             return;
 
-        cycles_ -= kCyclesTransfer;
+        cycles_ -= kCyclesTransfer + scroll_adjust;
         RenderScanline();
         lcd_status_.SetMode(Mode::HBlank, interrupts_);
         break;
