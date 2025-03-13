@@ -19,7 +19,7 @@ public:
     }
 
     void SetVBlank(bool set = true) { bits_.set(0, set); }
-    void SetLcd(bool set = true) { bits_.set(1, set); }
+    void SetStat(bool set = true) { bits_.set(1, set); }
     void SetTimer(bool set = true) { bits_.set(2, set); }
     void SetSerial(bool set = true) { bits_.set(3, set); }
     void SetJoypad(bool set = true) { bits_.set(4, set); }

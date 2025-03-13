@@ -77,7 +77,10 @@ void Ppu::WriteByte(uint16_t addr, uint8_t val)
         switch (addr)
         {
         case kRegLcdc: SetLcdc(val); break;
-        case kRegStat: lcd_status_ = LcdStatus{val}; break;
+        case kRegStat:
+            lcd_status_ = LcdStatus{val};
+            CompareLine();
+            break;
         case kRegScy: scroll_y_ = val; break;
         case kRegScx: scroll_x_ = val; break;
         case kRegLy: break;
@@ -218,7 +221,7 @@ void Ppu::CompareLine()
         lcd_status_.SetCompareFlag();
 
         if (lcd_status_.LycEqLyEnable())
-            interrupts_.SetLcd();
+            interrupts_.SetStat();
     }
     else
     {

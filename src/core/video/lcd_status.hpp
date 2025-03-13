@@ -36,7 +36,7 @@ public:
 
     constexpr void SetMode(Mode m)
     {
-        bits_ &= 0b11111100;
+        bits_ &= 0b1111'1100;
         bits_ |= std::to_underlying(m);
     }
     constexpr void SetMode(Mode m, sm83::Interrupts& interrupts)
@@ -57,7 +57,7 @@ private:
             (GetMode() == Mode::VBlank && Mode1Condition()) ||
             (GetMode() == Mode::Oam && Mode2Condition()))
         {
-            interrupts.SetLcd();
+            interrupts.SetStat();
         }
     }
 
