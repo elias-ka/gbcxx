@@ -65,6 +65,7 @@ constexpr uint16_t kRegScy = 0xff42;
 constexpr uint16_t kRegScx = 0xff43;
 constexpr uint16_t kRegLy = 0xff44;
 constexpr uint16_t kRegLyc = 0xff45;
+constexpr uint16_t kRegOamDma = 0xff46;
 constexpr uint16_t kRegBgp = 0xff47;
 constexpr uint16_t kRegObp0 = 0xff48;
 constexpr uint16_t kRegObp1 = 0xff49;

@@ -115,8 +115,19 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr == kRegIe)
         interrupt_enable = val;
 
-    // else
-    //     LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
+    else if (addr == kRegOamDma)
+    {
+        // to-do: OAM blocking?
+        const uint16_t source_address = val * 0x100;
+        constexpr auto kOamSize = 0xa0;
+        for (uint8_t i = 0; i < kOamSize; ++i)
+        {
+            WriteByte(kOamStart + i, ReadByte(source_address + i));
+        }
+    }
+
+    else
+        LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
 
     // NOLINTEND(bugprone-branch-clone)
 }
