@@ -16,10 +16,7 @@ void Core::RunFrame(const DrawCallback& draw_callback)
         const uint8_t tcycles = cpu_.Step();
         bus.Tick(tcycles);
 
-        if (ppu.ShouldDrawFrame())
-        {
-            draw_callback(ppu.GetLcdBuffer());
-        }
+        if (ppu.ShouldDrawFrame()) draw_callback(ppu.GetLcdBuffer());
 
         this_frame_cycles += tcycles;
     }

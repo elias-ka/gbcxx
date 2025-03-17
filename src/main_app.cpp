@@ -17,32 +17,20 @@
 
 MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
 {
-    if (!SDL_Init(SDL_INIT_VIDEO))
-    {
-        DIE("Error: SDL_Init(): {}", SDL_GetError());
-    }
+    if (!SDL_Init(SDL_INIT_VIDEO)) { DIE("Error: SDL_Init(): {}", SDL_GetError()); }
     SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth, gb::kLcdHeight,
                                 SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE,
                                 &window_, &renderer_);
-    if (!window_ || !renderer_)
-    {
-        DIE("Error: SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
-    }
+    if (!window_ || !renderer_) { DIE("Error: SDL_CreateWindowAndRenderer(): {}", SDL_GetError()); }
 
     lcd_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
                                      SDL_TEXTUREACCESS_STREAMING, gb::kLcdWidth, gb::kLcdHeight);
-    if (!lcd_texture_)
-    {
-        DIE("Error: SDL_CreateTexture(): {}", SDL_GetError());
-    }
+    if (!lcd_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
     SDL_SetTextureScaleMode(lcd_texture_, SDL_SCALEMODE_NEAREST);
 
     vram_bg_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
                                          SDL_TEXTUREACCESS_STREAMING, 256, 256);
-    if (!vram_bg_texture_)
-    {
-        DIE("Error: SDL_CreateTexture(): {}", SDL_GetError());
-    }
+    if (!vram_bg_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
     SDL_SetTextureScaleMode(vram_bg_texture_, SDL_SCALEMODE_NEAREST);
 
     SDL_SetRenderVSync(renderer_, 1);
@@ -184,10 +172,7 @@ void MainApp::StartApplicationLoop()
                                      ImGuiDockNodeFlags_PassthruCentralNode);
         MainMenu();
 
-        if (show_imgui_demo_)
-        {
-            ImGui::ShowDemoWindow(&show_imgui_demo_);
-        }
+        if (show_imgui_demo_) { ImGui::ShowDemoWindow(&show_imgui_demo_); }
 
         if (show_vram_debug_window_)
         {
@@ -245,10 +230,7 @@ void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*fi
         return;
     }
 
-    if (!*filelist)
-    {
-        return;
-    }
+    if (!*filelist) return;
 
     if (!std::filesystem::exists(*filelist))
     {
@@ -286,10 +268,7 @@ void MainApp::MainMenu()
 
             ImGui::Separator();
 
-            if (ImGui::MenuItem("Quit"))
-            {
-                quit_ = true;
-            }
+            if (ImGui::MenuItem("Quit")) { quit_ = true; }
 
             ImGui::EndMenu();
         }

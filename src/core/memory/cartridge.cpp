@@ -41,8 +41,7 @@ size_t CountRamBanks(uint8_t val)
 
 size_t CountRomBanks(uint8_t val)
 {
-    if (val <= 8)
-        return static_cast<size_t>(2) << val;
+    if (val <= 8) return static_cast<size_t>(2) << val;
     return 0;
 }
 

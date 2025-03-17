@@ -3,9 +3,11 @@
 #include <array>
 #include <cassert>
 #include <span>
+#include <sstream>
 #include <vector>
 
 #include "core/constants.hpp"
+#include "core/util.hpp"
 #include "core/video/lcd_control.hpp"
 #include "core/video/lcd_status.hpp"
 
@@ -18,16 +20,15 @@ struct __attribute__((packed)) Color
     uint8_t g{0xff};
     uint8_t r{0xff};
 
-    static Color FromIndex(uint8_t index)
+    static Color FromHex(const std::string& hex)
     {
-        switch (index)
-        {
-        case 0: return Color{0xff, 0xff, 0xff, 0xff};
-        case 1: return Color{0xaa, 0xaa, 0xaa, 0xff};
-        case 2: return Color{0x55, 0x55, 0x55, 0xff};
-        case 3: return Color{0x00, 0x00, 0x00, 0xff};
-        default: return Color{0xff, 0x00, 0x00, 0xff};
-        }
+        GB_ASSERT_MSG(hex.length() == 7 && hex[0] == '#', "Hex string should be '#RRGGBB'.");
+        const uint64_t parsed = std::stoul(hex.substr(1), nullptr, 16);
+        Color color;
+        color.r = (parsed >> 16) & 0xFF;
+        color.g = (parsed >> 8) & 0xFF;
+        color.b = parsed & 0xFF;
+        return color;
     }
 
     static Color Transparent() { return {0, 0, 0, 0}; }
@@ -43,15 +44,15 @@ struct __attribute__((packed)) Color
 class SpriteFlags
 {
 public:
-    SpriteFlags() = default;
-    explicit SpriteFlags(uint8_t byte) : bits_(byte) {}
+    constexpr SpriteFlags() = default;
+    explicit constexpr SpriteFlags(uint8_t byte) : bits_(byte) {}
 
     explicit operator uint8_t() const { return static_cast<uint8_t>(bits_.to_ulong()); }
 
-    [[nodiscard]] constexpr bool DmgPalette() const { return bits_.test(4); }
-    [[nodiscard]] constexpr bool XFlip() const { return bits_.test(5); }
-    [[nodiscard]] constexpr bool YFlip() const { return bits_.test(6); }
-    [[nodiscard]] constexpr bool BgWinPriority() const { return bits_.test(7); }
+    [[nodiscard]] constexpr bool DmgPalette() const { return bits_[4]; }
+    [[nodiscard]] constexpr bool XFlip() const { return bits_[5]; }
+    [[nodiscard]] constexpr bool YFlip() const { return bits_[6]; }
+    [[nodiscard]] constexpr bool BgWinPriority() const { return bits_[7]; }
 
 private:
     std::bitset<8> bits_;
@@ -59,9 +60,9 @@ private:
 
 struct Sprite
 {
-    uint8_t y;
-    uint8_t x;
-    uint8_t tile_index;
+    uint8_t y{};
+    uint8_t x{};
+    uint8_t tile_index{};
     SpriteFlags flags;
 };
 
@@ -73,12 +74,11 @@ public:
 
     void Tick(uint8_t tcycles);
 
-    uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
-
+    [[nodiscard]] uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
     [[nodiscard]] const std::array<Color, kLcdSize>& GetLcdBuffer() const { return lcd_buf_; }
 
     [[nodiscard]] bool ShouldDrawFrame() const { return should_draw_frame_; }
-    void SetShouldDrawFrame(bool v) { should_draw_frame_ = v; }
+    void SetShouldDrawFrame(bool should_draw_frame) { should_draw_frame_ = should_draw_frame; }
 
     void DrawBackgroundTileMap(std::span<Color> buf) const
     {
@@ -91,11 +91,6 @@ public:
     }
 
 private:
-    static const int kCyclesOam = 80;
-    static const int kCyclesTransfer = 172;
-    static const int kCyclesVBlank = 456;
-    static const int kCyclesHBlank = 204;
-
     void SetLcdc(uint8_t lcdc);
     void SetScanY(uint8_t scan_y);
     void SetScanYCompare(uint8_t scan_y_compare);
@@ -104,30 +99,29 @@ private:
     void RenderScanline();
     Color FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y);
     Color FetchWindowPixel(uint8_t scan_x, uint8_t scan_y);
-
     void DrawTileMap(std::span<Color> buf, uint16_t tile_address) const;
 
-    std::array<Color, kLcdSize> lcd_buf_;
-    std::array<uint8_t, 8192> vram_;
-    std::array<Sprite, 40> oam_;
+    std::array<Color, kLcdSize> lcd_buf_{};
+    std::array<uint8_t, 8192> vram_{};
+    std::array<Sprite, 40> oam_{};
     std::vector<std::pair<size_t, Sprite>> scanline_sprite_buffer_;
     std::bitset<kLcdSize> bg_transparency_;
     sm83::Interrupts interrupts_;
-    uint16_t cycles_;
+    uint16_t cycles_{};
     bool should_draw_frame_{};
 
     LcdControl lcd_control_;
     LcdStatus lcd_status_;
 
-    uint8_t scroll_x_{0};
-    uint8_t scroll_y_{0};
+    uint8_t scroll_x_{};
+    uint8_t scroll_y_{};
     uint8_t bgp_{0xfc};
-    uint8_t scan_y_{0};
-    uint8_t scan_y_compare_{0};
-    uint8_t obp0_{0};
-    uint8_t obp1_{0};
-    uint8_t window_x_{0};
-    uint8_t window_y_{0};
-    uint8_t window_line_counter_{0};
+    uint8_t scan_y_{};
+    uint8_t scan_y_compare_{};
+    uint8_t obp0_{};
+    uint8_t obp1_{};
+    uint8_t window_x_{};
+    uint8_t window_y_{};
+    uint8_t window_line_counter_{};
 };
 }  // namespace gb::video

@@ -38,24 +38,17 @@ struct Cartridge
 
     [[nodiscard]] uint8_t ReadByte(uint16_t addr) const
     {
-        if (addr >= kCartridgeStart && addr <= kCartridgeEnd)
-            return mbc->ReadRom(addr);
-
-        if (addr >= kExternalRamStart && addr <= kExternalRamEnd)
-            return mbc->ReadRam(addr);
-
+        if (addr >= kCartridgeStart && addr <= kCartridgeEnd) return mbc->ReadRom(addr);
+        if (addr >= kExternalRamStart && addr <= kExternalRamEnd) return mbc->ReadRam(addr);
         LOG_ERROR("Cartrdige: Unmapped read {:X}", addr);
         return 0x00;
     }
 
     void WriteByte(uint16_t addr, uint8_t val) const
     {
-        if (addr >= kCartridgeStart && addr <= kCartridgeEnd)
-            mbc->WriteRom(addr, val);
-        else if (addr >= kExternalRamStart && addr <= kExternalRamEnd)
-            mbc->WriteRam(addr, val);
-        else
-            LOG_ERROR("Cartrdige: Unmapped write {:X} <- {:X}", addr, val);
+        if (addr >= kCartridgeStart && addr <= kCartridgeEnd) mbc->WriteRom(addr, val);
+        else if (addr >= kExternalRamStart && addr <= kExternalRamEnd) mbc->WriteRam(addr, val);
+        else LOG_ERROR("Cartrdige: Unmapped write {:X} <- {:X}", addr, val);
     }
 };
 

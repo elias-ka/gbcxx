@@ -32,6 +32,11 @@ struct Bus
 
     [[nodiscard]] uint8_t ReadByte(uint16_t addr) const;
     void WriteByte(uint16_t addr, uint8_t val);
+
+    [[nodiscard]] uint8_t GetPendingInterrupts() const
+    {
+        return interrupt_enable & interrupt_flag & 0x1f;
+    }
 };
 
 }  // namespace gb::memory

@@ -18,8 +18,7 @@ uint8_t Mbc1::ReadRom(uint16_t addr) const
     {
         if (addr < 0x4000)
         {
-            if (banking_mode_ == 0)
-                return 0;
+            if (banking_mode_ == 0) return 0;
             return rom_bank_ & 0xe0;
         }
         return rom_bank_;
@@ -30,8 +29,7 @@ uint8_t Mbc1::ReadRom(uint16_t addr) const
 
 uint8_t Mbc1::ReadRam(uint16_t addr) const
 {
-    if (!ram_enabled_)
-        return 0xff;
+    if (!ram_enabled_) return 0xff;
 
     const size_t ram_bank = banking_mode_ == 1 ? ram_bank_ : 0;
     return ram_[(ram_bank * 0x2000) | (addr & 0x1fff)];
@@ -39,10 +37,7 @@ uint8_t Mbc1::ReadRam(uint16_t addr) const
 
 void Mbc1::WriteRom(uint16_t addr, uint8_t val)
 {
-    if (0x0000 <= addr && addr <= 0x1fff)
-    {
-        ram_enabled_ = ((val & 0xf) == 0xa);
-    }
+    if (0x0000 <= addr && addr <= 0x1fff) { ram_enabled_ = ((val & 0xf) == 0xa); }
     else if (0x2000 <= addr && addr <= 0x3fff)
     {
         const uint8_t lower_bits = (val & 0x1f) == 0 ? 1 : (val & 0x1f);
@@ -56,31 +51,19 @@ void Mbc1::WriteRom(uint16_t addr, uint8_t val)
             rom_bank_ = ((rom_bank_ & 0x1f) | static_cast<size_t>(upper_bits << 5));
         }
 
-        if (nr_ram_banks_ > 1)
-            ram_bank_ = val & 0x03;
+        if (nr_ram_banks_ > 1) ram_bank_ = val & 0x03;
     }
-    else if (0x6000 <= addr && addr <= 0x7fff)
-    {
-        banking_mode_ = val & 0x01;
-    }
-    else
-    {
-        DIE("MBC1: Unmapped ROM write {:X} <- {:X}", addr, val);
-    }
+    else if (0x6000 <= addr && addr <= 0x7fff) { banking_mode_ = val & 0x01; }
+    else { DIE("MBC1: Unmapped ROM write {:X} <- {:X}", addr, val); }
 }
 
 void Mbc1::WriteRam(uint16_t addr, uint8_t val)
 {
-    if (!ram_enabled_)
-        return;
-
-    const size_t ram_bank = banking_mode_ == 1 ? ram_bank_ : 0;
+    if (!ram_enabled_) return;
+    const size_t ram_bank = (banking_mode_ == 1) ? ram_bank_ : 0;
     ram_[(ram_bank * 0x2000) + (addr & 0x1fff)] = val;
 }
 
-void Mbc1::LoadRam(std::vector<uint8_t> ram)
-{
-    ram_ = std::move(ram);
-}
+void Mbc1::LoadRam(std::vector<uint8_t> ram) { ram_ = std::move(ram); }
 
 }  // namespace gb::memory

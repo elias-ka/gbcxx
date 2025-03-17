@@ -21,8 +21,7 @@
 #define LOG_ERROR(...) spdlog::error(__VA_ARGS__)
 
 #define DIE(...)                 \
-    do                           \
-    {                            \
+    do {                         \
         LOG_ERROR(__VA_ARGS__);  \
         std::exit(EXIT_FAILURE); \
     } while (0)
@@ -34,6 +33,24 @@
 #else
 #define ALWAYS_INLINE inline
 #endif
+
+#define GB_ASSERT(_cond)                                            \
+    (                                                               \
+        [&]()                                                       \
+        {                                                           \
+            /* NOLINTNEXTLINE(readability-simplify-boolean-expr) */ \
+            if (!(_cond)) [[unlikely]]                              \
+                DIE("Assertion failed!");                           \
+        }())
+
+#define GB_ASSERT_MSG(_cond, ...)                                                      \
+    (                                                                                  \
+        [&]()                                                                          \
+        {                                                                              \
+            /* NOLINTNEXTLINE(readability-simplify-boolean-expr) */                    \
+            if (!(_cond)) [[unlikely]]                                                 \
+                DIE("{}:{}: Assertion failed: " __VA_ARGS__, __FILE_NAME__, __LINE__); \
+        }())
 
 namespace gb
 {
@@ -62,15 +79,8 @@ constexpr T GetBit(T value)
 
 namespace literals
 {
-constexpr size_t operator""_KiB(unsigned long long int n)
-{
-    return 1024ULL * n;
-}
-
-constexpr size_t operator""_MiB(unsigned long long int n)
-{
-    return 1024_KiB * n;
-}
+constexpr size_t operator""_KiB(unsigned long long int n) { return 1024ULL * n; }
+constexpr size_t operator""_MiB(unsigned long long int n) { return 1024_KiB * n; }
 }  // namespace literals
 using namespace literals;
 

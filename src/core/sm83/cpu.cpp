@@ -6,31 +6,23 @@ uint8_t Cpu::Step()
 {
     cycles_ = 0;
 
+    ime_ |= ime_next_;
+    ime_next_ = false;
+
     HandleInterrupts();
 
-    if (ime_next_)
-    {
-        ime_ = true;
-        ime_next_ = false;
-    }
+    if (halt_) return 4;
 
-    if (halt_)
-        return 4;
-
-#ifndef NDEBUG
+    // #ifndef NDEBUG
     LogForGameBoyDoctor();
-#endif
-
+    // #endif
     InterpretInstruction();
 
-    assert(cycles_ != 0);
+    GB_ASSERT(cycles_ != 0);
     return cycles_;
 }
 
-void Cpu::Tick4()
-{
-    cycles_ += 4;
-}
+void Cpu::Tick4() { cycles_ += 4; }
 
 // void Cpu::LogForGameBoyDoctor()
 // {
@@ -125,10 +117,7 @@ void Cpu::SetReg(R16 r, uint16_t v)
     }
 }
 
-uint8_t Cpu::ReadOperand()
-{
-    return ReadByte(pc_++);
-}
+uint8_t Cpu::ReadOperand() { return ReadByte(pc_++); }
 
 uint16_t Cpu::ReadOperands()
 {
@@ -177,30 +166,29 @@ uint16_t Cpu::StackPop()
 
 void Cpu::HandleInterrupts()
 {
-    if (!ime_ && !halt_)
-        return;
+    if (!ime_ && !halt_) return;
 
-    const auto interrupts = Interrupts(bus_.interrupt_enable & bus_.interrupt_flag & 0x1f);
-
-    if (interrupts.IsNone())
-        return;
+    const uint8_t interrupts = bus_.GetPendingInterrupts();
+    if (!interrupts) return;
 
     if (halt_)
     {
-        cycles_ += 4;
+        Tick4();
         halt_ = false;
     }
 
-    if (!ime_)
-        return;
-
+    if (!ime_) return;
     ime_ = false;
 
-    const uint8_t prio = interrupts.GetPriorityInterrupt();
-    const uint8_t vec = 0x40 + (prio * 8);
+    const auto priority_bit = static_cast<uint8_t>(std::countr_zero(interrupts));
+    const uint8_t vec = 0x40 + (priority_bit * 8);
+
+    Tick4();
+    Tick4();
     Instr_RST_N(vec);
-    bus_.interrupt_flag &= ~(1 << prio);
-    cycles_ += 20;
+    Tick4();
+
+    bus_.interrupt_flag &= ~(1 << priority_bit);
 }
 
 bool Cpu::EvaluateCondition(Condition cond) const
@@ -216,9 +204,11 @@ bool Cpu::EvaluateCondition(Condition cond) const
 
 void Cpu::InterpretInstruction()
 {
-    uint8_t opcode = ReadOperand();
-    if (opcode != 0xcb)
-        LOG_TRACE("CPU: opcode {:X}", opcode);
+    uint8_t opcode = ReadByte(pc_);
+    pc_ += !halt_bug_;
+    halt_bug_ = false;
+
+    if (opcode != 0xcb) LOG_TRACE("CPU: opcode {:X}", opcode);
 
     switch (opcode)
     {
@@ -496,9 +486,9 @@ void Cpu::InterpretInstruction()
     // CB prefixed
     case 0xcb:
     {
-        opcode = ReadOperand();
-        LOG_TRACE("CPU: opcode CB{:X}", opcode);
-        switch (opcode)
+        const uint8_t cb_opcode = ReadOperand();
+        LOG_TRACE("CPU: opcode CB{:X}", cb_opcode);
+        switch (cb_opcode)
         {
         case 0x07: Instr_RLC_R(R8::A); break;
         case 0x00: Instr_RLC_R(R8::B); break;
@@ -766,7 +756,7 @@ void Cpu::InterpretInstruction()
         case 0xee: Instr_SET_B_MEM_HL(5); break;
         case 0xf6: Instr_SET_B_MEM_HL(6); break;
         case 0xfe: Instr_SET_B_MEM_HL(7); break;
-        default: LOG_ERROR("CPU: Unknown prefixed opcode {:X}", opcode); break;
+        default: LOG_ERROR("CPU: Unknown prefixed opcode {:X}", cb_opcode); break;
         }
         break;
     }

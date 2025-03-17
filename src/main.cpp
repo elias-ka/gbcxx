@@ -10,18 +10,9 @@
 #include "core/util.hpp"
 #include "main_app.hpp"
 
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-#include <SDL3/SDL_opengles2.h>
-#else
-#include <SDL3/SDL_opengl.h>
-#endif
-
 int main(int argc, char* argv[])
 {
-    if constexpr (std::endian::native == std::endian::big)
-    {
-        DIE("Big-endian isn't supported.");
-    }
+    if constexpr (std::endian::native == std::endian::big) { DIE("Big-endian isn't supported."); }
 
     using namespace std::string_view_literals;
     spdlog::set_pattern("[%^%l%$] %v");
@@ -49,10 +40,7 @@ int main(int argc, char* argv[])
     {
         spdlog::set_level(spdlog::level::trace);
     }
-    else
-    {
-        spdlog::set_level(spdlog::level::debug);
-    }
+    else { spdlog::set_level(spdlog::level::debug); }
 #endif
 
     const auto rom_data = gb::fs::ReadFile(rom_file);

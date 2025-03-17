@@ -212,70 +212,31 @@ private:
     void Instr_SET_B_MEM_HL(uint8_t b);
 };
 
-ALWAYS_INLINE void Cpu::Instr_LD_R_R(R8 dst, R8 src)
-{
-    SetReg(dst, GetReg(src));
-}
+ALWAYS_INLINE void Cpu::Instr_LD_R_R(R8 dst, R8 src) { SetReg(dst, GetReg(src)); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_R_N(R8 dst)
-{
-    SetReg(dst, ReadOperand());
-}
+ALWAYS_INLINE void Cpu::Instr_LD_R_N(R8 dst) { SetReg(dst, ReadOperand()); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_R_MEM_HL(R8 dst)
-{
-    SetReg(dst, ReadByte(GetReg(R16::Hl)));
-}
+ALWAYS_INLINE void Cpu::Instr_LD_R_MEM_HL(R8 dst) { SetReg(dst, ReadByte(GetReg(R16::Hl))); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_MEM_HL_R(R8 src)
-{
-    WriteByte(GetReg(R16::Hl), GetReg(src));
-}
+ALWAYS_INLINE void Cpu::Instr_LD_MEM_HL_R(R8 src) { WriteByte(GetReg(R16::Hl), GetReg(src)); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_MEM_HL_N()
-{
-    WriteByte(GetReg(R16::Hl), ReadOperand());
-}
+ALWAYS_INLINE void Cpu::Instr_LD_MEM_HL_N() { WriteByte(GetReg(R16::Hl), ReadOperand()); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_A_MEM_RR(R16 src)
-{
-    a_ = ReadByte(GetReg(src));
-}
+ALWAYS_INLINE void Cpu::Instr_LD_A_MEM_RR(R16 src) { a_ = ReadByte(GetReg(src)); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_MEM_RR_A(R16 dst)
-{
-    WriteByte(GetReg(dst), a_);
-}
+ALWAYS_INLINE void Cpu::Instr_LD_MEM_RR_A(R16 dst) { WriteByte(GetReg(dst), a_); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_A_MEM_NN()
-{
-    a_ = ReadByte(ReadOperands());
-}
+ALWAYS_INLINE void Cpu::Instr_LD_A_MEM_NN() { a_ = ReadByte(ReadOperands()); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_MEM_NN_A()
-{
-    WriteByte(ReadOperands(), a_);
-}
+ALWAYS_INLINE void Cpu::Instr_LD_MEM_NN_A() { WriteByte(ReadOperands(), a_); }
 
-ALWAYS_INLINE void Cpu::Instr_LDH_A_MEM_C()
-{
-    a_ = ReadByte(0xff00 + c_);
-}
+ALWAYS_INLINE void Cpu::Instr_LDH_A_MEM_C() { a_ = ReadByte(0xff00 + c_); }
 
-ALWAYS_INLINE void Cpu::Instr_LDH_MEM_C_A()
-{
-    WriteByte(0xff00 + c_, a_);
-}
+ALWAYS_INLINE void Cpu::Instr_LDH_MEM_C_A() { WriteByte(0xff00 + c_, a_); }
 
-ALWAYS_INLINE void Cpu::Instr_LDH_A_MEM_N()
-{
-    a_ = ReadByte(0xff00 + ReadOperand());
-}
+ALWAYS_INLINE void Cpu::Instr_LDH_A_MEM_N() { a_ = ReadByte(0xff00 + ReadOperand()); }
 
-ALWAYS_INLINE void Cpu::Instr_LDH_MEM_N_A()
-{
-    WriteByte(0xff00 + ReadOperand(), a_);
-}
+ALWAYS_INLINE void Cpu::Instr_LDH_MEM_N_A() { WriteByte(0xff00 + ReadOperand(), a_); }
 
 ALWAYS_INLINE void Cpu::Instr_LD_A_MEM_HL_DEC()
 {
@@ -689,15 +650,12 @@ ALWAYS_INLINE void Cpu::Instr_DAA()
             result += 0x60;
             cf_ = true;
         }
-        if (hf_ || (a_ & 0x0f) > 0x09)
-            result += 0x6;
+        if (hf_ || (a_ & 0x0f) > 0x09) result += 0x6;
     }
     else
     {
-        if (cf_)
-            result -= 0x60;
-        if (hf_)
-            result -= 0x6;
+        if (cf_) result -= 0x60;
+        if (hf_) result -= 0x6;
     }
 
     zf_ = !result;
@@ -713,30 +671,15 @@ ALWAYS_INLINE void Cpu::Instr_CPL()
     hf_ = true;
 }
 
-ALWAYS_INLINE void Cpu::Instr_LD_RR_NN(R16 dst)
-{
-    SetReg(dst, ReadOperands());
-}
+ALWAYS_INLINE void Cpu::Instr_LD_RR_NN(R16 dst) { SetReg(dst, ReadOperands()); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_MEM_NN_SP()
-{
-    WriteWord(ReadOperands(), sp_);
-}
+ALWAYS_INLINE void Cpu::Instr_LD_MEM_NN_SP() { WriteWord(ReadOperands(), sp_); }
 
-ALWAYS_INLINE void Cpu::Instr_LD_SP_HL()
-{
-    sp_ = GetReg(R16::Hl);
-}
+ALWAYS_INLINE void Cpu::Instr_LD_SP_HL() { sp_ = GetReg(R16::Hl); }
 
-ALWAYS_INLINE void Cpu::Instr_PUSH_RR(R16 src)
-{
-    StackPush(GetReg(src));
-}
+ALWAYS_INLINE void Cpu::Instr_PUSH_RR(R16 src) { StackPush(GetReg(src)); }
 
-ALWAYS_INLINE void Cpu::Instr_POP_RR(R16 dst)
-{
-    SetReg(dst, StackPop());
-}
+ALWAYS_INLINE void Cpu::Instr_POP_RR(R16 dst) { SetReg(dst, StackPop()); }
 
 ALWAYS_INLINE void Cpu::Instr_LD_HL_SP_E()
 {
@@ -750,15 +693,9 @@ ALWAYS_INLINE void Cpu::Instr_LD_HL_SP_E()
     SetReg(R16::Hl, sp_ + static_cast<uint16_t>(e));
 }
 
-ALWAYS_INLINE void Cpu::Instr_INC_RR(R16 rr)
-{
-    SetReg(rr, GetReg(rr) + 1);
-}
+ALWAYS_INLINE void Cpu::Instr_INC_RR(R16 rr) { SetReg(rr, GetReg(rr) + 1); }
 
-ALWAYS_INLINE void Cpu::Instr_DEC_RR(R16 rr)
-{
-    SetReg(rr, GetReg(rr) - 1);
-}
+ALWAYS_INLINE void Cpu::Instr_DEC_RR(R16 rr) { SetReg(rr, GetReg(rr) - 1); }
 
 ALWAYS_INLINE void Cpu::Instr_ADD_HL_RR(R16 rr)
 {
@@ -791,10 +728,7 @@ ALWAYS_INLINE void Cpu::Instr_JP_NN()
     pc_ = nn;
 }
 
-ALWAYS_INLINE void Cpu::Instr_JP_HL()
-{
-    pc_ = GetReg(R16::Hl);
-}
+ALWAYS_INLINE void Cpu::Instr_JP_HL() { pc_ = GetReg(R16::Hl); }
 
 ALWAYS_INLINE void Cpu::Instr_JP_CC_NN(Condition cc)
 {
@@ -842,10 +776,7 @@ ALWAYS_INLINE void Cpu::Instr_CALL_CC_NN(Condition cc)
     }
 }
 
-ALWAYS_INLINE void Cpu::Instr_RET()
-{
-    pc_ = StackPop();
-}
+ALWAYS_INLINE void Cpu::Instr_RET() { pc_ = StackPop(); }
 
 ALWAYS_INLINE void Cpu::Instr_RET_CC(Condition cc)
 {
@@ -872,10 +803,8 @@ ALWAYS_INLINE void Cpu::Instr_RST_N(uint8_t vec)
 
 ALWAYS_INLINE void Cpu::Instr_HALT()
 {
-    if (ime_ || !(bus_.interrupt_enable & bus_.interrupt_flag & 0x1f))
-        halt_ = true;
-    else
-        halt_bug_ = true;
+    if (ime_ || !bus_.GetPendingInterrupts()) halt_ = true;
+    else halt_bug_ = true;
 }
 
 ALWAYS_INLINE void Cpu::Instr_STOP()
@@ -883,15 +812,9 @@ ALWAYS_INLINE void Cpu::Instr_STOP()
     // to-do: https://pbs.twimg.com/media/E5jlgW9XIAEKj0t.png:large
 }
 
-ALWAYS_INLINE void Cpu::Instr_DI()
-{
-    ime_ = false;
-}
+ALWAYS_INLINE void Cpu::Instr_DI() { ime_ = false; }
 
-ALWAYS_INLINE void Cpu::Instr_EI()
-{
-    ime_next_ = true;
-}
+ALWAYS_INLINE void Cpu::Instr_EI() { ime_next_ = true; }
 
 ALWAYS_INLINE void Cpu::Instr_NOP() {}
 
@@ -1187,10 +1110,7 @@ ALWAYS_INLINE void Cpu::Instr_BIT_B_MEM_HL(uint8_t b)
     hf_ = true;
 }
 
-ALWAYS_INLINE void Cpu::Instr_RES_B_R(uint8_t b, R8 r)
-{
-    SetReg(r, (GetReg(r) & ~(1 << b)));
-}
+ALWAYS_INLINE void Cpu::Instr_RES_B_R(uint8_t b, R8 r) { SetReg(r, (GetReg(r) & ~(1 << b))); }
 
 ALWAYS_INLINE void Cpu::Instr_RES_B_MEM_HL(uint8_t b)
 {

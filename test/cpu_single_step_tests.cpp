@@ -17,14 +17,8 @@ class SingleStepParameterizedTest : public testing::TestWithParam<std::filesyste
 public:
     static void SetUpTestSuite()
     {
-        if (g_enable_tracing)
-        {
-            spdlog::set_level(spdlog::level::trace);
-        }
-        if (!parser_)
-        {
-            parser_ = dom::parser{};
-        }
+        if (g_enable_tracing) spdlog::set_level(spdlog::level::trace);
+        if (!parser_) parser_ = dom::parser{};
     }
 
 protected:
@@ -112,10 +106,7 @@ testing::AssertionResult AssertCpuStateEquality(
     const CpuRegistersState& current_cpu_state, const CpuRegistersState& expected,
     const CpuRegistersState& initial)
 {
-    if (current_cpu_state == expected)
-    {
-        return testing::AssertionSuccess();
-    }
+    if (current_cpu_state == expected) return testing::AssertionSuccess();
 
     // to-do: somehow customize the output of GoogleTest
     std::ostringstream oss;
@@ -190,8 +181,7 @@ constexpr std::array<std::filesystem::path, 500> GetAllTestFiles()
     for (const auto& [index, dirent] : std::views::enumerate(it))
     {
         const auto& path = dirent.path();
-        if (path.extension() == ".json")
-            files[static_cast<size_t>(index)] = path.filename();
+        if (path.extension() == ".json") files[static_cast<size_t>(index)] = path.filename();
     }
     return files;
 }

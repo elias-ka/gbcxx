@@ -1,10 +1,12 @@
 AccessModifierOffset: -4
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: Inline
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: Inline
-AllowShortBlocksOnASingleLine: Empty
-AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLambdasOnASingleLine: All
+AllowShortBlocksOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortCompoundRequirementOnASingleLine: true
 BasedOnStyle: Google
 BreakBeforeTernaryOperators: true
 BreakBeforeBraces: Allman

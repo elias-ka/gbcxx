@@ -24,16 +24,8 @@ public:
 
     [[nodiscard]] constexpr uint16_t GetTileAddress(uint8_t tile_index) const
     {
-        if (BgWinTileData())
-        {
-            return 0x8000 + (static_cast<uint16_t>(tile_index) * 16);
-        }
-
-        if (tile_index >= 128)
-        {
-            return 0x8800 + ((static_cast<uint16_t>(tile_index - 128)) * 16);
-        }
-
+        if (BgWinTileData()) return 0x8000 + (static_cast<uint16_t>(tile_index) * 16);
+        if (tile_index >= 128) return 0x8800 + ((static_cast<uint16_t>(tile_index - 128)) * 16);
         return 0x9000 + (static_cast<uint16_t>(tile_index) * 16);
     }
 

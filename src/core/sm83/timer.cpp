@@ -52,8 +52,7 @@ void Timer::Tick(uint8_t tcycles)
         div_++;
     }
 
-    if (enabled_)
-        return;
+    if (enabled_) return;
 
     if (tima_overflow_)
     {
