@@ -3,8 +3,8 @@
 #include "core/sm83/cpu.hpp"
 
 using namespace gb;
-using enum sm83::Cpu::R8;
-using enum sm83::Cpu::R16;
+using enum sm83::R8;
+using enum sm83::R16;
 
 class CpuRegistersTest : public ::testing::Test
 {

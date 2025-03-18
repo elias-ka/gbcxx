@@ -77,6 +77,18 @@ constexpr T GetBit(T value)
     return (value >> Offset) & T{1};
 }
 
+template <size_t Offset, typename T>
+constexpr T SetBit(T value)
+{
+    return value | (T{1} << Offset);
+}
+
+template <size_t Offset, typename T>
+constexpr T ClearBit(T value)
+{
+    return value & ~(T{1} << Offset);
+}
+
 namespace literals
 {
 constexpr size_t operator""_KiB(unsigned long long int n) { return 1024ULL * n; }

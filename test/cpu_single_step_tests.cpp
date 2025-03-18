@@ -61,8 +61,8 @@ struct CpuRegistersState
 
     static CpuRegistersState FromCpu(const sm83::Cpu& cpu)
     {
-        using enum sm83::Cpu::R8;
-        using enum sm83::Cpu::R16;
+        using enum sm83::R8;
+        using enum sm83::R16;
 
         return {
             .pc = cpu.GetReg(Pc),
@@ -132,8 +132,8 @@ TEST_P(SingleStepParameterizedTest, All)
 
         // Set initial CPU state.
         sm83::Cpu cpu{{}};
-        using enum sm83::Cpu::R8;
-        using enum sm83::Cpu::R16;
+        using enum sm83::R8;
+        using enum sm83::R16;
         cpu.SetReg(Pc, initial_state.pc);
         cpu.SetReg(Sp, initial_state.sp);
         cpu.SetReg(A, initial_state.a);
