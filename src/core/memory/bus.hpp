@@ -23,7 +23,7 @@ struct Bus
     explicit Bus(std::vector<uint8_t> /*rom_data*/) : wram(64_KiB) {}
 #else
     explicit Bus(std::vector<uint8_t> rom_data)
-        : cartridge(Cartridge::MakeFromRom(std::move(rom_data))), wram(8_KiB)
+        : cartridge(Cartridge::FromRom(std::move(rom_data))), wram(8_KiB)
     {
     }
 #endif

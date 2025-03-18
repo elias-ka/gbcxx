@@ -6,7 +6,7 @@
 
 namespace gb::memory
 {
-Cartridge Cartridge::MakeFromRom(std::vector<uint8_t> rom)
+Cartridge Cartridge::FromRom(std::vector<uint8_t> rom)
 {
     switch (rom.at(0x147))
     {

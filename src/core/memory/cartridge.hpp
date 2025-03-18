@@ -32,7 +32,7 @@ struct Cartridge
 {
     std::unique_ptr<Mbc> mbc;
 
-    static Cartridge MakeFromRom(std::vector<uint8_t> rom_data);
+    static Cartridge FromRom(std::vector<uint8_t> rom_data);
 
     void LoadGame(std::vector<uint8_t> ram_data) const { mbc->LoadRam(std::move(ram_data)); }
 
@@ -41,7 +41,7 @@ struct Cartridge
         if (addr >= kCartridgeStart && addr <= kCartridgeEnd) return mbc->ReadRom(addr);
         if (addr >= kExternalRamStart && addr <= kExternalRamEnd) return mbc->ReadRam(addr);
         LOG_ERROR("Cartrdige: Unmapped read {:X}", addr);
-        return 0x00;
+        return {};
     }
 
     void WriteByte(uint16_t addr, uint8_t val) const
