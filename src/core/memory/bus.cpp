@@ -19,16 +19,20 @@ uint8_t Bus::ReadByte(uint16_t addr) const
     return wram[addr];
 #endif
 
-    if (addr >= kCartridgeStart && addr <= kCartridgeEnd) return cartridge.ReadByte(addr);
-    if (addr >= kVramStart && addr <= kVramEnd) return ppu.ReadByte(addr);
-    if (addr >= kExternalRamStart && addr <= kExternalRamEnd) return cartridge.ReadByte(addr);
+    if ((addr >= kCartridgeStart && addr <= kCartridgeEnd) ||
+        (addr >= kExternalRamStart && addr <= kExternalRamEnd))
+    {
+        return cartridge.ReadByte(addr);
+    }
+    if ((addr >= kVramStart && addr <= kVramEnd) || (addr >= kOamStart && addr <= kOamEnd) ||
+        (addr >= kRegLcdc && addr <= kRegLyc) || (addr >= kRegBgp && addr <= kRegWx))
+    {
+        return ppu.ReadByte(addr);
+    }
     if (addr >= kWorkRamStart && addr <= kWorkRamEnd) return wram[addr - kWorkRamStart];
     if (addr >= kEchoRamStart && addr <= kEchoRamEnd) return wram[addr - kEchoRamStart];
-    if (addr >= kOamStart && addr <= kOamEnd) return ppu.ReadByte(addr);
     if (addr >= kRegDiv && addr <= kRegTac) return timer.ReadByte(addr);
     if (addr >= kNotUsableStart && addr <= kNotUsableEnd) return 0;
-    if (addr >= kRegLcdc && addr <= kRegLyc) return ppu.ReadByte(addr);
-    if (addr >= kRegBgp && addr <= kRegWx) return ppu.ReadByte(addr);
     if (addr >= kHighRamStart && addr <= kHighRamEnd) return hram[addr - kHighRamStart];
     if (addr == kRegJoyp) return joypad.ReadButtons();
     if (addr == kRegIf) return interrupt_flag;
@@ -60,9 +64,7 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr >= kRegDiv && addr <= kRegTac) timer.WriteByte(addr, val);
     else if (addr >= kNotUsableStart && addr <= kNotUsableEnd) return;
     else if (addr == kRegJoyp) joypad.Write(val);
-    else if (addr == kRegIf) interrupt_flag = val;
     else if (addr >= kHighRamStart && addr <= kHighRamEnd) hram[addr - kHighRamStart] = val;
-    else if (addr == kRegIe) interrupt_enable = val;
     else if (addr == kRegOamDma)
     {
         // to-do: OAM blocking?
@@ -73,6 +75,8 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
             WriteByte(kOamStart + i, ReadByte(source_address + i));
         }
     }
+    else if (addr == kRegIf) interrupt_flag = val;
+    else if (addr == kRegIe) interrupt_enable = val;
     else LOG_ERROR("Bus: Unmapped write {:X} <- {:X}", addr, val);
 }
 
