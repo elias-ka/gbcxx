@@ -7,13 +7,15 @@
 
 namespace gb
 {
-enum class Button : uint8_t
+enum class Input : uint8_t
 {
+    // Action buttons
     Start = 0,
     Select,
     B,
     A,
 
+    // D-Pad directions
     Down,
     Up,
     Left,
@@ -32,9 +34,12 @@ public:
         if (!select_buttons_ && !select_dpad_) return buttons;
 
         if (select_buttons_ && select_dpad_)
+        {
             LOG_WARN("Joypad: Both buttons and d-pad were selected (wtf)");
+            return buttons;
+        }
 
-        const uint8_t offset = select_dpad_ ? 4 : 0;
+        const uint8_t offset = select_dpad_ ? std::to_underlying(Input::Down) : 0;
         for (uint8_t i = 0; i < 4; ++i)
         {
             if (button_states_[offset + i]) buttons ^= (1 << (3 - i));
@@ -49,11 +54,14 @@ public:
         select_dpad_ = !(val & 0b0001'0000);
     }
 
-    void SetButton(Button btn, bool set) { button_states_[std::to_underlying(btn)] = set; }
+    void SetButton(Input button, bool pressed)
+    {
+        button_states_[std::to_underlying(button)] = pressed;
+    }
 
 private:
     bool select_buttons_{};
     bool select_dpad_{};
-    std::bitset<static_cast<size_t>(Button::Count)> button_states_;
+    std::bitset<static_cast<size_t>(Input::Count)> button_states_;
 };
 }  // namespace gb

@@ -15,7 +15,7 @@ public:
 
     void RunFrame(const DrawCallback& draw_callback);
 
-    void SetKeyState(Button btn, bool pressed) { GetBus().joypad.SetButton(btn, pressed); }
+    void SetKeyState(Input btn, bool pressed) { GetBus().joypad.SetButton(btn, pressed); }
 
     memory::Bus& GetBus() { return cpu_.GetBus(); }
 

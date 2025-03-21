@@ -3,7 +3,6 @@
 #include <array>
 #include <cassert>
 #include <span>
-#include <sstream>
 #include <vector>
 
 #include "core/constants.hpp"
@@ -66,18 +65,23 @@ struct Sprite
     SpriteFlags flags;
 };
 
+using LcdBuffer = std::array<Color, kLcdSize>;
+
 class Ppu
 {
 public:
     [[nodiscard]] uint8_t ReadByte(uint16_t addr) const;
+
     void WriteByte(uint16_t addr, uint8_t val);
 
     void Tick(uint8_t tcycles);
 
-    [[nodiscard]] uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
-    [[nodiscard]] const std::array<Color, kLcdSize>& GetLcdBuffer() const { return lcd_buf_; }
+    [[nodiscard]] uint8_t ConsumeInterrupts() { return std::exchange(interrupts_, 0); }
+
+    [[nodiscard]] const LcdBuffer& GetLcdBuffer() const { return lcd_buf_; }
 
     [[nodiscard]] bool ShouldDrawFrame() const { return should_draw_frame_; }
+
     void SetShouldDrawFrame(bool should_draw_frame) { should_draw_frame_ = should_draw_frame; }
 
     void DrawBackgroundTileMap(std::span<Color> buf) const
@@ -97,16 +101,20 @@ private:
     void CompareLine();
 
     void RenderScanline();
+    void RenderBackground(size_t scanline_start, uint8_t scan_x);
+    void RenderWindow(size_t scanline_start, uint8_t scan_x);
+    void RenderSprites(size_t scanline_start);
+
     Color FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y);
     Color FetchWindowPixel(uint8_t scan_x, uint8_t scan_y);
     void DrawTileMap(std::span<Color> buf, uint16_t tile_address) const;
 
-    std::array<Color, kLcdSize> lcd_buf_{};
+    LcdBuffer lcd_buf_{};
     std::array<uint8_t, 8192> vram_{};
     std::array<Sprite, 40> oam_{};
     std::vector<std::pair<size_t, Sprite>> scanline_sprite_buffer_;
     std::bitset<kLcdSize> bg_transparency_;
-    sm83::Interrupts interrupts_;
+    uint8_t interrupts_;
     uint16_t cycles_{};
     bool should_draw_frame_{};
 

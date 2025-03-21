@@ -72,19 +72,19 @@ decltype(auto) VariantMatch(V&& v, Ts&&... ts)
 }
 
 template <size_t Offset, typename T>
-constexpr T GetBit(T value)
+[[nodiscard]] constexpr T GetBit(T value)
 {
     return (value >> Offset) & T{1};
 }
 
 template <size_t Offset, typename T>
-constexpr T SetBit(T value)
+[[nodiscard]] constexpr T SetBit(T value)
 {
     return value | (T{1} << Offset);
 }
 
 template <size_t Offset, typename T>
-constexpr T ClearBit(T value)
+[[nodiscard]] constexpr T ClearBit(T value)
 {
     return value & ~(T{1} << Offset);
 }

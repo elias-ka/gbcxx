@@ -15,7 +15,7 @@ public:
 
     void StartApplicationLoop();
     void LoadRom(const std::string& rom_path);
-    void ShowErrorMessageBox(const std::string& message);
+    void ShowErrorMessageBox(const std::string& message) const;
 
 private:
     void LcdDrawCallback(const std::array<gb::video::Color, gb::kLcdSize>& lcd_buf);
@@ -29,7 +29,7 @@ private:
     SDL_Renderer* renderer_{};
 
     SDL_Texture* lcd_texture_{};
-    std::array<gb::video::Color, gb::kLcdSize> lcd_fb_{};
+    gb::video::LcdBuffer lcd_buf_{};
 
     SDL_Texture* vram_bg_texture_{};
     std::vector<gb::video::Color> vram_bg_fb_ =

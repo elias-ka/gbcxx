@@ -34,15 +34,19 @@ public:
     [[nodiscard]] constexpr bool Mode2Condition() const { return bits_.test(5); }
     [[nodiscard]] constexpr bool LycEqLyEnable() const { return bits_.test(6); }
 
-    constexpr void SetMode(Mode m)
+    constexpr void SetMode(Mode mode)
     {
         bits_ &= 0b1111'1100;
-        bits_ |= std::to_underlying(m);
+        bits_ |= std::to_underlying(mode);
     }
-    constexpr void SetMode(Mode m, sm83::Interrupts& interrupts)
+    constexpr void SetMode(Mode mode, uint8_t& interrupts)
     {
-        SetMode(m);
-        CheckInterrupts(interrupts);
+        SetMode(mode);
+        if ((mode == Mode::HBlank && Mode0Condition()) ||
+            (mode == Mode::VBlank && Mode1Condition()) || (mode == Mode::Oam && Mode2Condition()))
+        {
+            interrupts |= sm83::IntLcd;
+        }
     }
     constexpr void SetCompareFlag(bool set = true) { bits_.set(2, set); }
     constexpr void SetMode0Condition(bool set = true) { bits_.set(3, set); }
@@ -51,16 +55,6 @@ public:
     constexpr void SetLycEqLyEnable(bool set = true) { bits_.set(6, set); }
 
 private:
-    constexpr void CheckInterrupts(sm83::Interrupts& interrupts) const
-    {
-        if ((GetMode() == Mode::HBlank && Mode0Condition()) ||
-            (GetMode() == Mode::VBlank && Mode1Condition()) ||
-            (GetMode() == Mode::Oam && Mode2Condition()))
-        {
-            interrupts.SetStat();
-        }
-    }
-
     std::bitset<8> bits_;
 };
 }  // namespace gb::video

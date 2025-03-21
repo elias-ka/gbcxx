@@ -127,7 +127,7 @@ void Ppu::Tick(uint8_t tcycles)
 
         if (scan_y_ >= 143) [[unlikely]]
         {
-            interrupts_.SetVBlank();
+            interrupts_ |= sm83::IntVBlank;
             lcd_status_.SetMode(Mode::VBlank, interrupts_);
             should_draw_frame_ = true;
         }
@@ -231,7 +231,7 @@ void Ppu::CompareLine()
     {
         lcd_status_.SetCompareFlag();
 
-        if (lcd_status_.LycEqLyEnable()) interrupts_.SetStat();
+        if (lcd_status_.LycEqLyEnable()) { interrupts_ |= sm83::IntLcd; }
     }
     else lcd_status_.SetCompareFlag(false);
 }
@@ -242,10 +242,10 @@ Color ColorFromPaletteIndex(uint8_t index)
 {
     switch (index)
     {
-    case 0: return Color::FromHex("#fff6d3");
-    case 1: return Color::FromHex("#f9a875");
-    case 2: return Color::FromHex("#eb6b6f");
-    case 3: return Color::FromHex("#7c3f58");
+    case 0: return Color::FromHex("#e0f8d0");
+    case 1: return Color::FromHex("#88c070");
+    case 2: return Color::FromHex("#346856");
+    case 3: return Color::FromHex("#081820");
     default: DIE("ColorFromIndex: Invalid color index");
     }
 }
@@ -268,25 +268,35 @@ Color GetPixelColor(uint8_t palette, uint8_t color_idx)
 void Ppu::RenderScanline()
 {
     const auto scanline_start = static_cast<size_t>(scan_y_) * kLcdWidth;
-
     for (uint8_t scan_x = 0; scan_x < kLcdWidth; ++scan_x)
     {
-        const Color background_color = FetchBackgroundPixel(scan_x, scan_y_);
-        lcd_buf_[scanline_start + scan_x] = background_color;
-        bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
-            (background_color == ColorFromPaletteIndex(0));
-
-        const Color window_color = FetchWindowPixel(scan_x, scan_y_);
-        if (!window_color.IsTransparent())
-        {
-            lcd_buf_[scanline_start + scan_x] = window_color;
-            bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
-                (window_color == ColorFromPaletteIndex(0));
-        }
+        RenderBackground(scanline_start, scan_x);
+        RenderWindow(scanline_start, scan_x);
     }
+    if (lcd_control_.ObjEnabled()) { RenderSprites(scanline_start); }
+}
 
-    if (!lcd_control_.ObjEnabled()) return;
+void Ppu::RenderBackground(size_t scanline_start, uint8_t scan_x)
+{
+    const Color background_color = FetchBackgroundPixel(scan_x, scan_y_);
+    lcd_buf_[scanline_start + scan_x] = background_color;
+    bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
+        (background_color == ColorFromPaletteIndex(0));
+}
 
+void Ppu::RenderWindow(size_t scanline_start, uint8_t scan_x)
+{
+    const Color window_color = FetchWindowPixel(scan_x, scan_y_);
+    if (!window_color.IsTransparent())
+    {
+        lcd_buf_[scanline_start + scan_x] = window_color;
+        bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
+            (window_color == ColorFromPaletteIndex(0));
+    }
+}
+
+void Ppu::RenderSprites(size_t scanline_start)
+{
     for (const auto& [_, sprite] : scanline_sprite_buffer_)
     {
         const uint8_t tile_index =
@@ -304,8 +314,8 @@ void Ppu::RenderScanline()
             const uint8_t x_off = (sprite.x - 8) + px;
             if (x_off >= kLcdWidth) continue;
 
-            if (sprite.flags.BgWinPriority() && !bg_transparency_[(scan_y_ * kLcdWidth) + x_off])
-                continue;
+            const bool bg_transparent = bg_transparency_[(scan_y_ * kLcdWidth) + x_off];
+            if (sprite.flags.BgWinPriority() && !bg_transparent) continue;
 
             const uint8_t flipped_px = sprite.flags.XFlip() ? px : 7 - px;
 

@@ -15,6 +15,12 @@
 
 #include "core/util.hpp"
 
+namespace
+{
+// The emulator output is scaled by this amount
+constexpr int kEmuScale = 4;
+}  // namespace
+
 MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) { DIE("Error: SDL_Init(): {}", SDL_GetError()); }
@@ -35,7 +41,7 @@ MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
 
     SDL_SetRenderVSync(renderer_, 1);
     SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * 4, gb::kLcdHeight * 4);
+    SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * kEmuScale, gb::kLcdHeight * kEmuScale);
     SDL_ShowWindow(window_);
 
     IMGUI_CHECKVERSION();
@@ -77,19 +83,19 @@ MainApp::~MainApp()
     SDL_Quit();
 }
 
-static gb::Button ScancodeToGBButton(SDL_Scancode scancode)
+static gb::Input ScancodeToGBInput(SDL_Scancode scancode)
 {
     switch (scancode)
     {
-    case SDL_SCANCODE_RIGHT: return gb::Button::Right;
-    case SDL_SCANCODE_LEFT: return gb::Button::Left;
-    case SDL_SCANCODE_UP: return gb::Button::Up;
-    case SDL_SCANCODE_DOWN: return gb::Button::Down;
-    case SDL_SCANCODE_X: return gb::Button::A;
-    case SDL_SCANCODE_Z: return gb::Button::B;
-    case SDL_SCANCODE_BACKSPACE: return gb::Button::Select;
-    case SDL_SCANCODE_RETURN: return gb::Button::Start;
-    default: DIE("Unknown scancode to GB button mapping: {}", scancode);
+    case SDL_SCANCODE_RIGHT: return gb::Input::Right;
+    case SDL_SCANCODE_LEFT: return gb::Input::Left;
+    case SDL_SCANCODE_UP: return gb::Input::Up;
+    case SDL_SCANCODE_DOWN: return gb::Input::Down;
+    case SDL_SCANCODE_X: return gb::Input::A;
+    case SDL_SCANCODE_Z: return gb::Input::B;
+    case SDL_SCANCODE_BACKSPACE: return gb::Input::Select;
+    case SDL_SCANCODE_RETURN: return gb::Input::Start;
+    default: DIE("Unknown SDL_Scancode to GB input mapping: {}", scancode);
     }
 }
 
@@ -117,8 +123,9 @@ void MainApp::PollEvents()
             case SDL_SCANCODE_Z:
             case SDL_SCANCODE_BACKSPACE:
             case SDL_SCANCODE_RETURN:
-                core_.SetKeyState(ScancodeToGBButton(event.key.scancode),
+                core_.SetKeyState(ScancodeToGBInput(event.key.scancode),
                                   event.type == SDL_EVENT_KEY_DOWN);
+                break;
             default: break;
             }
         }
@@ -155,8 +162,7 @@ void MainApp::StartApplicationLoop()
     while (!quit_)
     {
         PollEvents();
-        core_.RunFrame([this](const std::array<gb::video::Color, gb::kLcdSize>& lcd_buf)
-                       { lcd_fb_ = lcd_buf; });
+        core_.RunFrame([this](const gb::video::LcdBuffer& lcd_buf) { lcd_buf_ = lcd_buf; });
 
         if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
         {
@@ -208,7 +214,7 @@ void MainApp::StartApplicationLoop()
         SDL_RenderClear(renderer_);
 
         const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
-        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_fb_.data(),
+        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
                           gb::kLcdWidth * sizeof(gb::video::Color));
         SDL_RenderClear(renderer_);
         SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
@@ -218,31 +224,31 @@ void MainApp::StartApplicationLoop()
     }
 }
 
-namespace
-{
-void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*filter*/)
-{
-    auto* app = static_cast<MainApp*>(userdata);
+// namespace
+// {
+// void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*filter*/)
+// {
+//     auto* app = static_cast<MainApp*>(userdata);
 
-    if (!filelist)
-    {
-        LOG_ERROR("An SDL error occurred: {}", SDL_GetError());
-        return;
-    }
+//     if (!filelist)
+//     {
+//         LOG_ERROR("An SDL error occurred: {}", SDL_GetError());
+//         return;
+//     }
 
-    if (!*filelist) return;
+//     if (!*filelist) return;
 
-    if (!std::filesystem::exists(*filelist))
-    {
-        app->ShowErrorMessageBox("The selected ROM file does not exist.");
-        return;
-    }
+//     if (!std::filesystem::exists(*filelist))
+//     {
+//         app->ShowErrorMessageBox("The selected ROM file does not exist.");
+//         return;
+//     }
 
-    const std::filesystem::path rom_path = *filelist;
-    app->LoadRom(rom_path);
-    LOG_INFO("Loaded ROM {}", rom_path.string());
-}
-}  // namespace
+//     const std::filesystem::path rom_path = *filelist;
+//     app->LoadRom(rom_path);
+//     LOG_INFO("Loaded ROM {}", rom_path.string());
+// }
+// }  // namespace
 
 void MainApp::MainMenu()
 {
@@ -286,7 +292,7 @@ void MainApp::MainMenu()
     }
 }
 
-void MainApp::ShowErrorMessageBox(const std::string& message)
+void MainApp::ShowErrorMessageBox(const std::string& message) const
 {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", message.c_str(), window_);
 }

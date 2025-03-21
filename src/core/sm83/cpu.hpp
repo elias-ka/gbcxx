@@ -480,14 +480,13 @@ ALWAYS_INLINE void Cpu::Instr_SBC_MEM_HL()
 
 ALWAYS_INLINE void Cpu::Instr_SBC_N()
 {
-    const uint16_t a = a_;
     const uint8_t n = ReadOperand();
-    const uint16_t result = a - n - cf_;
+    const uint16_t result = a_ - n - cf_;
 
     zf_ = !(result & 0xff);
     nf_ = true;
-    hf_ = ((a & 0xf) < ((n & 0xf) + cf_));
-    cf_ = a < (n + cf_);
+    hf_ = ((a_ & 0xf) < ((n & 0xf) + cf_));
+    cf_ = a_ < (n + cf_);
 
     a_ = result & 0xff;
 }
