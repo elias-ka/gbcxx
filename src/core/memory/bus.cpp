@@ -37,6 +37,7 @@ uint8_t Bus::ReadByte(uint16_t addr) const
     if (addr == kRegJoyp) return joypad.ReadButtons();
     if (addr == kRegIf) return interrupt_flag;
     if (addr == kRegIe) return interrupt_enable;
+    if (addr == kRegBootrom) return 0xff;
 
     LOG_ERROR("Bus: Unmapped read {:X}", addr);
     return 0xff;
@@ -62,7 +63,7 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr >= kWorkRamStart && addr <= kWorkRamEnd) wram[addr - kWorkRamStart] = val;
     else if (addr >= kEchoRamStart && addr <= kEchoRamEnd) wram[addr - kEchoRamStart] = val;
     else if (addr >= kRegDiv && addr <= kRegTac) timer.WriteByte(addr, val);
-    else if (addr >= kNotUsableStart && addr <= kNotUsableEnd) return;
+    else if (addr >= kNotUsableStart && addr <= kNotUsableEnd || addr == kRegBootrom) return;
     else if (addr == kRegJoyp) joypad.Write(val);
     else if (addr >= kHighRamStart && addr <= kHighRamEnd) hram[addr - kHighRamStart] = val;
     else if (addr == kRegOamDma)
