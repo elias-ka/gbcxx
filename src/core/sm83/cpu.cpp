@@ -6,17 +6,17 @@ uint8_t Cpu::Step()
 {
     cycles_ = 0;
 
-    ime_ |= ime_next_;
-    ime_next_ = false;
-
     HandleInterrupts();
 
     if (halt_) return 4;
 
-    // #ifndef NDEBUG
+#ifndef NDEBUG
     LogForGameBoyDoctor();
-    // #endif
+#endif
     InterpretInstruction();
+
+    ime_ |= ime_next_;
+    ime_next_ = false;
 
     GB_ASSERT(cycles_ != 0);
     return cycles_;
@@ -30,8 +30,9 @@ void Cpu::Tick4() { cycles_ += 4; }
 //         "A:{:02X} F:{:02X} B:{:02X} C:{:02X} D:{:02X} E:{:02X} "
 //         "H:{:02X} L:{:02X} SP:{:04X} PC:{:04X} "
 //         "PCMEM:{:02X},{:02X},{:02X},{:02X}\n",
-//         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
-//         bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
+//         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_,
+//         bus_.ReadByte(pc_), bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2),
+//         bus_.ReadByte(pc_ + 3));
 // }
 
 void Cpu::LogForGameBoyDoctor()

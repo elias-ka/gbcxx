@@ -1,8 +1,7 @@
 #pragma once
 
 #include <cstdint>
-
-#include "core/sm83/interrupts.hpp"
+#include <utility>
 
 namespace gb::sm83
 {
@@ -13,19 +12,15 @@ public:
     void WriteByte(uint16_t addr, uint8_t val);
 
     void Tick(uint8_t tcycles);
-    uint8_t ConsumeInterrupts() { return interrupts_.Consume(); }
+    uint8_t ConsumeInterrupts() { return std::exchange(interrupts_, 0); }
 
 private:
-    uint16_t div_counter_{};
-    uint16_t tima_counter_{};
-    uint16_t tac_cycles_{1024};
-    Interrupts interrupts_;
-    bool enabled_{};
-    bool tima_overflow_{};
-
     uint8_t div_{0xab};
     uint8_t tima_{0};
     uint8_t tma_{0};
     uint8_t tac_{0xf8};
+    uint16_t internal_div_{};
+    uint16_t internal_tima_{};
+    uint8_t interrupts_;
 };
 }  // namespace gb::sm83

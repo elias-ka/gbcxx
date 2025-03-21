@@ -25,52 +25,43 @@ void Timer::WriteByte(uint16_t addr, uint8_t val)
     case kRegDiv: div_ = 0; break;
     case kRegTima: tima_ = val; break;
     case kRegTma: tma_ = val; break;
-    case kRegTac:
-    {
-        tac_ = val;
-        switch (val & 3)
-        {
-        case 0: tac_cycles_ = 1024; break;
-        case 1: tac_cycles_ = 16; break;
-        case 2: tac_cycles_ = 64; break;
-        case 3: tac_cycles_ = 256; break;
-        default: std::unreachable();
-        };
-        enabled_ = tac_ & 4;
-        break;
-    }
+    case kRegTac: tac_ = val; break;
     default: DIE("Timer: Unmapped write {:X} <- {:X}", addr, val);
     }
 }
 
 void Timer::Tick(uint8_t tcycles)
 {
-    div_counter_ += tcycles;
-    while (div_counter_ >= 256)
+    // ref: https://markau.dev/posts/time-for-timers/
+    internal_div_ += tcycles;
+    while (internal_div_ >= 256)
     {
-        div_counter_ -= 256;
+        internal_div_ -= 256;
         div_++;
     }
 
-    if (enabled_) return;
+    if (!(tac_ & 4)) return;
 
-    if (tima_overflow_)
+    int input_clock;
+    switch (tac_ & 3)
     {
-        tima_overflow_ = false;
-        tima_ = tma_;
-        interrupts_.SetTimer();
+    case 0: input_clock = 1024; break;
+    case 1: input_clock = 16; break;
+    case 2: input_clock = 64; break;
+    case 3: input_clock = 256; break;
+    default: std::unreachable();
     }
 
-    tima_counter_ += tcycles;
-    while (tima_counter_ >= tac_cycles_)
+    internal_tima_ += tcycles;
+    while (internal_tima_ >= input_clock)
     {
-        if (tima_ != 255)
+        tima_++;
+        internal_tima_ -= input_clock;
+        if (tima_ == 0)
         {
-            tima_ += 1;
-            tima_counter_ -= tac_cycles_;
+            tima_ = tma_;
+            interrupts_ |= sm83::IntTimer;
         }
-
-        tima_overflow_ = true;
     }
 }
 
