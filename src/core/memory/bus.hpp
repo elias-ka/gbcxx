@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <random>
+
 #include "core/joypad.hpp"
 #include "core/memory/cartridge.hpp"
 #include "core/sm83/timer.hpp"
@@ -25,6 +28,11 @@ struct Bus
     explicit Bus(std::vector<uint8_t> rom_data)
         : cartridge(Cartridge::FromRom(std::move(rom_data))), wram(8_KiB)
     {
+        // Fill wram and hram with random values
+        auto eng = std::default_random_engine{std::random_device{}()};
+        auto dist = std::uniform_int_distribution<uint8_t>{0, 0xff};
+        std::ranges::generate(wram, [&] { return dist(eng); });
+        std::ranges::generate(hram, [&] { return dist(eng); });
     }
 #endif
 
