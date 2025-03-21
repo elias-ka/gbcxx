@@ -82,7 +82,7 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(gbcxx_core PRIVATE
+  target_compile_options(gbcxx_core INTERFACE
     -D_GLIBCXX_ASSERTIONS=1
     -fstack-protector-strong
     -fcf-protection=full
