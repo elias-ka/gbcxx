@@ -165,8 +165,6 @@ void Ppu::Tick(uint8_t tcycles)
 
         cycles_ -= kCyclesOam;
 
-        window_y_cond_trigger_ = window_y_ == scan_y_;
-
         scanline_sprite_buffer_.clear();
 
         for (const auto& [oam_index, sprite] : std::views::enumerate(oam_))
@@ -358,7 +356,7 @@ Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y)
 Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
 {
     if (!lcd_control_.WindowEnabled() || !lcd_control_.BgWinEnabled() || (scan_y_ < window_y_) ||
-        (scan_x < window_x_ - 7) || !window_y_cond_trigger_)
+        (scan_x < window_x_ - 7))
     {
         return Color::Transparent();
     }

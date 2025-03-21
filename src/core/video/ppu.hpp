@@ -131,7 +131,5 @@ private:
     uint8_t window_x_{};
     uint8_t window_y_{};
     uint8_t window_line_counter_{};
-
-    bool window_y_cond_trigger_{};
 };
 }  // namespace gb::video
