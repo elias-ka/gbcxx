@@ -2,6 +2,7 @@
 
 #include "core/memory/mbc/mbc0.hpp"
 #include "core/memory/mbc/mbc1.hpp"
+#include "core/memory/mbc/mbc3.hpp"
 #include "core/util.hpp"
 
 namespace gb::memory
@@ -21,6 +22,15 @@ Cartridge Cartridge::FromRom(std::vector<uint8_t> rom)
     {
         LOG_INFO("Cartridge: Type MBC1");
         return {.mbc = std::make_unique<Mbc1>(std::move(rom))};
+    }
+    case 0x0f:
+    case 0x10:
+    case 0x11:
+    case 0x12:
+    case 0x13:
+    {
+        LOG_INFO("Cartridge: Type MBC3");
+        return {.mbc = std::make_unique<Mbc3>(std::move(rom))};
     }
     default: DIE("MBC: Unimplemented cartridge type {:X}", rom[0x147]);
     }

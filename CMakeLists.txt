@@ -52,6 +52,8 @@ add_library(
   src/core/memory/mbc/mbc0.hpp
   src/core/memory/mbc/mbc1.cpp
   src/core/memory/mbc/mbc1.hpp
+  src/core/memory/mbc/mbc3.cpp
+  src/core/memory/mbc/mbc3.hpp
   src/core/memory/bus.cpp
   src/core/memory/bus.hpp
   src/core/memory/cartridge.cpp
