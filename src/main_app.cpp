@@ -14,6 +14,7 @@
 #endif
 
 #include "core/util.hpp"
+#include "font_data.hpp"
 
 namespace
 {
@@ -62,8 +63,10 @@ MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
     style.GrabRounding = 0.0F;
     style.TabRounding = 0.0F;
 
-    font_monospace_ = io.Fonts->AddFontFromFileTTF("assets/RobotoMono-Regular.ttf", 20.0F);
-    font_body_ = io.Fonts->AddFontFromFileTTF("assets/Roboto-Regular.ttf", 18.0F);
+    font_body_ = io.Fonts->AddFontFromMemoryCompressedTTF(kRobotoMonoRegularCompressedData,
+                                                          kRobotoMonoRegularCompressedSize, 18.0F);
+    font_body_ = io.Fonts->AddFontFromMemoryCompressedTTF(kRobotoRegularCompressedData,
+                                                          kRobotoRegularCompressedSize, 18.0F);
 
     io.FontDefault = font_body_;
 
