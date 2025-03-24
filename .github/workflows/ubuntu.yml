@@ -1,0 +1,41 @@
+name: Ubuntu CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt install -y \
+            cmake \
+            ninja-build \
+            clang \
+
+      - name: Configure CMake
+        run: |
+          cmake -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ --preset release
+
+      - name: Build
+        run: |
+          ninja -C build/gbcxx-release
+
+      - name: Package binary
+        run: |
+          chmod +x /build/gbcxx-release/gbcxx
+          tar -czf gbcxx-ubuntu-latest.tar.gz /build/gbcxx-release/gbcxx
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gbcxx-ubuntu-latest
+          path: gbcxx-ubuntu-latest.tar.gz
