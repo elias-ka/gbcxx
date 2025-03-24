@@ -33,7 +33,7 @@ jobs:
       - name: Package binary
         run: |
           chmod +x ./build/gbcxx-release/gbcxx
-          tar -czf gbcxx-ubuntu-latest.tar.gz ./build/gbcxx-release/gbcxx
+          tar -C ./build/gbcxx-release -czf gbcxx-ubuntu-latest.tar.gz gbcxx
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
