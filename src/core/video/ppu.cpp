@@ -198,7 +198,7 @@ void Ppu::Tick(uint8_t tcycles)
         break;
     }
     }
-}  // namespace gb
+}
 
 void Ppu::SetLcdc(uint8_t lcdc)
 {
@@ -242,10 +242,10 @@ Color ColorFromPaletteIndex(uint8_t index)
 {
     switch (index)
     {
-    case 0: return Color::FromHex("#e0f8d0");
-    case 1: return Color::FromHex("#88c070");
-    case 2: return Color::FromHex("#346856");
-    case 3: return Color::FromHex("#081820");
+    case 0: return {0xff, 0xff, 0xff};
+    case 1: return {0xaa, 0xaa, 0xaa};
+    case 2: return {0x55, 0x55, 0x55};
+    case 3: return {0x00, 0x00, 0x00};
     default: DIE("ColorFromIndex: Invalid color index");
     }
 }

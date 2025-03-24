@@ -119,6 +119,9 @@ add_executable(gbcxx
   3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp
 )
 
+# Doesn't build on GNU with -Werror=float-equal
+set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp PROPERTIES COMPILE_FLAGS -Wno-float-equal)
+
 target_include_directories(gbcxx PRIVATE 3rdparty/imgui_club/imgui_memory_editor)
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3 3rdparty::imgui)
 

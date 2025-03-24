@@ -41,6 +41,11 @@ int main(int argc, char* argv[])
         spdlog::set_level(spdlog::level::trace);
     }
     else { spdlog::set_level(spdlog::level::debug); }
+#else
+    if (args.size() > 2 && std::string_view(args[2]) == "--quiet"sv)
+    {
+        spdlog::set_level(spdlog::level::off);
+    }
 #endif
 
     const auto rom_data = gb::fs::ReadFile(rom_file);
