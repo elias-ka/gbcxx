@@ -43,6 +43,7 @@ CPMAddPackage(
           "SDL_CCACHE ON"
           "SDL_STATIC=ON"
           "SDL_SHARED=OFF"
+          "SDL_BUILD_SHARED_LIBS=OFF"
           "SDL_DISABLE_INSTALL=ON"
           "SDL_TEST_LIBRARY=OFF"
   SYSTEM ON
