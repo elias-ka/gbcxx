@@ -40,6 +40,7 @@ CPMAddPackage(
   GIT_SHALLOW
   OPTIONS "BUILD_SHARED_LIBS OFF"
           "SDL_X11 ON"
+          "SDL_WAYLAND ON"
           "SDL_CCACHE ON"
   SYSTEM ON
 )
