@@ -38,10 +38,13 @@ CPMAddPackage(
   GIT_TAG release-3.2.4
   GITHUB_REPOSITORY libsdl-org/SDL
   GIT_SHALLOW
-  OPTIONS "BUILD_SHARED_LIBS OFF"
-          "SDL_X11 ON"
+  OPTIONS "SDL_X11 ON"
           "SDL_WAYLAND ON"
           "SDL_CCACHE ON"
+          "SDL_STATIC=ON"
+          "SDL_SHARED=OFF"
+          "SDL_DISABLE_INSTALL=ON"
+          "SDL_TEST_LIBRARY=OFF"
   SYSTEM ON
 )
 
@@ -115,6 +118,7 @@ add_executable(gbcxx
   src/main.cpp
   src/main_app.hpp
   src/main_app.cpp
+  src/font_data.hpp
 
   3rdparty/imgui/backends/imgui_impl_sdl3.cpp
   3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp
