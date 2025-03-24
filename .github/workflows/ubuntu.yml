@@ -21,6 +21,7 @@ jobs:
             ninja-build \
             clang \
             libglew-dev \
+            libsdl3-dev
 
       - name: Configure CMake
         run: |

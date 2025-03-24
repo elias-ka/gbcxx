@@ -32,19 +32,6 @@ CPMAddPackage(
   SYSTEM ON
 )
 
-CPMAddPackage(
-  NAME SDL
-  VERSION 3.2.4
-  GIT_TAG release-3.2.4
-  GITHUB_REPOSITORY libsdl-org/SDL
-  GIT_SHALLOW
-  OPTIONS "BUILD_SHARED_LIBS OFF"
-          "SDL_X11 ON"
-          "SDL_WAYLAND ON"
-          "SDL_CCACHE ON"
-  SYSTEM ON
-)
-
 add_subdirectory(3rdparty)
 
 add_library(
@@ -124,6 +111,8 @@ add_executable(gbcxx
 set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp PROPERTIES COMPILE_FLAGS -Wno-float-equal)
 
 target_include_directories(gbcxx PRIVATE 3rdparty/imgui_club/imgui_memory_editor)
+
+find_package(SDL3 REQUIRED)
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3 3rdparty::imgui)
 
 add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/assets)
