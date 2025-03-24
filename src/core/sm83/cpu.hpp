@@ -40,7 +40,12 @@ enum class Condition : uint8_t
 class Cpu
 {
 public:
-    explicit Cpu(std::vector<uint8_t> rom_data) : bus_(std::move(rom_data)) { log_file_ << ""; }
+    explicit Cpu(std::vector<uint8_t> rom_data) : bus_(std::move(rom_data))
+    {
+#ifndef NDEBUG
+        log_file_ << "";
+#endif
+    }
 
     [[nodiscard]] uint8_t GetReg(R8 r) const;
     [[nodiscard]] uint16_t GetReg(R16 r) const;
@@ -73,8 +78,11 @@ private:
     void InterpretInstruction();
 
     memory::Bus bus_;
-    std::fstream log_file_{"gameboy_doctor.log", std::ios::out};
     uint8_t cycles_{};
+
+#ifndef NDEBUG
+    std::fstream log_file_{"gameboy_doctor.log", std::ios::out};
+#endif
 
     uint16_t pc_{0x0100};
     uint16_t sp_{0xfffe};

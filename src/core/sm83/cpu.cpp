@@ -24,6 +24,7 @@ uint8_t Cpu::Step()
 
 void Cpu::Tick4() { cycles_ += 4; }
 
+#ifndef NDEBUG
 // void Cpu::LogForGameBoyDoctor()
 // {
 //     log_file_ << fmt::format(
@@ -44,6 +45,7 @@ void Cpu::LogForGameBoyDoctor()
         a_, GetReg(R8::F), b_, c_, d_, e_, h_, l_, sp_, pc_, bus_.ReadByte(pc_),
         bus_.ReadByte(pc_ + 1), bus_.ReadByte(pc_ + 2), bus_.ReadByte(pc_ + 3));
 }
+#endif
 
 uint8_t Cpu::GetReg(R8 r) const
 {
