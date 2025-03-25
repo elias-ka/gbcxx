@@ -13,7 +13,7 @@ include(cmake/CPM.cmake)
 
 CPMAddPackage(
   NAME fmt
-  GIT_TAG 11.1.3
+  GIT_TAG 11.1.4
   GITHUB_REPOSITORY fmtlib/fmt
   OPTIONS "FMT_INSTALL OFF"
   GIT_SHALLOW
@@ -35,8 +35,8 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME SDL
-  VERSION 3.2.4
-  GIT_TAG release-3.2.4
+  VERSION 3.2.8
+  GIT_TAG release-3.2.8
   GITHUB_REPOSITORY libsdl-org/SDL
   GIT_SHALLOW
   OPTIONS "SDL_X11 ON"
@@ -130,10 +130,9 @@ add_executable(gbcxx
   3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp
 )
 
-# Doesn't build on GNU with -Werror=float-equal
-set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp PROPERTIES COMPILE_FLAGS -Wno-float-equal)
+set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp PROPERTIES COMPILE_FLAGS "-w")
+set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdl3.cpp PROPERTIES COMPILE_FLAGS "-w")
 
-target_include_directories(gbcxx PRIVATE 3rdparty/imgui_club/imgui_memory_editor)
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static 3rdparty::imgui)
 
 if(BUILD_TESTS)
