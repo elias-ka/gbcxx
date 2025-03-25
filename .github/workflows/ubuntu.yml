@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "3rdparty/**"
+      - "cmake/**"
+      - "src/**"
+      - "test/**"
+      - ".github/workflows/ubuntu.yml"
+      - "**/CMakeLists.txt"
 
 jobs:
   build:
