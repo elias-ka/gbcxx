@@ -10,10 +10,9 @@ A simple Nintendo Game Boy emulator (currently only for Linux), written in C++.
 ## Running
 Currently, no prebuilt binaries are provided. If you wish to build the emulator yourself, scroll down for instructions.
 
-Usage:
-``gbcxx <path-to-rom>``
+Usage: `gbcxx <path-to-rom>`
 
-You can safely ignore the error logs, or alternatively, suppress them with the `--quiet` flag.
+Some things are still unimplemented, so you can safely ignore the error logs or suppress them with the `--quiet` flag.
 
 ## Controls
 - **D-Pad:** <kbd>Up</kbd> <kbd>Down</kbd> <kbd>Left</kbd> <kbd>Right</kbd>
@@ -24,7 +23,12 @@ You can safely ignore the error logs, or alternatively, suppress them with the `
 
 
 ## Building
-Building requires a C++23 compatible Clang or GNU compiler.
+Building requires a C++23 compatible Clang or GNU compiler, CMake >= 3.21 and Ninja.
+
+Install build dependencies:
+```bash
+sudo apt install cmake ninja-build
+```
 
 Clone the repository:
 ```bash
