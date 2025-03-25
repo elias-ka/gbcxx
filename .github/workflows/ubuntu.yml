@@ -12,6 +12,17 @@ on:
       - ".github/workflows/ubuntu.yml"
       - "**/CMakeLists.txt"
 
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "3rdparty/**"
+      - "cmake/**"
+      - "src/**"
+      - "test/**"
+      - ".github/workflows/ubuntu.yml"
+      - "**/CMakeLists.txt"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,11 +32,21 @@ jobs:
         with:
           submodules: "recursive"
 
+      - name: Cache build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ccache
+            ./build/gbcxx-release/
+          key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
       - name: Install dependencies
         run: |
           sudo apt update && sudo apt install -yq \
             build-essential git make \
-            pkg-config clang cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+            pkg-config ccache clang cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
             libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
             libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
             libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
@@ -34,7 +55,8 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DSDL_UNIX_CONSOLE_BUILD=ON --preset release
+          cmake --preset=release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DSDL_UNIX_CONSOLE_BUILD=ON
 
       - name: Build
         run: |
