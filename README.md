@@ -3,9 +3,9 @@
 A simple Nintendo Game Boy emulator (currently only for Linux), written in C++.
 
 ## Screenshots
-| Tetris (World) (Rev 1) | Legend of Zelda, The - Link's Awakening (USA, Europe) | Kirby's Dream Land 2 (USA, Europe) (SGB Enhanced) |
+| Tetris | The Legend of Zelda: Link's Awakening | Kirby's Dream Land 2 |
 |---|---|---|
-| ![ Tetris (World) (Rev 1) ]( https://github.com/user-attachments/assets/88607530-b1b7-46fd-bac3-5641f7ccea61 ) | ![ Legend of Zelda, The - Link's Awakening (USA, Europe) ]( https://github.com/user-attachments/assets/7c48d0cc-8b74-4b4e-a082-1116b0498473 ) | ![ Kirby's Dream Land 2 (USA, Europe) (SGB Enhanced) ]( https://github.com/user-attachments/assets/540cfcc1-e239-4284-962f-5244e6947b11 ) |
+| ![Tetris](https://github.com/user-attachments/assets/88607530-b1b7-46fd-bac3-5641f7ccea61) | ![The Legend of Zelda: Link's Awakening]( https://github.com/user-attachments/assets/7c48d0cc-8b74-4b4e-a082-1116b0498473 ) | ![Kirby's Dream Land 2]( https://github.com/user-attachments/assets/540cfcc1-e239-4284-962f-5244e6947b11 ) |
 
 ## Running
 Currently, no prebuilt binaries are provided. If you wish to build the emulator yourself, scroll down for instructions.
