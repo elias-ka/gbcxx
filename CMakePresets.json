@@ -13,7 +13,8 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "BUILD_TESTS": "OFF"
+        "BUILD_TESTS": "OFF",
+        "BUILD_SHARED_LIBS": "OFF"
       }
     },
     {

@@ -29,6 +29,7 @@ CPMAddPackage(
           "SPDLOG_FMT_EXTERNAL ON"
           "SPDLOG_SYSTEM_INCLUDES ON"
           "SPDLOG_NO_EXCEPTIONS ON"
+          "SPDLOG_BUILD_SHARED OFF"
   SYSTEM ON
 )
 
@@ -113,6 +114,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     -Wnon-virtual-dtor
     -Wold-style-cast
   )
+  target_link_options(gbcxx_core INTERFACE
+    -static-libgcc
+    -static-libstdc++
+  )
 endif()
 
 add_executable(gbcxx
@@ -129,7 +134,7 @@ add_executable(gbcxx
 set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp PROPERTIES COMPILE_FLAGS -Wno-float-equal)
 
 target_include_directories(gbcxx PRIVATE 3rdparty/imgui_club/imgui_memory_editor)
-target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3 3rdparty::imgui)
+target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static 3rdparty::imgui)
 
 add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/assets)
 
