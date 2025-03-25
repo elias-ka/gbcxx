@@ -136,14 +136,6 @@ set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp 
 target_include_directories(gbcxx PRIVATE 3rdparty/imgui_club/imgui_memory_editor)
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static 3rdparty::imgui)
 
-add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/assets)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/assets
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
-  DEPENDS ${PROJECT_SOURCE_DIR}/assets
-)
-
 if(BUILD_TESTS)
   target_compile_definitions(gbcxx_core PUBLIC -DGBCXX_TESTS)
 
