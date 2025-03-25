@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#ifndef NDEBUG
 #include <fstream>
+#endif
 #include <utility>
 
 #include "core/memory/bus.hpp"
