@@ -219,7 +219,6 @@ void MainApp::StartApplicationLoop()
         const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
         SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
                           gb::kLcdWidth * sizeof(gb::video::Color));
-        SDL_RenderClear(renderer_);
         SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
 
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
