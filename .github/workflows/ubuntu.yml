@@ -37,6 +37,7 @@ jobs:
         with:
           path: |
             ~/.ccache
+            ~/.cache/CPM
             ./build/gbcxx-release/
           key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
