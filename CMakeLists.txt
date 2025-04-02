@@ -150,6 +150,12 @@ if (EMSCRIPTEN)
     --shell-file "./emscripten_shell.html"
   )
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+  add_custom_target(copy-emscripten-shell ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/emscripten_shell.html)
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/emscripten_shell.html PRE_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/emscripten_shell.html
+                                                      ${CMAKE_CURRENT_BINARY_DIR}/emscripten_shell.html
+                     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/emscripten_shell.html)
 endif()
 
 if(BUILD_TESTS)
