@@ -31,7 +31,7 @@ public:
     {
         uint8_t buttons = 0xf;
 
-        if (!select_buttons_ && !select_dpad_) return buttons;
+        if (!select_buttons_ && !select_dpad_) { return buttons; }
 
         if (select_buttons_ && select_dpad_)
         {
@@ -42,7 +42,7 @@ public:
         const uint8_t offset = select_dpad_ ? std::to_underlying(Input::Down) : 0;
         for (uint8_t i = 0; i < 4; ++i)
         {
-            if (button_states_[offset + i]) buttons ^= (1 << (3 - i));
+            if (button_states_[offset + i]) { buttons ^= (1 << (3 - i)); }
         }
 
         return buttons;

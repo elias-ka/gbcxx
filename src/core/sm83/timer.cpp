@@ -40,7 +40,7 @@ void Timer::Tick(uint8_t tcycles)
         div_++;
     }
 
-    if (!(tac_ & 4)) return;
+    if (!(tac_ & 4)) { return; }
 
     int input_clock;
     switch (tac_ & 3)

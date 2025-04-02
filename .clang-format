@@ -16,3 +16,4 @@ DerivePointerAlignment: false
 IndentCaseLabels: false
 IndentWidth: 4
 PointerAlignment: Left
+InsertBraces: true

@@ -8,7 +8,7 @@ uint8_t Cpu::Step()
 
     HandleInterrupts();
 
-    if (halt_) return 4;
+    if (halt_) { return 4; }
 
 #ifndef NDEBUG
     LogForGameBoyDoctor();
@@ -169,10 +169,9 @@ uint16_t Cpu::StackPop()
 
 void Cpu::HandleInterrupts()
 {
-    if (!ime_ && !halt_) return;
-
+    if (!ime_ && !halt_) { return; }
     const uint8_t interrupts = bus_.GetPendingInterrupts();
-    if (!interrupts) return;
+    if (!interrupts) { return; }
 
     if (halt_)
     {
@@ -180,7 +179,7 @@ void Cpu::HandleInterrupts()
         halt_ = false;
     }
 
-    if (!ime_) return;
+    if (!ime_) { return; }
     ime_ = false;
 
     const auto priority_bit = static_cast<uint8_t>(std::countr_zero(interrupts));
@@ -212,7 +211,7 @@ void Cpu::InterpretInstruction()
     pc_ += !halt_bug_;
     halt_bug_ = false;
 
-    if (opcode != 0xcb) LOG_TRACE("CPU: opcode {:X}", opcode);
+    if (opcode != 0xcb) { LOG_TRACE("CPU: opcode {:X}", opcode); }
 
     switch (opcode)
     {

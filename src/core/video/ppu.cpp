@@ -22,7 +22,7 @@ namespace gb::video
 {
 uint8_t Ppu::ReadByte(uint16_t addr) const
 {
-    if (addr >= kVramStart && addr <= kVramEnd) return vram_[addr - kVramStart];
+    if (addr >= kVramStart && addr <= kVramEnd) { return vram_[addr - kVramStart]; }
 
     if (addr >= kOamStart && addr <= kOamEnd)
     {
@@ -98,7 +98,7 @@ void Ppu::WriteByte(uint16_t addr, uint8_t val)
 
 void Ppu::Tick(uint8_t tcycles)
 {
-    if (!lcd_control_.LcdEnabled()) return;
+    if (!lcd_control_.LcdEnabled()) { return; }
 
     cycles_ += tcycles;
 
@@ -121,8 +121,7 @@ void Ppu::Tick(uint8_t tcycles)
     {
     case Mode::HBlank:
     {
-        if (cycles_ < kCyclesHBlank - scroll_adjust) return;
-
+        if (cycles_ < kCyclesHBlank - scroll_adjust) { return; }
         cycles_ -= kCyclesHBlank - scroll_adjust;
 
         if (scan_y_ >= 143) [[unlikely]]
@@ -146,8 +145,7 @@ void Ppu::Tick(uint8_t tcycles)
     }
     case Mode::VBlank:
     {
-        if (cycles_ < kCyclesVBlank) return;
-
+        if (cycles_ < kCyclesVBlank) { return; }
         cycles_ -= kCyclesVBlank;
         SetScanY(scan_y_ + 1);
 
@@ -161,7 +159,7 @@ void Ppu::Tick(uint8_t tcycles)
     }
     case Mode::Oam:
     {
-        if (cycles_ < kCyclesOam) return;
+        if (cycles_ < kCyclesOam) { return; }
 
         cycles_ -= kCyclesOam;
 
@@ -179,7 +177,9 @@ void Ppu::Tick(uint8_t tcycles)
 
         constexpr int kMaxSpritesPerScanline = 10;
         if (scanline_sprite_buffer_.size() > kMaxSpritesPerScanline)
+        {
             scanline_sprite_buffer_.resize(kMaxSpritesPerScanline);
+        }
 
         std::ranges::sort(
             scanline_sprite_buffer_, [](const auto& a, const auto& b)
@@ -190,7 +190,7 @@ void Ppu::Tick(uint8_t tcycles)
     }
     case Mode::Transfer:
     {
-        if (cycles_ < kCyclesTransfer + scroll_adjust) return;
+        if (cycles_ < kCyclesTransfer + scroll_adjust) { return; }
 
         cycles_ -= kCyclesTransfer + scroll_adjust;
         RenderScanline();
@@ -233,7 +233,7 @@ void Ppu::CompareLine()
 
         if (lcd_status_.LycEqLyEnable()) { interrupts_ |= sm83::IntLcd; }
     }
-    else lcd_status_.SetCompareFlag(false);
+    else { lcd_status_.SetCompareFlag(false); }
 }
 
 namespace
@@ -312,15 +312,15 @@ void Ppu::RenderSprites(size_t scanline_start)
         for (uint8_t px = 0; px < kTileSize; ++px)
         {
             const uint8_t x_off = (sprite.x - 8) + px;
-            if (x_off >= kLcdWidth) continue;
+            if (x_off >= kLcdWidth) { continue; }
 
             const bool bg_transparent = bg_transparency_[(scan_y_ * kLcdWidth) + x_off];
-            if (sprite.flags.BgWinPriority() && !bg_transparent) continue;
+            if (sprite.flags.BgWinPriority() && !bg_transparent) { continue; }
 
             const uint8_t flipped_px = sprite.flags.XFlip() ? px : 7 - px;
 
             const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, flipped_px);
-            if (color_idx == 0) continue;
+            if (color_idx == 0) { continue; }
 
             const uint8_t palette = sprite.flags.DmgPalette() ? obp1_ : obp0_;
             const Color color = GetPixelColor(palette, color_idx);

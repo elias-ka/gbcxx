@@ -51,7 +51,12 @@ public:
 
     [[nodiscard]] uint8_t GetReg(R8 r) const;
     [[nodiscard]] uint16_t GetReg(R16 r) const;
-    memory::Bus& GetBus() { return bus_; }
+
+    template <typename Self>
+    auto&& GetBus(this Self&& self)
+    {
+        return FWD(self).bus_;
+    }
 
     void SetReg(R8 r, uint8_t v);
     void SetReg(R16 r, uint16_t v);
@@ -734,12 +739,12 @@ ALWAYS_INLINE void Cpu::Instr_DAA()
             result += 0x60;
             cf_ = true;
         }
-        if (hf_ || (a_ & 0x0f) > 0x09) result += 0x6;
+        if (hf_ || (a_ & 0x0f) > 0x09) { result += 0x6; }
     }
     else
     {
-        if (cf_) result -= 0x60;
-        if (hf_) result -= 0x6;
+        if (cf_) { result -= 0x60; }
+        if (hf_) { result -= 0x6; }
     }
 
     zf_ = !result;
@@ -913,8 +918,8 @@ ALWAYS_INLINE void Cpu::Instr_RST_N()
 
 ALWAYS_INLINE void Cpu::Instr_HALT()
 {
-    if (ime_ || !bus_.GetPendingInterrupts()) halt_ = true;
-    else halt_bug_ = true;
+    if (ime_ || !bus_.GetPendingInterrupts()) { halt_ = true; }
+    else { halt_bug_ = true; }
 }
 
 ALWAYS_INLINE void Cpu::Instr_STOP()
