@@ -88,6 +88,9 @@ namespace fs
 {
 [[nodiscard]] std::vector<uint8_t> ReadFile(const std::filesystem::path& path);
 [[nodiscard]] std::filesystem::path GetHomeDirectory();
+
+inline const std::filesystem::path kGbcxxDataDir =
+    GetHomeDirectory() / ".local" / "share" / "gbcxx";
 }  // namespace fs
 
 namespace literals

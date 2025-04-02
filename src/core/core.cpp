@@ -6,8 +6,7 @@ Core::Core(const std::filesystem::path& rom_path, DrawCallback draw_cb)
     : cpu_(fs::ReadFile(rom_path)),
       draw_cb_(std::move(draw_cb)),
       rom_path_(rom_path),
-      save_path_(fs::GetHomeDirectory() / ".local" / "share" / "gbcxx" /
-                 rom_path.filename().replace_extension(".sav"))
+      save_path_(fs::kGbcxxDataDir / rom_path.filename().replace_extension(".sav"))
 {
     auto& cartridge = cpu_.GetBus().cartridge;
     if (cartridge.has_battery && std::filesystem::exists(save_path_))
@@ -46,8 +45,7 @@ void Core::RunFrame()
 void Core::SaveRam()
 {
     const auto& cartridge = cpu_.GetBus().cartridge;
-    const auto data_path = fs::GetHomeDirectory() / ".local" / "share" / "gbcxx";
-    std::filesystem::create_directory(data_path);
+    std::filesystem::create_directory(fs::kGbcxxDataDir);
     LOG_DEBUG("Core: Saving RAM to {}", save_path_.string());
     auto save_file = std::ofstream{save_path_, std::ios::binary | std::ios::out | std::ios::trunc};
     cartridge.SaveRam(save_file);
