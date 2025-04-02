@@ -10,7 +10,7 @@
 class MainApp
 {
 public:
-    explicit MainApp(std::vector<uint8_t> rom_data);
+    explicit MainApp(const std::filesystem::path& rom_file);
     ~MainApp();
 
     void StartApplicationLoop();

@@ -14,7 +14,9 @@ public:
 
     void WriteRom(uint16_t addr, uint8_t val) override;
     void WriteRam(uint16_t addr, uint8_t val) override;
-    void LoadRam(std::vector<uint8_t> ram) override;
+
+    void LoadRam(std::ifstream& save_file) override;
+    void SaveRam(std::ofstream& save_file) const override;
 
 private:
     std::vector<uint8_t> rom_;

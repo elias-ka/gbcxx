@@ -2,7 +2,28 @@
 
 namespace gb
 {
-void Core::RunFrame(const DrawCallback& draw_callback)
+Core::Core(const std::filesystem::path& rom_path, DrawCallback draw_cb)
+    : cpu_(fs::ReadFile(rom_path)),
+      draw_cb_(std::move(draw_cb)),
+      rom_path_(rom_path),
+      save_path_(fs::GetHomeDirectory() / ".local" / "share" / "gbcxx" /
+                 rom_path.filename().replace_extension(".sav"))
+{
+    auto& cartridge = cpu_.GetBus().cartridge;
+    if (cartridge.has_battery && std::filesystem::exists(save_path_))
+    {
+        auto save_file = std::ifstream{save_path_, std::ios::in | std::ios::binary};
+        cartridge.LoadRam(save_file);
+    }
+}
+
+Core::~Core()
+{
+    const auto& cartridge = cpu_.GetBus().cartridge;
+    if (cartridge.has_battery) { SaveRam(); }
+}
+
+void Core::RunFrame()
 {
     constexpr int kCyclesPerFrame = 70224;
     auto& bus = cpu_.GetBus();
@@ -16,10 +37,20 @@ void Core::RunFrame(const DrawCallback& draw_callback)
         const uint8_t tcycles = cpu_.Step();
         bus.Tick(tcycles);
 
-        if (ppu.ShouldDrawFrame()) draw_callback(ppu.GetLcdBuffer());
+        if (ppu.ShouldDrawFrame()) { draw_cb_(ppu.GetLcdBuffer()); }
 
         this_frame_cycles += tcycles;
     }
+}
+
+void Core::SaveRam()
+{
+    const auto& cartridge = cpu_.GetBus().cartridge;
+    const auto data_path = fs::GetHomeDirectory() / ".local" / "share" / "gbcxx";
+    std::filesystem::create_directory(data_path);
+    LOG_DEBUG("Core: Saving RAM to {}", save_path_.string());
+    auto save_file = std::ofstream{save_path_, std::ios::binary | std::ios::out | std::ios::trunc};
+    cartridge.SaveRam(save_file);
 }
 
 }  // namespace gb

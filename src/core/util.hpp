@@ -54,11 +54,6 @@
 
 namespace gb
 {
-namespace fs
-{
-[[nodiscard]] std::vector<uint8_t> ReadFile(const std::filesystem::path& path);
-}
-
 template <typename... Ts>
 struct Overloaded : Ts...
 {
@@ -88,6 +83,12 @@ template <size_t Offset, typename T>
 {
     return value & ~(T{1} << Offset);
 }
+
+namespace fs
+{
+[[nodiscard]] std::vector<uint8_t> ReadFile(const std::filesystem::path& path);
+[[nodiscard]] std::filesystem::path GetHomeDirectory();
+}  // namespace fs
 
 namespace literals
 {

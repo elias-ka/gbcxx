@@ -19,4 +19,14 @@ std::vector<uint8_t> ReadFile(const std::filesystem::path& path)
     buf.insert<std::istreambuf_iterator<char>>(buf.begin(), file, {});
     return buf;
 }
+
+[[nodiscard]] std::filesystem::path GetHomeDirectory()
+{
+#ifdef __unix__
+    if (const char* xdg_data_home = std::getenv("XDG_DATA_HOME")) { return xdg_data_home; }
+    return std::getenv("HOME");
+#else
+#error "Unsupported operating system"
+#endif
+}
 }  // namespace gb::fs

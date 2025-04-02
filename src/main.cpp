@@ -46,9 +46,9 @@ int main(int argc, char* argv[])
     {
         spdlog::set_level(spdlog::level::off);
     }
+    else { spdlog::set_level(spdlog::level::info); }
 #endif
 
-    const auto rom_data = gb::fs::ReadFile(rom_file);
-    MainApp app{rom_data};
+    auto app = MainApp{rom_file};
     app.StartApplicationLoop();
 }

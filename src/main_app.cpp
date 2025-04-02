@@ -9,8 +9,6 @@
 #include <SDL3/SDL_opengles2.h>
 #else
 #include <SDL3/SDL_opengl.h>
-
-#include <utility>
 #endif
 
 #include "core/util.hpp"
@@ -22,7 +20,8 @@ namespace
 constexpr int kEmuScale = 4;
 }  // namespace
 
-MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
+MainApp::MainApp(const std::filesystem::path& rom_file)
+    : core_(rom_file, [this](const gb::video::LcdBuffer& lcd_buf) { lcd_buf_ = lcd_buf; })
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) { DIE("Error: SDL_Init(): {}", SDL_GetError()); }
     SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth, gb::kLcdHeight,
@@ -63,8 +62,8 @@ MainApp::MainApp(std::vector<uint8_t> rom_data) : core_(std::move(rom_data))
     style.GrabRounding = 0.0F;
     style.TabRounding = 0.0F;
 
-    font_body_ = io.Fonts->AddFontFromMemoryCompressedTTF(kRobotoMonoRegularCompressedData,
-                                                          kRobotoMonoRegularCompressedSize, 18.0F);
+    font_monospace_ = io.Fonts->AddFontFromMemoryCompressedTTF(
+        kRobotoMonoRegularCompressedData, kRobotoMonoRegularCompressedSize, 18.0F);
     font_body_ = io.Fonts->AddFontFromMemoryCompressedTTF(kRobotoRegularCompressedData,
                                                           kRobotoRegularCompressedSize, 18.0F);
 
@@ -165,7 +164,7 @@ void MainApp::StartApplicationLoop()
     while (!quit_)
     {
         PollEvents();
-        core_.RunFrame([this](const gb::video::LcdBuffer& lcd_buf) { lcd_buf_ = lcd_buf; });
+        core_.RunFrame();
 
         if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
         {
@@ -198,7 +197,7 @@ void MainApp::StartApplicationLoop()
                 }
                 if (ImGui::BeginTabItem("Window"))
                 {
-                    core_.GetBus().ppu.DrawWindowTileMap(vram_bg_fb_);
+                    core_.GetBus().ppu.DrawWindowTileMap(vram_window_fb_);
                     SDL_UpdateTexture(vram_window_texture_, nullptr, vram_window_fb_.data(),
                                       256 * sizeof(gb::video::Color));
                     ImGui::Image(reinterpret_cast<ImTextureID>(vram_window_texture_), {256, 256});
