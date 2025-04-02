@@ -13,7 +13,9 @@ public:
     explicit MainApp(const std::filesystem::path& rom_file);
     ~MainApp();
 
-    void StartApplicationLoop();
+    [[nodiscard]] bool QuitRequested() const { return quit_; }
+
+    void Step();
     void LoadRom(const std::string& rom_path);
     void ShowErrorMessageBox(const std::string& message) const;
 

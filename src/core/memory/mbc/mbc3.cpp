@@ -23,7 +23,7 @@ uint8_t Mbc3::ReadRam(uint16_t addr) const
 void Mbc3::WriteRom(uint16_t addr, uint8_t val)
 {
     if (addr <= 0x1fff) { ram_enabled_ = (val & 0xf) == 0xa; }
-    else if (addr <= 0x3fff) { rom_bank_ = std::max(1, val & 0x7f); }
+    else if (addr <= 0x3fff) { rom_bank_ = std::max<size_t>(1, val & 0x7f); }
     else if (addr <= 0x5fff) { ram_bank_ = val & 0xf; }
     else if (addr >= 0x6000 && addr <= 0x7fff)
     {

@@ -10,6 +10,26 @@
 #include "core/util.hpp"
 #include "main_app.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
+static void MainLoop(void* user_data)
+{
+    auto* app = static_cast<MainApp*>(user_data);
+    if (app->QuitRequested())
+    {
+#ifdef __EMSCRIPTEN__
+        emscripten_cancel_main_loop();
+#else
+        exit(EXIT_SUCCESS);
+#endif
+    }
+
+    app->Step();
+}
+
 int main(int argc, char* argv[])
 {
     if constexpr (std::endian::native == std::endian::big) { DIE("Big-endian isn't supported."); }
@@ -31,7 +51,7 @@ int main(int argc, char* argv[])
             "Failed to open ROM file \"{}\".\nPlease check if the file exists "
             "and the path is "
             "correct.",
-            rom_file.string());
+            rom_file.c_str());
         return 1;
     }
 
@@ -50,5 +70,11 @@ int main(int argc, char* argv[])
 #endif
 
     auto app = MainApp{rom_file};
-    app.StartApplicationLoop();
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(MainLoop, &app, 0, true);
+#else
+    while (!app.QuitRequested()) { app.Step(); }
+#endif
+    return 0;
 }

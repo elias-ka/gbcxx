@@ -17,16 +17,19 @@
 namespace
 {
 // The emulator output is scaled by this amount
+#ifdef __EMSCRIPTEN__
+constexpr int kEmuScale = 8;
+#else
 constexpr int kEmuScale = 4;
+#endif
 }  // namespace
 
 MainApp::MainApp(const std::filesystem::path& rom_file)
     : core_(rom_file, [this](const gb::video::LcdBuffer& lcd_buf) { lcd_buf_ = lcd_buf; })
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) { DIE("Error: SDL_Init(): {}", SDL_GetError()); }
-    SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth, gb::kLcdHeight,
-                                SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE,
-                                &window_, &renderer_);
+    SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth * kEmuScale, gb::kLcdHeight * kEmuScale,
+                                SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE, &window_, &renderer_);
     if (!window_ || !renderer_) { DIE("Error: SDL_CreateWindowAndRenderer(): {}", SDL_GetError()); }
 
     lcd_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
@@ -71,6 +74,10 @@ MainApp::MainApp(const std::filesystem::path& rom_file)
 
     ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
     ImGui_ImplSDLRenderer3_Init(renderer_);
+
+#ifdef __EMSCRIPTEN__
+    io.IniFilename = nullptr;
+#endif
 }
 
 MainApp::~MainApp()
@@ -159,70 +166,70 @@ SDL_FRect CalculateIntegerLcdScale(SDL_Window* window, float menu_bar_height)
 }
 }  // namespace
 
-void MainApp::StartApplicationLoop()
+void MainApp::Step()
 {
-    while (!quit_)
+    PollEvents();
+    core_.RunFrame();
+
+    if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
     {
-        PollEvents();
-        core_.RunFrame();
-
-        if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
-        {
-            SDL_Delay(10);
-            continue;
-        }
-
-        ImGui_ImplSDLRenderer3_NewFrame();
-        ImGui_ImplSDL3_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
-                                     ImGuiDockNodeFlags_PassthruCentralNode);
-        MainMenu();
-
-        if (show_imgui_demo_) { ImGui::ShowDemoWindow(&show_imgui_demo_); }
-
-        if (show_vram_debug_window_)
-        {
-            if (ImGui::Begin("VRAM Viewer", &show_vram_debug_window_))
-            {
-                ImGui::BeginTabBar("##vram_tabs");
-                if (ImGui::BeginTabItem("Background"))
-                {
-                    core_.GetBus().ppu.DrawBackgroundTileMap(vram_bg_fb_);
-                    SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
-                                      256 * sizeof(gb::video::Color));
-                    ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Window"))
-                {
-                    core_.GetBus().ppu.DrawWindowTileMap(vram_window_fb_);
-                    SDL_UpdateTexture(vram_window_texture_, nullptr, vram_window_fb_.data(),
-                                      256 * sizeof(gb::video::Color));
-                    ImGui::Image(reinterpret_cast<ImTextureID>(vram_window_texture_), {256, 256});
-                    ImGui::EndTabItem();
-                }
-                ImGui::EndTabBar();
-            }
-            ImGui::End();
-        }
-
-        ImGui::Render();
-        SDL_SetRenderScale(renderer_, ImGui::GetIO().DisplayFramebufferScale.x,
-                           ImGui::GetIO().DisplayFramebufferScale.y);
-
-        SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
-        SDL_RenderClear(renderer_);
-
-        const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
-        SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
-                          gb::kLcdWidth * sizeof(gb::video::Color));
-        SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
-
-        ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
-        SDL_RenderPresent(renderer_);
+        SDL_Delay(10);
+        return;
     }
+
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
+                                 ImGuiDockNodeFlags_PassthruCentralNode);
+
+#ifndef __EMSCRIPTEN__
+    MainMenu();
+#endif
+
+    if (show_imgui_demo_) { ImGui::ShowDemoWindow(&show_imgui_demo_); }
+
+    if (show_vram_debug_window_)
+    {
+        if (ImGui::Begin("VRAM Viewer", &show_vram_debug_window_))
+        {
+            ImGui::BeginTabBar("##vram_tabs");
+            if (ImGui::BeginTabItem("Background"))
+            {
+                core_.GetBus().ppu.DrawBackgroundTileMap(vram_bg_fb_);
+                SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
+                                  256 * sizeof(gb::video::Color));
+                ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Window"))
+            {
+                core_.GetBus().ppu.DrawWindowTileMap(vram_window_fb_);
+                SDL_UpdateTexture(vram_window_texture_, nullptr, vram_window_fb_.data(),
+                                  256 * sizeof(gb::video::Color));
+                ImGui::Image(reinterpret_cast<ImTextureID>(vram_window_texture_), {256, 256});
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+        ImGui::End();
+    }
+
+    ImGui::Render();
+    SDL_SetRenderScale(renderer_, ImGui::GetIO().DisplayFramebufferScale.x,
+                       ImGui::GetIO().DisplayFramebufferScale.y);
+
+    SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
+    SDL_RenderClear(renderer_);
+
+    const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
+    SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
+                      gb::kLcdWidth * sizeof(gb::video::Color));
+    SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
+
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
+    SDL_RenderPresent(renderer_);
 }
 
 // namespace

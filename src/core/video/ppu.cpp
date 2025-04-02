@@ -165,13 +165,15 @@ void Ppu::Tick(uint8_t tcycles)
 
         scanline_sprite_buffer_.clear();
 
-        for (const auto& [oam_index, sprite] : std::views::enumerate(oam_))
+        // Can't use std::views::enumerate here because looks like emscripten doesn't support it yet
+        for (size_t oam_idx = 0; oam_idx < oam_.size(); ++oam_idx)
         {
+            const auto& sprite = oam_[oam_idx];
             constexpr int kSpriteYOffset = 16;
             if ((sprite.x > 0) && (scan_y_ + kSpriteYOffset >= sprite.y) &&
                 (scan_y_ + kSpriteYOffset < sprite.y + lcd_control_.GetSpriteHeight()))
             {
-                scanline_sprite_buffer_.emplace_back(oam_index, sprite);
+                scanline_sprite_buffer_.emplace_back(oam_idx, sprite);
             }
         }
 

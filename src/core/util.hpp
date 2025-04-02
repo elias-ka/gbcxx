@@ -93,13 +93,8 @@ inline const std::filesystem::path kGbcxxDataDir =
     GetHomeDirectory() / ".local" / "share" / "gbcxx";
 }  // namespace fs
 
-namespace literals
-{
-constexpr size_t operator""_KiB(unsigned long long int n) { return 1024ULL * n; }
-constexpr size_t operator""_MiB(unsigned long long int n) { return 1024_KiB * n; }
-}  // namespace literals
-using namespace literals;
-
+constexpr size_t operator""_KiB(unsigned long long n) { return static_cast<size_t>(1024ULL * n); }
+constexpr size_t operator""_MiB(unsigned long long n) { return static_cast<size_t>(1024_KiB * n); }
 }  // namespace gb
 
 template <typename EnumT>

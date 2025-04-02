@@ -8,18 +8,22 @@ Core::Core(const std::filesystem::path& rom_path, DrawCallback draw_cb)
       rom_path_(rom_path),
       save_path_(fs::kGbcxxDataDir / rom_path.filename().replace_extension(".sav"))
 {
+#ifndef __EMSCRIPTEN__
     auto& cartridge = cpu_.GetBus().cartridge;
     if (cartridge.has_battery && std::filesystem::exists(save_path_))
     {
         auto save_file = std::ifstream{save_path_, std::ios::in | std::ios::binary};
         cartridge.LoadRam(save_file);
     }
+#endif
 }
 
 Core::~Core()
 {
+#ifndef __EMSCRIPTEN__
     const auto& cartridge = cpu_.GetBus().cartridge;
     if (cartridge.has_battery) { SaveRam(); }
+#endif
 }
 
 void Core::RunFrame()

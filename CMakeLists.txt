@@ -22,7 +22,7 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME spdlog
-  GIT_TAG v1.15.1
+  GIT_TAG v1.15.2
   GITHUB_REPOSITORY gabime/spdlog
   GIT_SHALLOW
   OPTIONS "SPDLOG_INSTALL OFF"
@@ -35,8 +35,8 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME SDL
-  VERSION 3.2.8
-  GIT_TAG release-3.2.8
+  VERSION 3.2.10
+  GIT_TAG release-3.2.10
   GITHUB_REPOSITORY libsdl-org/SDL
   GIT_SHALLOW
   OPTIONS "SDL_X11 ON"
@@ -52,8 +52,7 @@ CPMAddPackage(
 
 add_subdirectory(3rdparty)
 
-add_library(
-  gbcxx_core
+add_library(gbcxx_core OBJECT
   src/core/memory/mbc/mbc0.cpp
   src/core/memory/mbc/mbc0.hpp
   src/core/memory/mbc/mbc1.cpp
@@ -92,11 +91,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(gbcxx_core INTERFACE
+  if(NOT DEFINED EMSCRIPTEN)
+    target_compile_options(gbcxx_core PUBLIC
     -D_GLIBCXX_ASSERTIONS=1
-    -fstack-protector-strong
-    -fcf-protection=full
-    -fstack-clash-protection
     -Wall
     -Wextra
     -Wpedantic
@@ -116,6 +113,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     -Wnon-virtual-dtor
     -Wold-style-cast
   )
+  endif()
+
   target_link_options(gbcxx_core INTERFACE
     -static-libgcc
     -static-libstdc++
@@ -136,6 +135,22 @@ set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp 
 set_source_files_properties(3rdparty/imgui/backends/imgui_impl_sdl3.cpp PROPERTIES COMPILE_FLAGS "-w")
 
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static 3rdparty::imgui)
+
+if (EMSCRIPTEN)
+  target_link_options(gbcxx PRIVATE
+    -sSTACK_OVERFLOW_CHECK=1
+    -sWASM=1
+    -sASSERTIONS
+    -sSAFE_HEAP=1
+    -sSTACK_SIZE=8MB
+    -sALLOW_MEMORY_GROWTH
+    -sSINGLE_FILE
+    --emrun
+    --embed-file "./Legend\ of\ Zelda,\ The\ -\ Link\'s\ Awakening\ \(USA,\ Europe\).gb"
+    --shell-file "./emscripten_shell.html"
+  )
+  set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
 
 if(BUILD_TESTS)
   target_compile_definitions(gbcxx_core PUBLIC -DGBCXX_TESTS)

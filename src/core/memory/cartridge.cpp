@@ -52,7 +52,7 @@ constexpr std::array<std::string_view, 256> kCartridgeNameTable = []
 Cartridge Cartridge::FromRom(std::vector<uint8_t> rom)
 {
     const uint8_t code = rom[0x147];
-    std::string_view cart_name = kCartridgeNameTable[code];
+    const std::string_view cart_name = kCartridgeNameTable[code];
     LOG_INFO("Cartridge: {}", cart_name);
 
     Cartridge cart;
