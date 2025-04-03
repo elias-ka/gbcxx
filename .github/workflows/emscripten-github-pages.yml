@@ -17,7 +17,7 @@ jobs:
           path: |
             ~/.ccache
             ~/.cache/CPM
-            ./build/gbcxx-release/
+            ./build/gbcxx-emscripten/
           key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
           restore-keys: |
             ${{ runner.os }}-build-
@@ -43,15 +43,15 @@ jobs:
         run: emcc -v
 
       - name: Configure CMake
-        run: emcmake cmake --preset=release
+        run: emcmake cmake --preset=release -B "./build/gbcxx-emscripten"
 
       - name: Build Wasm
-        run: ninja -C build/gbcxx-release
+        run: ninja -C build/gbcxx-emscripten
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./build/gbcxx-release/gbcxx.html"
+          path: "./build/gbcxx-emscripten/gbcxx.html"
 
   deploy:
     environment:
