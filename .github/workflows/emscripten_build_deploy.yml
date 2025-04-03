@@ -1,0 +1,46 @@
+name: Emscripten Build & Deploy
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: "latest"
+          actions-cache-folder: "emsdk-cache"
+
+      - name: Verify emsdk installation
+        run: emcc -v
+
+      - name: Configure cmake
+        run: emcmake cmake --preset=release
+
+      - name: Build gbcxx
+        run: ninja -C build/gbcxx-release
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./build/gbcxx-release/gbcxx.html"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
