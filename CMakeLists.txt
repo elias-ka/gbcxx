@@ -159,10 +159,10 @@ if(EMSCRIPTEN)
     -sSAFE_HEAP=1
     -sSTACK_SIZE=8MB
     -sALLOW_MEMORY_GROWTH
-    -sSINGLE_FILE
     --emrun
     --shell-file
     "./emscripten_shell.html")
+  set_target_properties(gbcxx PROPERTIES OUTPUT_NAME "index")
   set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
   add_custom_target(copy-emscripten-shell ALL
