@@ -1,19 +1,10 @@
-name: Ubuntu CI
+name: Emscripten GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "3rdparty/**"
-      - "cmake/**"
-      - "src/**"
-      - ".github/workflows/ubuntu.yml"
-      - "**/CMakeLists.txt"
   workflow_dispatch:
 
 jobs:
-  build-native:
+  build-emscripten:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,18 +33,33 @@ jobs:
             libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libglew-dev \
             libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
 
-      - name: Configure CMake
-        run: |
-          cmake --preset=release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-          -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DSDL_UNIX_CONSOLE_BUILD=ON
-
-      - name: Build Native
-        run: |
-          ninja -C build/gbcxx-release
-          chmod +x ./build/gbcxx-release/gbcxx
-
-      - name: Upload Native Artifact
-        uses: actions/upload-artifact@v4
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
         with:
-          name: gbcxx-ubuntu-latest
-          path: ./build/gbcxx-release/gbcxx
+          version: "latest"
+          actions-cache-folder: "emsdk-cache"
+
+      - name: Verify emsdk installation
+        run: emcc -v
+
+      - name: Configure CMake
+        run: emcmake cmake --preset=release
+
+      - name: Build Wasm
+        run: ninja -C build/gbcxx-release
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./build/gbcxx-release/gbcxx.html"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build-emscripten
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
