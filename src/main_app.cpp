@@ -37,11 +37,6 @@ MainApp::MainApp(const std::filesystem::path& rom_file)
     if (!lcd_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
     SDL_SetTextureScaleMode(lcd_texture_, SDL_SCALEMODE_NEAREST);
 
-    vram_bg_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
-                                         SDL_TEXTUREACCESS_STREAMING, 256, 256);
-    if (!vram_bg_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
-    SDL_SetTextureScaleMode(vram_bg_texture_, SDL_SCALEMODE_NEAREST);
-
     SDL_SetRenderVSync(renderer_, 1);
     SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * kEmuScale, gb::kLcdHeight * kEmuScale);
@@ -114,13 +109,11 @@ void MainApp::PollEvents()
     while (SDL_PollEvent(&event))
     {
         ImGui_ImplSDL3_ProcessEvent(&event);
-        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                                             event.window.windowID == SDL_GetWindowID(window_)))
+        switch (event.type)
         {
-            quit_ = true;
-        }
-
-        if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+        case SDL_EVENT_QUIT: quit_ = true; break;
+        case SDL_EVENT_KEY_UP:
+        case SDL_EVENT_KEY_DOWN:
         {
             switch (event.key.scancode)
             {
@@ -137,6 +130,9 @@ void MainApp::PollEvents()
                 break;
             default: break;
             }
+        }
+        break;
+        default: break;
         }
     }
 }
@@ -184,37 +180,7 @@ void MainApp::Step()
     ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
                                  ImGuiDockNodeFlags_PassthruCentralNode);
 
-#ifndef __EMSCRIPTEN__
     MainMenu();
-#endif
-
-    if (show_imgui_demo_) { ImGui::ShowDemoWindow(&show_imgui_demo_); }
-
-    if (show_vram_debug_window_)
-    {
-        if (ImGui::Begin("VRAM Viewer", &show_vram_debug_window_))
-        {
-            ImGui::BeginTabBar("##vram_tabs");
-            if (ImGui::BeginTabItem("Background"))
-            {
-                core_.GetBus().ppu.DrawBackgroundTileMap(vram_bg_fb_);
-                SDL_UpdateTexture(vram_bg_texture_, nullptr, vram_bg_fb_.data(),
-                                  256 * sizeof(gb::video::Color));
-                ImGui::Image(reinterpret_cast<ImTextureID>(vram_bg_texture_), {256, 256});
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Window"))
-            {
-                core_.GetBus().ppu.DrawWindowTileMap(vram_window_fb_);
-                SDL_UpdateTexture(vram_window_texture_, nullptr, vram_window_fb_.data(),
-                                  256 * sizeof(gb::video::Color));
-                ImGui::Image(reinterpret_cast<ImTextureID>(vram_window_texture_), {256, 256});
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-        ImGui::End();
-    }
 
     ImGui::Render();
     SDL_SetRenderScale(renderer_, ImGui::GetIO().DisplayFramebufferScale.x,
@@ -232,6 +198,8 @@ void MainApp::Step()
     SDL_RenderPresent(renderer_);
 }
 
+void MainApp::LoadRom(const std::string& rom_path) {}
+
 // namespace
 // {
 // void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*filter*/)
@@ -244,7 +212,7 @@ void MainApp::Step()
 //         return;
 //     }
 
-//     if (!*filelist) return;
+//     if (!*filelist) { return; }
 
 //     if (!std::filesystem::exists(*filelist))
 //     {
@@ -265,37 +233,23 @@ void MainApp::MainMenu()
         menu_bar_height_ = ImGui::GetWindowHeight();
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open ROM..."))
-            {
-                // static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
-                //     {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
-                // }};
-                // SDL_ShowOpenFileDialog(&OpenRomDialogCallback, /*userdata=*/this, window_,
-                //                        kFilters.data(), kFilters.size(),
-                //                        /*default_location=*/nullptr, /*allow_many=*/false);
-            }
+            // if (ImGui::MenuItem("Open ROM..."))
+            // {
+            //     static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
+            //         {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
+            //     }};
+            //     SDL_ShowOpenFileDialog(&OpenRomDialogCallback, /*userdata=*/this, window_,
+            //                            kFilters.data(), kFilters.size(),
+            //                            /*default_location=*/nullptr, /*allow_many=*/false);
+            // }
 
-            if (ImGui::MenuItem("Show ImGui Demo", nullptr, show_imgui_demo_))
-            {
-                show_imgui_demo_ = !show_imgui_demo_;
-            }
-
+            // #ifndef __EMSCRIPTEN__
             ImGui::Separator();
-
             if (ImGui::MenuItem("Quit")) { quit_ = true; }
-
+            // #endif
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Debug"))
-        {
-            if (ImGui::MenuItem("VRAM", nullptr, show_vram_debug_window_))
-            {
-                show_vram_debug_window_ = !show_vram_debug_window_;
-            }
-
-            ImGui::EndMenu();
-        }
         ImGui::EndMainMenuBar();
     }
 }

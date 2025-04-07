@@ -33,17 +33,6 @@ private:
     SDL_Texture* lcd_texture_{};
     gb::video::LcdBuffer lcd_buf_{};
 
-    SDL_Texture* vram_bg_texture_{};
-    std::vector<gb::video::Color> vram_bg_fb_ =
-        std::vector<gb::video::Color>(0x10000, {0xff, 0xff, 0xff});
-
-    SDL_Texture* vram_window_texture_{};
-    std::vector<gb::video::Color> vram_window_fb_ =
-        std::vector<gb::video::Color>(0x10000, {0xff, 0xff, 0xff});
-
-    bool show_imgui_demo_{};
-    bool show_vram_debug_window_{};
-
     float menu_bar_height_{};
 
     ImFont* font_monospace_{};
