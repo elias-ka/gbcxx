@@ -147,8 +147,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_link_options(gbcxx_core INTERFACE -static-libgcc -static-libstdc++)
 endif()
 
-add_executable(gbcxx src/main.cpp src/main_app.hpp src/main_app.cpp
-                     src/font_data.hpp)
+add_executable(gbcxx src/main.cpp src/main_app.hpp src/main_app.cpp)
 
 target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static)
 
