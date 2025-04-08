@@ -1,7 +1,5 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_render.h>
 
 #include "core/core.hpp"
@@ -26,6 +24,6 @@ private:
     SDL_Window* window_{};
     SDL_Renderer* renderer_{};
 
-    SDL_Texture* lcd_texture_{};
-    gb::video::LcdBuffer lcd_buf_{};
+    SDL_Texture* viewport_texture_{};
+    gb::video::LcdBuffer viewport_buf_{};
 };

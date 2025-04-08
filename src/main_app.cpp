@@ -15,17 +15,18 @@ constexpr int kEmuScale = 4;
 }  // namespace
 
 MainApp::MainApp(const std::filesystem::path& rom_file)
-    : core_(rom_file, [this](const gb::video::LcdBuffer& lcd_buf) { lcd_buf_ = lcd_buf; })
+    : core_(rom_file, [this](const gb::video::LcdBuffer& lcd_buf) { viewport_buf_ = lcd_buf; })
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) { DIE("Error: SDL_Init(): {}", SDL_GetError()); }
     SDL_CreateWindowAndRenderer("gbcxx", gb::kLcdWidth * kEmuScale, gb::kLcdHeight * kEmuScale,
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE, &window_, &renderer_);
     if (!window_ || !renderer_) { DIE("Error: SDL_CreateWindowAndRenderer(): {}", SDL_GetError()); }
 
-    lcd_texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
-                                     SDL_TEXTUREACCESS_STREAMING, gb::kLcdWidth, gb::kLcdHeight);
-    if (!lcd_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
-    SDL_SetTextureScaleMode(lcd_texture_, SDL_SCALEMODE_NEAREST);
+    viewport_texture_ =
+        SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING,
+                          gb::kLcdWidth, gb::kLcdHeight);
+    if (!viewport_texture_) { DIE("Error: SDL_CreateTexture(): {}", SDL_GetError()); }
+    SDL_SetTextureScaleMode(viewport_texture_, SDL_SCALEMODE_NEAREST);
 
     SDL_SetRenderVSync(renderer_, 1);
     SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
@@ -35,13 +36,13 @@ MainApp::MainApp(const std::filesystem::path& rom_file)
 
 MainApp::~MainApp()
 {
-    SDL_DestroyTexture(lcd_texture_);
+    SDL_DestroyTexture(viewport_texture_);
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
     SDL_Quit();
 }
 
-static gb::Input ScancodeToGBInput(SDL_Scancode scancode)
+static gb::Input ScancodeToGbInput(SDL_Scancode scancode)
 {
     switch (scancode)
     {
@@ -78,7 +79,7 @@ void MainApp::PollEvents()
             case SDL_SCANCODE_Z:
             case SDL_SCANCODE_BACKSPACE:
             case SDL_SCANCODE_RETURN:
-                core_.SetKeyState(ScancodeToGBInput(event.key.scancode),
+                core_.SetKeyState(ScancodeToGbInput(event.key.scancode),
                                   event.type == SDL_EVENT_KEY_DOWN);
                 break;
             default: break;
@@ -92,7 +93,7 @@ void MainApp::PollEvents()
 
 namespace
 {
-SDL_FRect CalculateIntegerLcdScale(SDL_Window* window)
+SDL_FRect CalcRenderViewport(SDL_Window* window)
 {
     int window_width;
     int window_height;
@@ -129,10 +130,10 @@ void MainApp::Step()
     SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
     SDL_RenderClear(renderer_);
 
-    const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_);
-    SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
+    const SDL_FRect viewport_rect = CalcRenderViewport(window_);
+    SDL_UpdateTexture(viewport_texture_, nullptr, viewport_buf_.data(),
                       gb::kLcdWidth * sizeof(gb::video::Color));
-    SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
+    SDL_RenderTexture(renderer_, viewport_texture_, nullptr, &viewport_rect);
     SDL_RenderPresent(renderer_);
 }
 
