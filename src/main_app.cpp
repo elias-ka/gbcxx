@@ -1,18 +1,8 @@
 #include "main_app.hpp"
 
 #include <SDL3/SDL.h>
-#include <backends/imgui_impl_sdl3.h>
-#include <backends/imgui_impl_sdlrenderer3.h>
-#include <imgui.h>
-
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-#include <SDL3/SDL_opengles2.h>
-#else
-#include <SDL3/SDL_opengl.h>
-#endif
 
 #include "core/util.hpp"
-#include "font_data.hpp"
 
 namespace
 {
@@ -41,46 +31,10 @@ MainApp::MainApp(const std::filesystem::path& rom_file)
     SDL_SetWindowPosition(window_, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_SetWindowMinimumSize(window_, gb::kLcdWidth * kEmuScale, gb::kLcdHeight * kEmuScale);
     SDL_ShowWindow(window_);
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigDockingWithShift = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-
-    ImGui::StyleColorsDark();
-
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding = 0.0F;
-    style.FrameRounding = 0.0F;
-    style.ScrollbarRounding = 0.0F;
-    style.GrabRounding = 0.0F;
-    style.TabRounding = 0.0F;
-
-    font_monospace_ = io.Fonts->AddFontFromMemoryCompressedTTF(
-        kRobotoMonoRegularCompressedData, kRobotoMonoRegularCompressedSize, 18.0F);
-    font_body_ = io.Fonts->AddFontFromMemoryCompressedTTF(kRobotoRegularCompressedData,
-                                                          kRobotoRegularCompressedSize, 18.0F);
-
-    io.FontDefault = font_body_;
-
-    ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
-    ImGui_ImplSDLRenderer3_Init(renderer_);
-
-#ifdef __EMSCRIPTEN__
-    io.IniFilename = nullptr;
-#endif
 }
 
 MainApp::~MainApp()
 {
-    ImGui_ImplSDLRenderer3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
-
     SDL_DestroyTexture(lcd_texture_);
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
@@ -108,7 +62,6 @@ void MainApp::PollEvents()
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        ImGui_ImplSDL3_ProcessEvent(&event);
         switch (event.type)
         {
         case SDL_EVENT_QUIT: quit_ = true; break;
@@ -139,7 +92,7 @@ void MainApp::PollEvents()
 
 namespace
 {
-SDL_FRect CalculateIntegerLcdScale(SDL_Window* window, float menu_bar_height)
+SDL_FRect CalculateIntegerLcdScale(SDL_Window* window)
 {
     int window_width;
     int window_height;
@@ -156,9 +109,9 @@ SDL_FRect CalculateIntegerLcdScale(SDL_Window* window, float menu_bar_height)
     const int offset_y = (window_height - target_height) / 2;
 
     return {.x = static_cast<float>(offset_x),
-            .y = static_cast<float>(offset_y) + menu_bar_height,
+            .y = static_cast<float>(offset_y),
             .w = static_cast<float>(target_width),
-            .h = static_cast<float>(target_height) - menu_bar_height};
+            .h = static_cast<float>(target_height)};
 }
 }  // namespace
 
@@ -173,32 +126,15 @@ void MainApp::Step()
         return;
     }
 
-    ImGui_ImplSDLRenderer3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    ImGui::NewFrame();
-
-    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
-                                 ImGuiDockNodeFlags_PassthruCentralNode);
-
-    MainMenu();
-
-    ImGui::Render();
-    SDL_SetRenderScale(renderer_, ImGui::GetIO().DisplayFramebufferScale.x,
-                       ImGui::GetIO().DisplayFramebufferScale.y);
-
     SDL_SetRenderDrawColor(renderer_, 0x18, 0x18, 0x18, 0xff);
     SDL_RenderClear(renderer_);
 
-    const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_, menu_bar_height_);
+    const SDL_FRect lcd_dst_rect = CalculateIntegerLcdScale(window_);
     SDL_UpdateTexture(lcd_texture_, nullptr, lcd_buf_.data(),
                       gb::kLcdWidth * sizeof(gb::video::Color));
     SDL_RenderTexture(renderer_, lcd_texture_, nullptr, &lcd_dst_rect);
-
-    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
     SDL_RenderPresent(renderer_);
 }
-
-void MainApp::LoadRom(const std::string& rom_path) {}
 
 // namespace
 // {
@@ -225,36 +161,3 @@ void MainApp::LoadRom(const std::string& rom_path) {}
 //     LOG_INFO("Loaded ROM {}", rom_path.string());
 // }
 // }  // namespace
-
-void MainApp::MainMenu()
-{
-    if (ImGui::BeginMainMenuBar())
-    {
-        menu_bar_height_ = ImGui::GetWindowHeight();
-        if (ImGui::BeginMenu("File"))
-        {
-            // if (ImGui::MenuItem("Open ROM..."))
-            // {
-            //     static const std::array<SDL_DialogFileFilter, 1> kFilters = {{
-            //         {.name = "Game Boy (.gb, .dmg)", .pattern = "gb;dmg"},
-            //     }};
-            //     SDL_ShowOpenFileDialog(&OpenRomDialogCallback, /*userdata=*/this, window_,
-            //                            kFilters.data(), kFilters.size(),
-            //                            /*default_location=*/nullptr, /*allow_many=*/false);
-            // }
-
-            // #ifndef __EMSCRIPTEN__
-            ImGui::Separator();
-            if (ImGui::MenuItem("Quit")) { quit_ = true; }
-            // #endif
-            ImGui::EndMenu();
-        }
-
-        ImGui::EndMainMenuBar();
-    }
-}
-
-void MainApp::ShowErrorMessageBox(const std::string& message) const
-{
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", message.c_str(), window_);
-}

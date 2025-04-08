@@ -63,7 +63,18 @@ cpmaddpackage(
   SYSTEM
   ON)
 
-add_subdirectory(3rdparty)
+cpmaddpackage(
+  NAME
+  gb_apu
+  GIT_TAG
+  v1.4.0
+  GITHUB_REPOSITORY
+  ITotalJustice/gb_apu
+  GIT_SHALLOW
+  OPTIONS
+  "GB_APU_CXX ON"
+  SYSTEM
+  ON)
 
 add_library(
   gbcxx_core OBJECT
@@ -97,7 +108,7 @@ add_library(
 
 target_compile_features(gbcxx_core PUBLIC cxx_std_23)
 target_include_directories(gbcxx_core PUBLIC src)
-target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog)
+target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog gb_apu)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES
                                         "Clang|GNU")
@@ -136,18 +147,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_link_options(gbcxx_core INTERFACE -static-libgcc -static-libstdc++)
 endif()
 
-add_executable(
-  gbcxx
-  src/main.cpp src/main_app.hpp src/main_app.cpp src/font_data.hpp
-  3rdparty/imgui/backends/imgui_impl_sdl3.cpp
-  3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp)
+add_executable(gbcxx src/main.cpp src/main_app.hpp src/main_app.cpp
+                     src/font_data.hpp)
 
-set_source_files_properties(
-  3rdparty/imgui/backends/imgui_impl_sdlrenderer3.cpp
-  3rdparty/imgui/backends/imgui_impl_sdl3.cpp PROPERTIES COMPILE_FLAGS "-w")
-
-target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static
-                                    3rdparty::imgui)
+target_link_libraries(gbcxx PRIVATE gbcxx_core SDL3::SDL3-static)
 
 if(EMSCRIPTEN)
   target_link_options(

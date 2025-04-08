@@ -2,10 +2,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_timer.h>
-#include <backends/imgui_impl_opengl3.h>
-#include <backends/imgui_impl_sdl3.h>
 #include <fmt/format.h>
-#include <imgui.h>
 
 #include "core/util.hpp"
 #include "main_app.hpp"
@@ -15,7 +12,7 @@
 #include <emscripten/html5.h>
 #endif
 
-static void MainLoop(void* user_data)
+[[maybe_unused]] static void MainLoop(void* user_data)
 {
     auto* app = static_cast<MainApp*>(user_data);
     if (app->QuitRequested())
