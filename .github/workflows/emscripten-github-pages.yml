@@ -3,6 +3,10 @@ name: Emscripten GitHub Pages
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-emscripten:
     runs-on: ubuntu-latest
