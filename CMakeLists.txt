@@ -148,6 +148,9 @@ if(EMSCRIPTEN)
     -sSAFE_HEAP=1
     -sSTACK_SIZE=8MB
     -sALLOW_MEMORY_GROWTH
+    -sFORCE_FILESYSTEM
+    -sEXPORTED_RUNTIME_METHODS=['callMain']
+    -sINVOKE_RUN=0
     --emrun
     --shell-file
     "./emscripten_shell.html")

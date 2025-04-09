@@ -66,6 +66,10 @@ int main(int argc, char* argv[])
     else { spdlog::set_level(spdlog::level::info); }
 #endif
 
+#ifdef __EMSCRIPTEN__
+    spdlog::set_level(spdlog::level::off);
+#endif
+
     auto app = MainApp{rom_file};
 
 #ifdef __EMSCRIPTEN__
