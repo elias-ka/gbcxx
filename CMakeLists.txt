@@ -63,19 +63,6 @@ cpmaddpackage(
   SYSTEM
   ON)
 
-cpmaddpackage(
-  NAME
-  gb_apu
-  GIT_TAG
-  v1.4.0
-  GITHUB_REPOSITORY
-  ITotalJustice/gb_apu
-  GIT_SHALLOW
-  OPTIONS
-  "GB_APU_CXX ON"
-  SYSTEM
-  ON)
-
 add_library(
   gbcxx_core OBJECT
   src/core/memory/mbc/mbc0.cpp
@@ -108,7 +95,7 @@ add_library(
 
 target_compile_features(gbcxx_core PUBLIC cxx_std_23)
 target_include_directories(gbcxx_core PUBLIC src)
-target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog gb_apu)
+target_link_libraries(gbcxx_core PUBLIC fmt::fmt spdlog::spdlog)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug" AND CMAKE_CXX_COMPILER_ID MATCHES
                                         "Clang|GNU")
