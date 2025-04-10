@@ -160,7 +160,6 @@ void Ppu::Tick(uint8_t tcycles)
     case Mode::Oam:
     {
         if (cycles_ < kCyclesOam) { return; }
-
         cycles_ -= kCyclesOam;
 
         scanline_sprite_buffer_.clear();
@@ -232,7 +231,6 @@ void Ppu::CompareLine()
     if (scan_y_compare_ == scan_y_) [[unlikely]]
     {
         lcd_status_.SetCompareFlag();
-
         if (lcd_status_.LycEqLyEnable()) { interrupts_ |= sm83::IntLcd; }
     }
     else { lcd_status_.SetCompareFlag(false); }
@@ -350,9 +348,7 @@ Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y)
     const uint8_t byte1 = ReadByte(tile_addr + y_off);
     const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
 
-    const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, x_off);
-
-    return GetPixelColor(bgp_, color_idx);
+    return GetPixelColor(bgp_, GetPixelColorIndex(byte1, byte2, x_off));
 }
 
 Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
@@ -378,39 +374,6 @@ Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
     const uint8_t byte1 = ReadByte(tile_addr + y_off);
     const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
 
-    const uint8_t color_idx = GetPixelColorIndex(byte1, byte2, x_off);
-
-    return GetPixelColor(bgp_, color_idx);
-}
-
-void Ppu::DrawTileMap(std::span<Color> buf, uint16_t tile_address) const
-{
-    constexpr size_t kMapWidth = kTilesPerLine * kTileSize;
-
-    GB_ASSERT(buf.size() == (kMapWidth * kMapWidth));
-
-    for (size_t px = 0; px < (kMapWidth * kMapWidth); ++px)
-    {
-        const size_t x = px % kMapWidth;
-        const size_t y = px / kMapWidth;
-
-        const size_t tile_x = x / kTileSize;
-        const size_t tile_y = y / kTileSize;
-
-        const uint8_t tile_id =
-            vram_[(tile_address - kVramStart) + (tile_y * kTilesPerLine) + tile_x];
-        const auto tile_base = static_cast<size_t>(tile_id) * 16;
-
-        const uint8_t tile_row = y % kTileSize;
-        const uint8_t tile_col = x % kTileSize;
-
-        const uint8_t lo_byte = vram_[tile_base + (static_cast<size_t>(tile_row) * 2)];
-        const uint8_t hi_byte = vram_[tile_base + (static_cast<size_t>(tile_row) * 2) + 1];
-
-        const uint8_t bit_pos = 7 - tile_col;
-        const uint8_t color_index = GetPixelColorIndex(lo_byte, hi_byte, bit_pos);
-
-        buf[px] = ColorFromPaletteIndex(color_index);
-    }
+    return GetPixelColor(bgp_, GetPixelColorIndex(byte1, byte2, x_off));
 }
 }  // namespace gb::video

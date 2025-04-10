@@ -49,6 +49,8 @@ public:
 #endif
     }
 
+    uint8_t Step();
+
     [[nodiscard]] uint8_t GetReg(R8 r) const;
     [[nodiscard]] uint16_t GetReg(R16 r) const;
 
@@ -61,8 +63,6 @@ public:
     void SetReg(R8 r, uint8_t v);
     void SetReg(R16 r, uint16_t v);
 
-    uint8_t Step();
-
 private:
     void Tick4();
     void LogForGameBoyDoctor();
@@ -72,6 +72,7 @@ private:
 
     uint8_t ReadByte(uint16_t addr);
     uint16_t ReadWord(uint16_t addr);
+
     void WriteByte(uint16_t addr, uint8_t val);
     void WriteWord(uint16_t addr, uint16_t val);
 

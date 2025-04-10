@@ -42,7 +42,7 @@ void Timer::Tick(uint8_t tcycles)
 
     if (!(tac_ & 4)) { return; }
 
-    int input_clock;
+    uint16_t input_clock{};
     switch (tac_ & 3)
     {
     case 0: input_clock = 1024; break;

@@ -16,28 +16,27 @@ enum class Mode : uint8_t
     Transfer = 3,
 };
 
-class LcdStatus
+class LcdStatus : public std::bitset<8>
 {
 public:
-    LcdStatus() = default;
-    explicit LcdStatus(uint8_t byte) : bits_(byte) {}
+    using std::bitset<8>::bitset;
 
-    explicit operator uint8_t() const { return static_cast<uint8_t>(bits_.to_ulong()); }
+    explicit operator uint8_t() const { return static_cast<uint8_t>(to_ulong()); }
 
     [[nodiscard]] constexpr Mode GetMode() const
     {
-        return static_cast<Mode>(bits_.to_ulong() & 0b11);
+        return static_cast<Mode>(static_cast<uint8_t>(*this) & 0b11);
     }
-    [[nodiscard]] constexpr bool CompareFlag() const { return bits_.test(2); }
-    [[nodiscard]] constexpr bool Mode0Condition() const { return bits_.test(3); }
-    [[nodiscard]] constexpr bool Mode1Condition() const { return bits_.test(4); }
-    [[nodiscard]] constexpr bool Mode2Condition() const { return bits_.test(5); }
-    [[nodiscard]] constexpr bool LycEqLyEnable() const { return bits_.test(6); }
+    [[nodiscard]] constexpr bool CompareFlag() const { return test(2); }
+    [[nodiscard]] constexpr bool Mode0Condition() const { return test(3); }
+    [[nodiscard]] constexpr bool Mode1Condition() const { return test(4); }
+    [[nodiscard]] constexpr bool Mode2Condition() const { return test(5); }
+    [[nodiscard]] constexpr bool LycEqLyEnable() const { return test(6); }
 
     constexpr void SetMode(Mode mode)
     {
-        bits_ &= 0b1111'1100;
-        bits_ |= std::to_underlying(mode);
+        *this &= 0b1111'1100;
+        *this |= std::to_underlying(mode);
     }
     constexpr void SetMode(Mode mode, uint8_t& interrupts)
     {
@@ -48,13 +47,10 @@ public:
             interrupts |= sm83::IntLcd;
         }
     }
-    constexpr void SetCompareFlag(bool set = true) { bits_.set(2, set); }
-    constexpr void SetMode0Condition(bool set = true) { bits_.set(3, set); }
-    constexpr void SetMode1Condition(bool set = true) { bits_.set(4, set); }
-    constexpr void SetMode2Condition(bool set = true) { bits_.set(5, set); }
-    constexpr void SetLycEqLyEnable(bool set = true) { bits_.set(6, set); }
-
-private:
-    std::bitset<8> bits_;
+    constexpr void SetCompareFlag(bool on = true) { set(2, on); }
+    constexpr void SetMode0Condition(bool on = true) { set(3, on); }
+    constexpr void SetMode1Condition(bool on = true) { set(4, on); }
+    constexpr void SetMode2Condition(bool on = true) { set(5, on); }
+    constexpr void SetLycEqLyEnable(bool on = true) { set(6, on); }
 };
 }  // namespace gb::video

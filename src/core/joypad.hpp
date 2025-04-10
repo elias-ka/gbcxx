@@ -33,7 +33,7 @@ public:
 
         if (!select_buttons_ && !select_dpad_) { return buttons; }
 
-        if (select_buttons_ && select_dpad_)
+        if (select_buttons_ && select_dpad_) [[unlikely]]
         {
             LOG_WARN("Joypad: Both buttons and d-pad were selected (wtf)");
             return buttons;

@@ -20,10 +20,8 @@ private:
 
     gb::Core core_;
     bool quit_{};
-
     SDL_Window* window_{};
     SDL_Renderer* renderer_{};
-
     SDL_Texture* viewport_texture_{};
     gb::video::LcdBuffer viewport_buf_{};
 };

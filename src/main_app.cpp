@@ -121,7 +121,7 @@ void MainApp::Step()
     PollEvents();
     core_.RunFrame();
 
-    if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED)
+    if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) [[unlikely]]
     {
         SDL_Delay(10);
         return;
@@ -136,29 +136,3 @@ void MainApp::Step()
     SDL_RenderTexture(renderer_, viewport_texture_, nullptr, &viewport_rect);
     SDL_RenderPresent(renderer_);
 }
-
-// namespace
-// {
-// void OpenRomDialogCallback(void* userdata, const char* const* filelist, int /*filter*/)
-// {
-//     auto* app = static_cast<MainApp*>(userdata);
-
-//     if (!filelist)
-//     {
-//         LOG_ERROR("An SDL error occurred: {}", SDL_GetError());
-//         return;
-//     }
-
-//     if (!*filelist) { return; }
-
-//     if (!std::filesystem::exists(*filelist))
-//     {
-//         app->ShowErrorMessageBox("The selected ROM file does not exist.");
-//         return;
-//     }
-
-//     const std::filesystem::path rom_path = *filelist;
-//     app->LoadRom(rom_path);
-//     LOG_INFO("Loaded ROM {}", rom_path.string());
-// }
-// }  // namespace

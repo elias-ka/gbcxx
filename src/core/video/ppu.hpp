@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "core/constants.hpp"
-#include "core/util.hpp"
 #include "core/video/lcd_control.hpp"
 #include "core/video/lcd_status.hpp"
 
@@ -18,17 +17,6 @@ struct __attribute__((packed)) Color
     uint8_t b{0xff};
     uint8_t g{0xff};
     uint8_t r{0xff};
-
-    static Color FromHex(const std::string& hex)
-    {
-        GB_ASSERT_MSG(hex.length() == 7 && hex[0] == '#', "Hex string should be '#RRGGBB'.");
-        const uint64_t parsed = std::stoul(hex.substr(1), nullptr, 16);
-        Color color;
-        color.r = (parsed >> 16) & 0xFF;
-        color.g = (parsed >> 8) & 0xFF;
-        color.b = parsed & 0xFF;
-        return color;
-    }
 
     static Color Transparent() { return {0, 0, 0, 0}; }
 
@@ -70,29 +58,17 @@ using LcdBuffer = std::array<Color, kLcdSize>;
 class Ppu
 {
 public:
-    [[nodiscard]] uint8_t ReadByte(uint16_t addr) const;
-
-    void WriteByte(uint16_t addr, uint8_t val);
-
     void Tick(uint8_t tcycles);
+
+    [[nodiscard]] uint8_t ReadByte(uint16_t addr) const;
+    void WriteByte(uint16_t addr, uint8_t val);
 
     [[nodiscard]] uint8_t ConsumeInterrupts() { return std::exchange(interrupts_, 0); }
 
     [[nodiscard]] const LcdBuffer& GetLcdBuffer() const { return lcd_buf_; }
 
     [[nodiscard]] bool ShouldDrawFrame() const { return should_draw_frame_; }
-
     void SetShouldDrawFrame(bool should_draw_frame) { should_draw_frame_ = should_draw_frame; }
-
-    void DrawBackgroundTileMap(std::span<Color> buf) const
-    {
-        DrawTileMap(buf, lcd_control_.GetBackgroundTileMapAddress());
-    }
-
-    void DrawWindowTileMap(std::span<Color> buf) const
-    {
-        DrawTileMap(buf, lcd_control_.GetWindowTileMapAddress());
-    }
 
 private:
     void SetLcdc(uint8_t lcdc);
@@ -118,8 +94,8 @@ private:
     uint16_t cycles_{};
     bool should_draw_frame_{};
 
-    LcdControl lcd_control_;
-    LcdStatus lcd_status_;
+    LcdControl lcd_control_{0x91};
+    LcdStatus lcd_status_{0x85};
 
     uint8_t scroll_x_{};
     uint8_t scroll_y_{};

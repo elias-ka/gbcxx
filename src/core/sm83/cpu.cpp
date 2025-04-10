@@ -8,7 +8,7 @@ uint8_t Cpu::Step()
 
     HandleInterrupts();
 
-    if (halt_) { return 4; }
+    if (halt_) [[unlikely]] { return 4; }
 
 #ifndef NDEBUG
     LogForGameBoyDoctor();

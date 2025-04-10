@@ -15,7 +15,7 @@
 [[maybe_unused]] static void MainLoop(void* user_data)
 {
     auto* app = static_cast<MainApp*>(user_data);
-    if (app->QuitRequested())
+    if (app->QuitRequested()) [[unlikely]]
     {
 #ifdef __EMSCRIPTEN__
         emscripten_cancel_main_loop();
