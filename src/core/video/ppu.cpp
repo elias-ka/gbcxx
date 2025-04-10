@@ -96,26 +96,30 @@ void Ppu::WriteByte(uint16_t addr, uint8_t val)
     }
 }
 
+namespace
+{
+uint8_t ScrollAdjustment(uint8_t scroll_x)
+{
+    switch (scroll_x & 7)
+    {
+    case 1:
+    case 2:
+    case 3:
+    case 4: return 1;
+    case 5:
+    case 6:
+    case 7: return 2;
+    default: return 0;
+    }
+}
+}  // namespace
+
 void Ppu::Tick(uint8_t tcycles)
 {
     if (!lcd_control_.LcdEnabled()) { return; }
-
     cycles_ += tcycles;
 
-    const uint8_t scroll_adjust = [&]() -> uint8_t
-    {
-        switch (scroll_x_ & 7)
-        {
-        case 1:
-        case 2:
-        case 3:
-        case 4: return 1;
-        case 5:
-        case 6:
-        case 7: return 2;
-        default: return 0;
-        }
-    }();
+    const uint8_t scroll_adjust = ScrollAdjustment(scroll_x_);
 
     switch (lcd_status_.GetMode())
     {
@@ -192,7 +196,6 @@ void Ppu::Tick(uint8_t tcycles)
     case Mode::Transfer:
     {
         if (cycles_ < kCyclesTransfer + scroll_adjust) { return; }
-
         cycles_ -= kCyclesTransfer + scroll_adjust;
         RenderScanline();
         lcd_status_.SetMode(Mode::HBlank, interrupts_);
@@ -238,61 +241,41 @@ void Ppu::CompareLine()
 
 namespace
 {
-Color ColorFromPaletteIndex(uint8_t index)
-{
-    switch (index)
-    {
-    case 0: return {0xff, 0xff, 0xff};
-    case 1: return {0xaa, 0xaa, 0xaa};
-    case 2: return {0x55, 0x55, 0x55};
-    case 3: return {0x00, 0x00, 0x00};
-    default: DIE("ColorFromIndex: Invalid color index");
-    }
-}
+constexpr Color kDmgPalette[4] = {
+    {0xff, 0xff, 0xff}, {0xaa, 0xaa, 0xaa}, {0x55, 0x55, 0x55}, {0x00, 0x00, 0x00}};
 
-uint8_t GetPixelColorIndex(uint8_t lo_byte, uint8_t hi_byte, uint8_t bit_pos)
+constexpr uint8_t GetPixelColorIndex(uint8_t lo_byte, uint8_t hi_byte, uint8_t bit_pos)
 {
-    GB_ASSERT(bit_pos < 8);
     const auto bit0 = (lo_byte >> bit_pos) & 1;
     const auto bit1 = ((hi_byte >> bit_pos) & 1) << 1;
     return static_cast<uint8_t>(bit1 | bit0);
 }
 
-Color GetPixelColor(uint8_t palette, uint8_t color_idx)
+constexpr Color GetPixelColor(uint8_t palette, uint8_t color_idx)
 {
-    GB_ASSERT(color_idx < 4);
-    return ColorFromPaletteIndex((palette >> (color_idx << 1)) & 3);
+    return kDmgPalette[(palette >> (color_idx << 1)) & 3];
 }
 }  // namespace
 
 void Ppu::RenderScanline()
 {
     const auto scanline_start = static_cast<size_t>(scan_y_) * kLcdWidth;
+    Color* pixels = &lcd_buf_[scanline_start];
+
     for (uint8_t scan_x = 0; scan_x < kLcdWidth; ++scan_x)
     {
-        RenderBackground(scanline_start, scan_x);
-        RenderWindow(scanline_start, scan_x);
+        Color bg_color = FetchBackgroundPixel(scan_x, scan_y_);
+        pixels[scan_x] = bg_color;
+        bg_transparency_[scanline_start + scan_x] = (bg_color == kDmgPalette[0]);
+
+        const Color win_color = FetchWindowPixel(scan_x, scan_y_);
+        if (!win_color.IsTransparent())
+        {
+            pixels[scan_x] = win_color;
+            bg_transparency_[scanline_start + scan_x] = (win_color == kDmgPalette[0]);
+        }
     }
     if (lcd_control_.ObjEnabled()) { RenderSprites(scanline_start); }
-}
-
-void Ppu::RenderBackground(size_t scanline_start, uint8_t scan_x)
-{
-    const Color background_color = FetchBackgroundPixel(scan_x, scan_y_);
-    lcd_buf_[scanline_start + scan_x] = background_color;
-    bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
-        (background_color == ColorFromPaletteIndex(0));
-}
-
-void Ppu::RenderWindow(size_t scanline_start, uint8_t scan_x)
-{
-    const Color window_color = FetchWindowPixel(scan_x, scan_y_);
-    if (!window_color.IsTransparent())
-    {
-        lcd_buf_[scanline_start + scan_x] = window_color;
-        bg_transparency_[(scan_y_ * kLcdWidth) + scan_x] =
-            (window_color == ColorFromPaletteIndex(0));
-    }
 }
 
 void Ppu::RenderSprites(size_t scanline_start)
@@ -314,7 +297,7 @@ void Ppu::RenderSprites(size_t scanline_start)
             const uint8_t x_off = (sprite.x - 8) + px;
             if (x_off >= kLcdWidth) { continue; }
 
-            const bool bg_transparent = bg_transparency_[(scan_y_ * kLcdWidth) + x_off];
+            const bool bg_transparent = bg_transparency_[scanline_start + x_off];
             if (sprite.flags.BgWinPriority() && !bg_transparent) { continue; }
 
             const uint8_t flipped_px = sprite.flags.XFlip() ? px : 7 - px;
@@ -329,9 +312,17 @@ void Ppu::RenderSprites(size_t scanline_start)
     }
 }
 
-Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y)
+Color Ppu::FetchTilePixel(uint8_t tile_idx, uint8_t x_off, uint8_t y_off, uint8_t pal) const
 {
-    if (!lcd_control_.BgWinEnabled()) { return ColorFromPaletteIndex(0); }
+    const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
+    const uint8_t byte1 = ReadByte(tile_addr + y_off);
+    const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
+    return GetPixelColor(pal, GetPixelColorIndex(byte1, byte2, x_off));
+}
+
+Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y) const
+{
+    if (!lcd_control_.BgWinEnabled()) { return kDmgPalette[0]; }
 
     const uint16_t bg_map_base = lcd_control_.GetBackgroundTileMapAddress();
     const uint8_t bg_map_x = scan_x + scroll_x_;
@@ -343,18 +334,13 @@ Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y)
 
     const uint8_t x_off = 7 - (bg_map_x % kTileSize);
     const uint8_t y_off = 2 * (bg_map_y % kTileSize);
-
-    const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
-    const uint8_t byte1 = ReadByte(tile_addr + y_off);
-    const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
-
-    return GetPixelColor(bgp_, GetPixelColorIndex(byte1, byte2, x_off));
+    return FetchTilePixel(tile_idx, x_off, y_off, bgp_);
 }
 
-Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
+Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y) const
 {
-    if (!lcd_control_.WindowEnabled() || !lcd_control_.BgWinEnabled() || (scan_y_ < window_y_) ||
-        (scan_x < window_x_ - 7))
+    if (scan_y_ < window_y_ || scan_x < window_x_ - 7 || !lcd_control_.WindowEnabled() ||
+        !lcd_control_.BgWinEnabled())
     {
         return Color::Transparent();
     }
@@ -367,13 +353,8 @@ Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y)
         win_map_base + ((win_map_y / kTileSize) * kTilesPerLine) + (win_map_x / kTileSize);
     const uint8_t tile_idx = ReadByte(tile_idx_addr);
 
-    const uint8_t x_off = (window_x_ - scan_x) % kTileSize;
+    const uint8_t x_off = 7 - (win_map_x % kTileSize);
     const uint8_t y_off = 2 * ((scan_y - window_y_) % kTileSize);
-
-    const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
-    const uint8_t byte1 = ReadByte(tile_addr + y_off);
-    const uint8_t byte2 = ReadByte(tile_addr + y_off + 1);
-
-    return GetPixelColor(bgp_, GetPixelColorIndex(byte1, byte2, x_off));
+    return FetchTilePixel(tile_idx, x_off, y_off, bgp_);
 }
 }  // namespace gb::video

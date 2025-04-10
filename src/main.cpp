@@ -53,7 +53,11 @@ int main(int argc, char* argv[])
     }
 
 #ifndef NDEBUG
-    if (args.size() > 2 && std::string_view(args[2]) == "--trace"sv)
+    if (args.size() > 2 && std::string_view(args[2]) == "--quiet"sv)
+    {
+        spdlog::set_level(spdlog::level::off);
+    }
+    else if (args.size() > 2 && std::string_view(args[2]) == "--trace"sv)
     {
         spdlog::set_level(spdlog::level::trace);
     }

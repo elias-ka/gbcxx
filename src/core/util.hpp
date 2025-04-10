@@ -34,24 +34,6 @@
 #define ALWAYS_INLINE inline
 #endif
 
-#define GB_ASSERT(_cond)                                            \
-    (                                                               \
-        [&]()                                                       \
-        {                                                           \
-            /* NOLINTNEXTLINE(readability-simplify-boolean-expr) */ \
-            if (!(_cond)) [[unlikely]]                              \
-                DIE("Assertion failed!");                           \
-        }())
-
-#define GB_ASSERT_MSG(_cond, ...)                                                      \
-    (                                                                                  \
-        [&]()                                                                          \
-        {                                                                              \
-            /* NOLINTNEXTLINE(readability-simplify-boolean-expr) */                    \
-            if (!(_cond)) [[unlikely]]                                                 \
-                DIE("{}:{}: Assertion failed: " __VA_ARGS__, __FILE_NAME__, __LINE__); \
-        }())
-
 namespace gb
 {
 template <typename... Ts>

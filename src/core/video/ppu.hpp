@@ -18,31 +18,27 @@ struct __attribute__((packed)) Color
     uint8_t g{0xff};
     uint8_t r{0xff};
 
-    static Color Transparent() { return {0, 0, 0, 0}; }
+    static constexpr Color Transparent() { return {0, 0, 0, 0}; }
 
     constexpr Color() = default;
     constexpr Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff) : a(a), b(b), g(g), r(r) {}
 
     constexpr auto operator<=>(const Color&) const = default;
 
-    [[nodiscard]] bool IsTransparent() const { return a == 0; }
+    [[nodiscard]] constexpr bool IsTransparent() const { return a == 0; }
 };
 
-class SpriteFlags
+struct SpriteFlags : std::bitset<8>
 {
 public:
-    constexpr SpriteFlags() = default;
-    explicit constexpr SpriteFlags(uint8_t byte) : bits_(byte) {}
+    using std::bitset<8>::bitset;
 
-    explicit operator uint8_t() const { return static_cast<uint8_t>(bits_.to_ulong()); }
+    explicit operator uint8_t() const { return static_cast<uint8_t>(to_ulong()); }
 
-    [[nodiscard]] constexpr bool DmgPalette() const { return bits_[4]; }
-    [[nodiscard]] constexpr bool XFlip() const { return bits_[5]; }
-    [[nodiscard]] constexpr bool YFlip() const { return bits_[6]; }
-    [[nodiscard]] constexpr bool BgWinPriority() const { return bits_[7]; }
-
-private:
-    std::bitset<8> bits_;
+    [[nodiscard]] constexpr bool DmgPalette() const { return test(4); }
+    [[nodiscard]] constexpr bool XFlip() const { return test(5); }
+    [[nodiscard]] constexpr bool YFlip() const { return test(6); }
+    [[nodiscard]] constexpr bool BgWinPriority() const { return test(7); }
 };
 
 struct Sprite
@@ -77,13 +73,12 @@ private:
     void CompareLine();
 
     void RenderScanline();
-    void RenderBackground(size_t scanline_start, uint8_t scan_x);
-    void RenderWindow(size_t scanline_start, uint8_t scan_x);
     void RenderSprites(size_t scanline_start);
 
-    Color FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y);
-    Color FetchWindowPixel(uint8_t scan_x, uint8_t scan_y);
-    void DrawTileMap(std::span<Color> buf, uint16_t tile_address) const;
+    [[nodiscard]] Color FetchTilePixel(uint8_t tile_idx, uint8_t x_off, uint8_t y_off,
+                                       uint8_t pal) const;
+    [[nodiscard]] Color FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y) const;
+    [[nodiscard]] Color FetchWindowPixel(uint8_t scan_x, uint8_t scan_y) const;
 
     LcdBuffer lcd_buf_{};
     std::array<uint8_t, 8192> vram_{};

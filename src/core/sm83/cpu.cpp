@@ -18,7 +18,6 @@ uint8_t Cpu::Step()
     ime_ |= ime_next_;
     ime_next_ = false;
 
-    GB_ASSERT(cycles_ != 0);
     return cycles_;
 }
 
