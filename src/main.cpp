@@ -4,6 +4,8 @@
 #include <SDL3/SDL_timer.h>
 #include <fmt/format.h>
 
+#include <span>
+
 #include "core/util.hpp"
 #include "main_app.hpp"
 
