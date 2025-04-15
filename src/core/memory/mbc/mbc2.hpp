@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "core/memory/cartridge.hpp"
 
 namespace gb::memory
@@ -22,7 +24,6 @@ private:
     std::vector<uint8_t> rom_;
     std::array<uint8_t, 512> ram_;
     size_t rom_bank_{1};
-    size_t ram_bank_{0};
     bool ram_enabled_{false};
 };
 }  // namespace gb::memory
