@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cassert>
-#include <span>
 #include <vector>
 
 #include "core/constants.hpp"
@@ -65,6 +64,12 @@ public:
 
     [[nodiscard]] bool ShouldDrawFrame() const { return should_draw_frame_; }
     void SetShouldDrawFrame(bool should_draw_frame) { should_draw_frame_ = should_draw_frame; }
+
+    [[nodiscard]] bool CanAccessOam() const
+    {
+        const auto mode = lcd_status_.GetMode();
+        return mode == Mode::HBlank || mode == Mode::VBlank;
+    }
 
 private:
     void SetLcdc(uint8_t lcdc);

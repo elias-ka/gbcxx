@@ -68,7 +68,6 @@ void Bus::WriteByte(uint16_t addr, uint8_t val)
     else if (addr >= kHighRamStart && addr <= kHighRamEnd) { hram[addr - kHighRamStart] = val; }
     else if (addr == kRegOamDma)
     {
-        // to-do: OAM blocking?
         const uint16_t source_address = val * 0x100;
         constexpr auto kOamSize = 0xa0;
         for (uint8_t i = 0; i < kOamSize; ++i)

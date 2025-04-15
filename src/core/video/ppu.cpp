@@ -26,6 +26,7 @@ uint8_t Ppu::ReadByte(uint16_t addr) const
 
     if (addr >= kOamStart && addr <= kOamEnd)
     {
+        if (!CanAccessOam()) { return 0xff; }
         addr -= kOamStart;
         const Sprite& sprite = oam_[addr / 4];
         switch (addr % 4)
@@ -61,6 +62,7 @@ void Ppu::WriteByte(uint16_t addr, uint8_t val)
     if (addr >= kVramStart && addr <= kVramEnd) { vram_[addr - kVramStart] = val; }
     else if (addr >= kOamStart && addr <= kOamEnd)
     {
+        if (!CanAccessOam()) { return; }
         addr -= kOamStart;
         Sprite& sprite = oam_[addr / 4];
 
