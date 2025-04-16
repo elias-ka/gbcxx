@@ -44,16 +44,17 @@ MainApp::~MainApp()
 
 static gb::Input ScancodeToGbInput(SDL_Scancode scancode)
 {
+    using enum gb::Input;
     switch (scancode)
     {
-    case SDL_SCANCODE_RIGHT: return gb::Input::Right;
-    case SDL_SCANCODE_LEFT: return gb::Input::Left;
-    case SDL_SCANCODE_UP: return gb::Input::Up;
-    case SDL_SCANCODE_DOWN: return gb::Input::Down;
-    case SDL_SCANCODE_X: return gb::Input::A;
-    case SDL_SCANCODE_Z: return gb::Input::B;
-    case SDL_SCANCODE_BACKSPACE: return gb::Input::Select;
-    case SDL_SCANCODE_RETURN: return gb::Input::Start;
+    case SDL_SCANCODE_RIGHT: return Right;
+    case SDL_SCANCODE_LEFT: return Left;
+    case SDL_SCANCODE_UP: return Up;
+    case SDL_SCANCODE_DOWN: return Down;
+    case SDL_SCANCODE_X: return A;
+    case SDL_SCANCODE_Z: return B;
+    case SDL_SCANCODE_BACKSPACE: return Select;
+    case SDL_SCANCODE_RETURN: return Start;
     default: DIE("Unknown SDL_Scancode to GB input mapping: {}", scancode);
     }
 }

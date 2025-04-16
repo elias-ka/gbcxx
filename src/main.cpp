@@ -1,7 +1,3 @@
-#include <SDL3/SDL_events.h>
-#include <SDL3/SDL_main.h>
-#include <SDL3/SDL_render.h>
-#include <SDL3/SDL_timer.h>
 #include <fmt/format.h>
 
 #include <span>

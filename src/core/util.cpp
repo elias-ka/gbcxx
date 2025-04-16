@@ -22,9 +22,14 @@ std::vector<uint8_t> ReadFile(const std::filesystem::path& path)
 
 [[nodiscard]] std::filesystem::path GetHomeDirectory()
 {
-#ifdef __unix__
-    if (const char* xdg_data_home = std::getenv("XDG_DATA_HOME")) { return xdg_data_home; }
-    return std::getenv("HOME");
+#if defined(__unix__)
+    if (const char* xdg_data_home = std::getenv("XDG_DATA_HOME"))
+    {
+        return std::filesystem::path{xdg_data_home};
+    }
+    if (const char* home = std::getenv("HOME")) { return std::filesystem::path{home}; }
+
+    DIE("Neither XDG_DATA_HOME nor HOME is set in the environment");
 #else
 #error "Unsupported operating system"
 #endif

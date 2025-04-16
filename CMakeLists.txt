@@ -65,14 +65,8 @@ cpmaddpackage(
 
 add_library(
   gbcxx_core OBJECT
-  src/core/memory/mbc/mbc0.cpp
-  src/core/memory/mbc/mbc0.hpp
-  src/core/memory/mbc/mbc1.cpp
-  src/core/memory/mbc/mbc1.hpp
-  src/core/memory/mbc/mbc2.cpp
-  src/core/memory/mbc/mbc2.hpp
-  src/core/memory/mbc/mbc3.cpp
-  src/core/memory/mbc/mbc3.hpp
+  src/core/memory/mbc.cpp
+  src/core/memory/mbc.hpp
   src/core/memory/bus.cpp
   src/core/memory/bus.hpp
   src/core/memory/cartridge.cpp
@@ -82,8 +76,6 @@ add_library(
   src/core/sm83/interrupts.hpp
   src/core/sm83/timer.cpp
   src/core/sm83/timer.hpp
-  src/core/video/lcd_control.hpp
-  src/core/video/lcd_status.hpp
   src/core/video/ppu.cpp
   src/core/video/ppu.hpp
   src/core/constants.hpp

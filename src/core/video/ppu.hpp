@@ -1,12 +1,14 @@
 #pragma once
 
 #include <array>
+#include <bitset>
 #include <cassert>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "core/constants.hpp"
-#include "core/video/lcd_control.hpp"
-#include "core/video/lcd_status.hpp"
+#include "core/sm83/interrupts.hpp"
 
 namespace gb::video
 {
@@ -46,6 +48,85 @@ struct Sprite
     uint8_t x{};
     uint8_t tile_index{};
     SpriteFlags flags;
+};
+
+enum class Mode : uint8_t
+{
+    HBlank = 0,
+    VBlank = 1,
+    Oam = 2,
+    Transfer = 3,
+};
+
+class LcdStatus : public std::bitset<8>
+{
+public:
+    using std::bitset<8>::bitset;
+
+    explicit operator uint8_t() const { return static_cast<uint8_t>(to_ulong()); }
+
+    [[nodiscard]] constexpr Mode GetMode() const
+    {
+        return static_cast<Mode>(static_cast<uint8_t>(*this) & 0b11);
+    }
+    [[nodiscard]] constexpr bool CompareFlag() const { return test(2); }
+    [[nodiscard]] constexpr bool Mode0Condition() const { return test(3); }
+    [[nodiscard]] constexpr bool Mode1Condition() const { return test(4); }
+    [[nodiscard]] constexpr bool Mode2Condition() const { return test(5); }
+    [[nodiscard]] constexpr bool LycEqLyEnable() const { return test(6); }
+
+    constexpr void SetMode(Mode mode)
+    {
+        *this &= 0b1111'1100;
+        *this |= std::to_underlying(mode);
+    }
+    constexpr void SetMode(Mode mode, uint8_t& interrupts)
+    {
+        SetMode(mode);
+        if ((mode == Mode::HBlank && Mode0Condition()) ||
+            (mode == Mode::VBlank && Mode1Condition()) || (mode == Mode::Oam && Mode2Condition()))
+        {
+            interrupts |= sm83::IntLcd;
+        }
+    }
+    constexpr void SetCompareFlag(bool on = true) { set(2, on); }
+    constexpr void SetMode0Condition(bool on = true) { set(3, on); }
+    constexpr void SetMode1Condition(bool on = true) { set(4, on); }
+    constexpr void SetMode2Condition(bool on = true) { set(5, on); }
+    constexpr void SetLycEqLyEnable(bool on = true) { set(6, on); }
+};
+
+struct LcdControl : public std::bitset<8>
+{
+    using std::bitset<8>::bitset;
+
+    explicit operator uint8_t() const { return static_cast<uint8_t>(to_ulong()); }
+
+    [[nodiscard]] constexpr bool BgWinEnabled() const { return test(0); }
+    [[nodiscard]] constexpr bool ObjEnabled() const { return test(1); }
+    [[nodiscard]] constexpr bool ObjTallSize() const { return test(2); }
+    [[nodiscard]] constexpr bool BgTileMap() const { return test(3); }
+    [[nodiscard]] constexpr bool BgWinTileData() const { return test(4); }
+    [[nodiscard]] constexpr bool WindowEnabled() const { return test(5); }
+    [[nodiscard]] constexpr bool WindowTileMap() const { return test(6); }
+    [[nodiscard]] constexpr bool LcdEnabled() const { return test(7); }
+
+    [[nodiscard]] constexpr uint16_t GetTileAddress(uint8_t tile_index) const
+    {
+        if (BgWinTileData()) { return 0x8000 + (static_cast<uint16_t>(tile_index) * 16); }
+        if (tile_index >= 128) { return 0x8800 + ((static_cast<uint16_t>(tile_index - 128)) * 16); }
+        return 0x9000 + (static_cast<uint16_t>(tile_index) * 16);
+    }
+
+    [[nodiscard]] constexpr uint16_t GetBackgroundTileMapAddress() const
+    {
+        return !BgTileMap() ? 0x9800 : 0x9c00;
+    }
+    [[nodiscard]] constexpr uint16_t GetWindowTileMapAddress() const
+    {
+        return !WindowTileMap() ? 0x9800 : 0x9c00;
+    }
+    [[nodiscard]] constexpr uint8_t GetSpriteHeight() const { return ObjTallSize() ? 16 : 8; }
 };
 
 using LcdBuffer = std::array<Color, kLcdSize>;
