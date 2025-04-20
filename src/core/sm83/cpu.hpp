@@ -936,7 +936,7 @@ ALWAYS_INLINE void Cpu::Instr_NOP() {}
 
 ALWAYS_INLINE void Cpu::Instr_RLCA()
 {
-    const bool carry = a_ & (1 << 7);
+    const bool carry = GetBit<7>(a_);
     const auto result = static_cast<uint8_t>((a_ << 1) | carry);
 
     zf_ = false;
@@ -949,7 +949,7 @@ ALWAYS_INLINE void Cpu::Instr_RLCA()
 
 ALWAYS_INLINE void Cpu::Instr_RRCA()
 {
-    const bool carry = a_ & 1;
+    const bool carry = GetBit<0>(a_);
     const auto result = static_cast<uint8_t>((a_ >> 1) | (carry << 7));
 
     zf_ = false;
@@ -967,7 +967,7 @@ ALWAYS_INLINE void Cpu::Instr_RLA()
     zf_ = false;
     nf_ = false;
     hf_ = false;
-    cf_ = a_ & (1 << 7);
+    cf_ = GetBit<7>(a_);
 
     a_ = result;
 }
@@ -979,7 +979,7 @@ ALWAYS_INLINE void Cpu::Instr_RRA()
     zf_ = false;
     nf_ = false;
     hf_ = false;
-    cf_ = a_ & 1;
+    cf_ = GetBit<0>(a_);
 
     a_ = result;
 }
@@ -988,7 +988,7 @@ template <R8 R>
 ALWAYS_INLINE void Cpu::Instr_RLC_R()
 {
     const uint8_t val = GetReg(R);
-    const bool carry = val & (1 << 7);
+    const bool carry = GetBit<7>(val);
     const auto result = static_cast<uint8_t>((val << 1) | carry);
 
     zf_ = !result;
@@ -1003,7 +1003,7 @@ ALWAYS_INLINE void Cpu::Instr_RLC_MEM_HL()
 {
     const uint16_t addr = GetReg(R16::Hl);
     const uint8_t val = ReadByte(addr);
-    const bool carry = val & (1 << 7);
+    const bool carry = GetBit<7>(val);
     const auto result = static_cast<uint8_t>((val << 1) | carry);
 
     zf_ = !result;
@@ -1018,7 +1018,7 @@ template <R8 R>
 ALWAYS_INLINE void Cpu::Instr_RRC_R()
 {
     const uint8_t val = GetReg(R);
-    const bool carry = val & 1;
+    const bool carry = GetBit<0>(val);
     const auto result = static_cast<uint8_t>((val >> 1) | (carry << 7));
 
     zf_ = !result;
@@ -1033,7 +1033,7 @@ ALWAYS_INLINE void Cpu::Instr_RRC_MEM_HL()
 {
     const uint16_t addr = GetReg(R16::Hl);
     const uint8_t val = ReadByte(addr);
-    const bool carry = val & 1;
+    const bool carry = GetBit<0>(val);
     const auto result = static_cast<uint8_t>((val >> 1) | (carry << 7));
 
     zf_ = !result;
@@ -1053,7 +1053,7 @@ ALWAYS_INLINE void Cpu::Instr_RL_R()
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = val & (1 << 7);
+    cf_ = GetBit<7>(val);
 
     SetReg(R, result);
 }
@@ -1081,7 +1081,7 @@ ALWAYS_INLINE void Cpu::Instr_RR_R()
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = val & 1;
+    cf_ = GetBit<0>(val);
 
     SetReg(R, result);
 }
@@ -1095,7 +1095,7 @@ ALWAYS_INLINE void Cpu::Instr_RR_MEM_HL()
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = val & 1;
+    cf_ = GetBit<0>(val);
 
     WriteByte(addr, result);
 }
@@ -1104,13 +1104,12 @@ template <R8 R>
 ALWAYS_INLINE void Cpu::Instr_SLA_R()
 {
     const uint8_t val = GetReg(R);
-    const bool carry = val & (1 << 7);
     const auto result = static_cast<uint8_t>(val << 1);
 
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = carry;
+    cf_ = GetBit<7>(val);
 
     SetReg(R, result);
 }
@@ -1119,7 +1118,7 @@ ALWAYS_INLINE void Cpu::Instr_SLA_MEM_HL()
 {
     const uint16_t addr = GetReg(R16::Hl);
     const uint8_t val = ReadByte(addr);
-    const bool carry = val & (1 << 7);
+    const bool carry = GetBit<7>(val);
     const auto result = static_cast<uint8_t>(val << 1);
 
     zf_ = !result;
@@ -1134,13 +1133,12 @@ template <R8 R>
 ALWAYS_INLINE void Cpu::Instr_SRA_R()
 {
     const uint8_t val = GetReg(R);
-    const bool carry = val & 1;
     const auto result = static_cast<uint8_t>((val >> 1) | (val & (1 << 7)));
 
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = carry;
+    cf_ = GetBit<0>(val);
 
     SetReg(R, result);
 }
@@ -1149,13 +1147,12 @@ ALWAYS_INLINE void Cpu::Instr_SRA_MEM_HL()
 {
     const uint16_t addr = GetReg(R16::Hl);
     const uint8_t val = ReadByte(addr);
-    const bool carry = val & 1;
     const auto result = static_cast<uint8_t>((val >> 1) | (val & (1 << 7)));
 
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = carry;
+    cf_ = GetBit<0>(val);
 
     WriteByte(addr, result);
 }
@@ -1192,13 +1189,12 @@ template <R8 R>
 ALWAYS_INLINE void Cpu::Instr_SRL_R()
 {
     const uint8_t val = GetReg(R);
-    const bool carry = val & 1;
     const uint8_t result = val >> 1;
 
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = carry;
+    cf_ = GetBit<0>(val);
 
     SetReg(R, result);
 }
@@ -1207,13 +1203,12 @@ ALWAYS_INLINE void Cpu::Instr_SRL_MEM_HL()
 {
     const uint16_t addr = GetReg(R16::Hl);
     const uint8_t val = ReadByte(addr);
-    const bool carry = val & 1;
     const uint8_t result = val >> 1;
 
     zf_ = !result;
     nf_ = false;
     hf_ = false;
-    cf_ = carry;
+    cf_ = GetBit<0>(val);
 
     WriteByte(addr, result);
 }

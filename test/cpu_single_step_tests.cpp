@@ -83,10 +83,10 @@ struct CpuRegistersState
     friend std::ostream& operator<<(std::ostream& os, const CpuRegistersState& state)
     {
         const std::string flags = {
-            (state.f & (1 << 7)) ? 'Z' : '-',
-            (state.f & (1 << 6)) ? 'N' : '-',
-            (state.f & (1 << 5)) ? 'H' : '-',
-            (state.f & (1 << 4)) ? 'C' : '-',
+            GetBit<7>(state.f) ? 'Z' : '-',
+            GetBit<6>(state.f) ? 'N' : '-',
+            GetBit<5>(state.f) ? 'H' : '-',
+            GetBit<4>(state.f) ? 'C' : '-',
         };
         return os << fmt::format(
                    "PC={:#06x} SP={:#06x} A={:#04x} B={:#04x} C={:#04x} "

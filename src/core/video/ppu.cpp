@@ -285,7 +285,7 @@ void Ppu::RenderSprites(size_t scanline_start)
     for (const auto& [_, sprite] : scanline_sprite_buffer_)
     {
         const uint8_t tile_index =
-            lcd_control_.ObjTallSize() ? sprite.tile_index & ~1 : sprite.tile_index;
+            lcd_control_.ObjTallSize() ? ClearBit<0>(sprite.tile_index) : sprite.tile_index;
 
         uint8_t row = scan_y_ - (sprite.y - 16);
         if (sprite.flags.YFlip()) { row = lcd_control_.GetSpriteHeight() - 1 - row; }

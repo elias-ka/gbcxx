@@ -37,19 +37,21 @@
 namespace gb
 {
 template <size_t Offset, std::integral T>
-    requires std::is_integral_v<T>
+    requires(Offset < std::numeric_limits<T>::digits)
 [[nodiscard]] constexpr T GetBit(T value)
 {
     return (value >> Offset) & T{1};
 }
 
 template <size_t Offset, std::integral T>
+    requires(Offset < std::numeric_limits<T>::digits)
 [[nodiscard]] constexpr T SetBit(T value)
 {
     return value | (T{1} << Offset);
 }
 
 template <size_t Offset, std::integral T>
+    requires(Offset < std::numeric_limits<T>::digits)
 [[nodiscard]] constexpr T ClearBit(T value)
 {
     return value & ~(T{1} << Offset);
