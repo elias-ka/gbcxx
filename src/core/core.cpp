@@ -10,7 +10,7 @@ Core::Core(const std::filesystem::path& rom_path, DrawCallback draw_cb)
 {
 #ifndef __EMSCRIPTEN__
     auto& cartridge = cpu_.GetBus().cartridge;
-    if (cartridge.has_battery && std::filesystem::exists(save_path_))
+    if (cartridge.HasBattery() && std::filesystem::exists(save_path_))
     {
         auto save_file = std::ifstream{save_path_, std::ios::in | std::ios::binary};
         cartridge.LoadRam(save_file);
@@ -22,7 +22,7 @@ Core::~Core()
 {
 #ifndef __EMSCRIPTEN__
     const auto& cartridge = cpu_.GetBus().cartridge;
-    if (cartridge.has_battery) { SaveRam(); }
+    if (cartridge.HasBattery()) { SaveRam(); }
 #endif
 }
 

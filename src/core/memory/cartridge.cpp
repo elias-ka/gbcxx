@@ -52,13 +52,12 @@ constexpr std::array<uint8_t, 11> kBatterySupportedCodes = {
 
 Cartridge Cartridge::FromRom(std::vector<uint8_t> rom)
 {
-    const uint8_t code = rom[0x147];
+    const uint8_t code = rom.at(0x147);
     const auto cart_name = kCartridgeNameTable[code];
     LOG_INFO("Cartridge: {}", cart_name);
 
     Cartridge cart;
-
-    cart.mbc = [&]() -> std::unique_ptr<Mbc>
+    cart.mbc_ = [&]() -> std::unique_ptr<Mbc>
     {
         switch (code)
         {
@@ -76,26 +75,25 @@ Cartridge Cartridge::FromRom(std::vector<uint8_t> rom)
         default: DIE("MBC: Unimplemented cartridge code {:X}", code);
         }
     }();
-
-    cart.has_battery = std::ranges::contains(kBatterySupportedCodes, code);
+    cart.has_battery_ = std::ranges::contains(kBatterySupportedCodes, code);
     return cart;
 }
 
 uint8_t Cartridge::ReadByte(uint16_t addr) const
 {
-    if (addr >= kCartridgeStart && addr <= kCartridgeEnd) { return mbc->ReadRom(addr); }
-    if (addr >= kExternalRamStart && addr <= kExternalRamEnd) { return mbc->ReadRam(addr); }
+    if (addr >= kCartridgeStart && addr <= kCartridgeEnd) { return mbc_->ReadRom(addr); }
+    if (addr >= kExternalRamStart && addr <= kExternalRamEnd) { return mbc_->ReadRam(addr); }
     LOG_ERROR("Cartridge: Unmapped read {:X}", addr);
     return 0;
 }
 
 void Cartridge::WriteByte(uint16_t addr, uint8_t val) const
 {
-    if (addr >= kCartridgeStart && addr <= kCartridgeEnd) { mbc->WriteRom(addr, val); }
-    else if (addr >= kExternalRamStart && addr <= kExternalRamEnd) { mbc->WriteRam(addr, val); }
+    if (addr >= kCartridgeStart && addr <= kCartridgeEnd) { mbc_->WriteRom(addr, val); }
+    else if (addr >= kExternalRamStart && addr <= kExternalRamEnd) { mbc_->WriteRam(addr, val); }
     else { LOG_ERROR("Cartridge: Unmapped write {:X} <- {:X}", addr, val); }
 }
 
-void Cartridge::LoadRam(std::ifstream& save_file) const { mbc->LoadRam(save_file); }
-void Cartridge::SaveRam(std::ofstream& save_file) const { mbc->SaveRam(save_file); }
+void Cartridge::LoadRam(std::ifstream& save_file) const { mbc_->LoadRam(save_file); }
+void Cartridge::SaveRam(std::ofstream& save_file) const { mbc_->SaveRam(save_file); }
 }  // namespace gb::memory
