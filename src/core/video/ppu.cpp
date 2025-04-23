@@ -314,7 +314,8 @@ void Ppu::RenderSprites(size_t scanline_start)
     }
 }
 
-Color Ppu::FetchTilePixel(uint8_t tile_idx, uint8_t x_off, uint8_t y_off, uint8_t pal) const
+ALWAYS_INLINE Color Ppu::FetchTilePixel(uint8_t tile_idx, uint8_t x_off, uint8_t y_off,
+                                        uint8_t pal) const
 {
     const uint16_t tile_addr = lcd_control_.GetTileAddress(tile_idx);
     const uint8_t byte1 = ReadByte(tile_addr + y_off);
@@ -322,7 +323,7 @@ Color Ppu::FetchTilePixel(uint8_t tile_idx, uint8_t x_off, uint8_t y_off, uint8_
     return GetPixelColor(pal, GetPixelColorIndex(byte1, byte2, x_off));
 }
 
-Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y) const
+ALWAYS_INLINE Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y) const
 {
     if (!lcd_control_.BgWinEnabled()) { return kDmgPalette[0]; }
 
@@ -339,7 +340,7 @@ Color Ppu::FetchBackgroundPixel(uint8_t scan_x, uint8_t scan_y) const
     return FetchTilePixel(tile_idx, x_off, y_off, bgp_);
 }
 
-Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y) const
+ALWAYS_INLINE Color Ppu::FetchWindowPixel(uint8_t scan_x, uint8_t scan_y) const
 {
     if (scan_y_ < window_y_ || scan_x < window_x_ - 7 || !lcd_control_.WindowEnabled() ||
         !lcd_control_.BgWinEnabled())
